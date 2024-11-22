@@ -1,0 +1,3 @@
+mkdir -p src/pages/{dashboard,assets,admin,verification,auth,reports}
+mkdir -p src/ui/components/{common,forms,layouts}
+mkdir -p src/ui/features/{assets,verification,reports} 

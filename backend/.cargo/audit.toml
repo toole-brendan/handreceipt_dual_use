@@ -1,0 +1,20 @@
+# This is the Cargo audit config file for the backend crate.
+
+[database]
+path = "~/.cargo/advisory-db"
+url = "https://github.com/RustSec/advisory-db"
+fetch = true
+stale = false
+
+[output]
+deny = ["unmaintained", "unsound", "yanked"]
+format = "terminal"
+quiet = false
+show-tree = true
+
+[target]
+arch = "x86_64"
+os = "macos"
+
+[dependencies]
+deduplicate = true 

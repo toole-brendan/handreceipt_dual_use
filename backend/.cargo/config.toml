@@ -1,0 +1,36 @@
+# This is the Cargo config file for the backend crate.
+
+[build]
+rustflags = ["-C", "debuginfo=2"]
+target-dir = "target"
+
+[target.'cfg(debug_assertions)']
+rustflags = ["-C", "debuginfo=2"]
+
+[net]
+git-fetch-with-cli = true
+
+[cargo-new]
+vcs = "git"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 0
+debug = true
+
+[profile.release.package."*"]
+opt-level = 3
+
+[env]
+CARGO_TARGET_DIR = { value = "target", relative = true }
+RUST_LOG = { value = "debug", force = true }
+RUST_BACKTRACE = { value = "1", force = true }
+
+[profile.dev]
+debug = 2
+debug-assertions = true
+overflow-checks = true 

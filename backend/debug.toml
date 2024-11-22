@@ -1,0 +1,21 @@
+[logging]
+level = "debug"
+format = "detailed"
+timestamp = true
+file_output = true
+console_output = true
+
+[middleware]
+timing_threshold_warn = 100  # ms
+timing_threshold_error = 500 # ms
+memory_tracking = true
+request_tracking = true
+
+[performance]
+track_memory = true
+track_timing = true
+track_requests = true
+
+[debug]
+stack_traces = true
+verbose_errors = true 

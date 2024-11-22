@@ -1,0 +1,237 @@
+/* frontend/src/ui/styles/blockchain/index.css */
+
+/* Blockchain Page Container */
+.blockchain-page {
+  padding: var(--spacing-lg);
+}
+
+.page-header {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.page-header h2 {
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Blockchain Grid */
+.blockchain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.grid-col-2 {
+  grid-column: span 2;
+}
+
+/* Blockchain Overview */
+.blockchain-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.stat-item {
+  background: var(--surface-secondary);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  transition: transform var(--transition-speed) ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+/* Block Explorer */
+.block-explorer {
+  padding: var(--spacing-md);
+}
+
+.search-container {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.search-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-md);
+  font-family: monospace;
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* Transaction List */
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.transaction-item {
+  background: var(--surface-secondary);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  transition: transform var(--transition-speed) ease;
+}
+
+.transaction-item:hover {
+  transform: translateX(4px);
+}
+
+.tx-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.tx-hash {
+  font-family: monospace;
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+}
+
+.tx-time {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.tx-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--spacing-xs) 0;
+}
+
+.tx-addresses {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.tx-status {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+}
+
+.tx-status.pending {
+  background: rgba(var(--warning-color-rgb), 0.1);
+  color: var(--warning-color);
+}
+
+.tx-status.confirmed {
+  background: rgba(var(--success-color-rgb), 0.1);
+  color: var(--success-color);
+}
+
+.tx-status.failed {
+  background: rgba(var(--danger-color-rgb), 0.1);
+  color: var(--danger-color);
+}
+
+.tx-amount {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+/* Network Status */
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+}
+
+.network-status.healthy {
+  background: rgba(var(--success-color-rgb), 0.1);
+  color: var(--success-color);
+}
+
+.network-status.degraded {
+  background: rgba(var(--warning-color-rgb), 0.1);
+  color: var(--warning-color);
+}
+
+.network-status.critical {
+  background: rgba(var(--danger-color-rgb), 0.1);
+  color: var(--danger-color);
+}
+
+.status-icon {
+  font-size: var(--font-size-xl);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .grid-col-2 {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .blockchain-page {
+    padding: var(--spacing-md);
+  }
+
+  .blockchain-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .blockchain-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .search-container {
+    flex-direction: column;
+  }
+
+  .search-input,
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .stat-item,
+  .transaction-item {
+    background: var(--dark-surface-secondary);
+  }
+
+  .search-input {
+    background: var(--dark-surface-secondary);
+    color: var(--text-primary);
+  }
+} 

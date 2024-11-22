@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Security Headers -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data: https:;
+        connect-src 'self' https://api.military-assets.gov;
+        frame-ancestors 'none';
+      "
+    />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- Viewport and Compatibility -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- SEO Meta Tags -->
+    <title>Military Asset Tracking System</title>
+    <meta name="description" content="Secure military asset tracking and management system with blockchain integration and real-time monitoring capabilities." />
+    <meta name="keywords" content="Military Asset Tracking, Secure Asset Management, Blockchain, Military Logistics, Asset Security" />
+    <meta name="author" content="Department of Defense" />
+    <meta name="application-name" content="Military Asset Tracker" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Military Asset Tracking System" />
+    <meta property="og:description" content="Secure military asset tracking and management system" />
+    <meta property="og:site_name" content="Military Asset Tracker" />
+
+    <!-- Mobile Meta -->
+    <meta name="theme-color" content="#1a237e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Asset Tracker" />
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Preload Critical Resources -->
+    <link 
+      rel="preconnect" 
+      href="https://fonts.googleapis.com" 
+      crossorigin="anonymous"
+    />
+    <link 
+      rel="preconnect" 
+      href="https://fonts.gstatic.com" 
+      crossorigin="anonymous"
+    />
+    <link 
+      href="https://fonts.googleapis.com/icon?family=Material+Icons" 
+      rel="stylesheet"
+      crossorigin="anonymous"
+    />
+
+    <!-- Preload Critical CSS -->
+    <link 
+      rel="preload" 
+      href="/src/index.css" 
+      as="style"
+    />
+    
+    <!-- No Script Fallback -->
+    <noscript>
+      <style>
+        .js-required {
+          display: none !important;
+        }
+        .no-js-message {
+          display: block !important;
+          padding: 20px;
+          text-align: center;
+          background-color: #f44336;
+          color: white;
+        }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <noscript>
+      <div class="no-js-message">
+        JavaScript is required to run this application. Please enable JavaScript to continue.
+      </div>
+    </noscript>
+
+    <!-- Application Root -->
+    <div id="root"></div>
+
+    <!-- Loading Indicator -->
+    <div id="app-loader" class="app-loader">
+      <div class="loader-spinner"></div>
+      <p>Loading Military Asset Tracking System...</p>
+    </div>
+
+    <!-- Application Entry Point -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Error Tracking Script -->
+    <script 
+      src="/error-tracking.js"
+      integrity="sha384-..."
+      crossorigin="anonymous"
+      async
+      data-environment="production"
+    ></script>
+  </body>
+</html> 

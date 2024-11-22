@@ -1,0 +1,18 @@
+[advisories]
+ignore = []
+informational_warnings = ["unmaintained", "unsound"]
+severity_threshold = "low"
+
+[output]
+format = "terminal"
+quiet = false
+show-tree = true
+
+[dependencies]
+deduplicate = true
+target_arch = "x86_64"
+target_os = "macos"
+
+[yanked]
+enabled = true
+update_index = true 
