@@ -1,107 +1,45 @@
-pub mod core;
 pub mod asset;
-pub mod network;
+pub mod core;
 pub mod infrastructure;
+pub mod network;
+pub mod security;
 
-// Re-export core service traits from types module
-pub use crate::types::app::{
-    SecurityService,
-    BlockchainService,
-    AssetVerification,
-    AuditLogger,
-    SyncManager,
+use crate::types::{
+    app::{
+        CoreService, DatabaseService, SecurityService,
+        AssetVerification, AuditLogger, MeshService,
+        P2PService, SyncManager
+    },
+    error::CoreError,
 };
 
-// Re-export core types
-pub use crate::types::{
-    // Security types
-    security::{
-        SecurityContext,
-        SecurityClassification,
-        KeyType,
-        AuditEvent,
-    },
-    
-    // Permission types
-    permissions::{
-        Action,
-        Permission,
-        ResourceType,
-        Constraint,
-    },
-
-    // Verification types
-    verification::{
-        VerificationStatus,
-        ValidationStatus,
-        SignatureContext,
-        SignatureStatus,
-    },
-
-    // Asset types
-    asset::{
-        Asset,
-        AssetStatus,
-        LocationData,
-        LocationMetadata,
-    },
-
-    // Network types
-    mesh::{
-        PeerInfo,
-        PeerCapability,
-        AuthStatus,
-        QueueItem,
-        OfflineData,
-    },
-
-    sync::{
-        SyncStatus,
-        SyncType,
-        SyncRequest,
-        SyncPriority,
-        Change,
-        ChangeOperation,
-        Resolution,
-        ResolutionType,
-    },
-
-    // Error types
-    error::{
-        CoreError,
-        NetworkError,
-        SecurityError,
-        AssetError,
-        DatabaseError,
-        MeshError,
-    },
+pub use self::{
+    core::CoreServiceImpl,
+    infrastructure::InfrastructureService,
+    security::SecurityModuleImpl,
+    core::verification::VerificationManagerImpl,
+    core::audit::AuditManagerImpl,
+    network::mesh::MeshServiceImpl,
+    network::p2p::P2PServiceImpl,
+    network::sync::service::SyncManagerImpl,
 };
+
+// Re-export service traits
+pub trait ServiceInit {
+    fn initialize(&self) -> Result<(), CoreError>;
+    fn shutdown(&self) -> Result<(), CoreError>;
+}
+
+#[async_trait::async_trait]
+pub trait ServiceLifecycle {
+    async fn start(&self) -> Result<(), CoreError>;
+    async fn stop(&self) -> Result<(), CoreError>;
+}
 
 // Re-export service implementations
-pub use self::core::{
-    CoreModule,
-    security::AccessControl,
-    verification::VerificationManager,
-    audit::AuditManager,
-};
-
-pub use self::network::{
-    mesh::MeshService,
-    sync::SyncService,
-};
-
-pub use self::infrastructure::{
-    InfrastructureModule,
-    database::DatabaseService,
-    blockchain::BlockchainService,
-};
-
-pub use self::asset::{
-    AssetService,
-    scanning::ScanningService,
-    location::LocationService,
-    transfer::TransferService,
-};
-
-// Type alias for service results
-pub type Result<T> = std::result::Result<T, CoreError>;
+pub use self::core::CoreServiceImpl as CoreModule;
+pub use self::security::SecurityModuleImpl as SecurityModule;
+pub use self::infrastructure::InfrastructureService as DatabaseModule;
+pub use self::network::mesh::MeshServiceImpl as MeshModule;
+pub use self::network::p2p::P2PServiceImpl as P2PModule;
+pub use self::network::sync::service::SyncManagerImpl as SyncModule;

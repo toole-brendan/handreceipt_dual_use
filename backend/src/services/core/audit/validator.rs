@@ -1,4 +1,4 @@
-use crate::services::core::audit::{AuditEvent, AuditError};
+use crate::types::audit::{AuditEvent, AuditError};
 use serde_json::Value;
 
 pub struct AuditValidator {
@@ -19,18 +19,15 @@ impl AuditValidator {
     }
 
     pub fn validate(&self, event: &AuditEvent) -> Result<(), AuditError> {
-        // Validate required fields are not empty
-        if event.event_type.is_empty() {
-            return Err(AuditError::InvalidData("event_type cannot be empty".to_string()));
-        }
-        if event.action.is_empty() {
-            return Err(AuditError::InvalidData("action cannot be empty".to_string()));
+        // Validate required fields
+        if event.context.action.is_empty() {
+            return Err(AuditError::Validation("action cannot be empty".to_string()));
         }
 
         // Validate details size
         let details_size = self.calculate_json_size(&event.details);
         if details_size > self.max_details_size {
-            return Err(AuditError::InvalidData(format!(
+            return Err(AuditError::Validation(format!(
                 "details size exceeds maximum allowed size of {} bytes",
                 self.max_details_size
             )));

@@ -1,12 +1,25 @@
 use crate::types::{
     security::SecurityContext,
     error::MeshError,
-    sync::{SyncStatus, SyncState},
+    sync::{SyncStatus, SyncRequest, SyncPriority},
 };
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+#[derive(Debug)]
+pub struct SyncState {
+    pub last_sync: DateTime<Utc>,
+    pub pending_transfers: Vec<Uuid>,
+    pub status: SyncStatus,
+}
+
+#[derive(Debug)]
+pub struct SyncManager {
+    security_context: Arc<SecurityContext>,
+    sync_state: Arc<RwLock<SyncState>>,
+}
 
 impl SyncManager {
     pub fn new(security_context: Arc<SecurityContext>) -> Self {

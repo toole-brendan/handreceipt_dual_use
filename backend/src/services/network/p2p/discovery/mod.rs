@@ -28,7 +28,7 @@ impl PeerDiscovery {
             return Err(MeshError::SystemError("Max peers reached".to_string()));
         }
 
-        peers.insert(peer.node_id.clone(), peer);
+        peers.insert(peer.id.to_string(), peer);
         Ok(())
     }
 

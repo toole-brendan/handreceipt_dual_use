@@ -4,10 +4,11 @@ use tokio::sync::RwLock;
 use crate::types::{
     mesh::{
         PeerInfo, AuthStatus, QueueItem, OfflineData,
-        PeerCapability, SyncPriority,
+        PeerCapability, Message, DiscoveryMessage,
     },
-    sync::{SyncType, Resolution},
+    sync::{SyncType, Resolution, SyncStatus, Change},
     error::MeshError,
+    security::SecurityContext,
 };
 
 // Use relative imports for service implementations
@@ -17,11 +18,11 @@ use super::{
         authenticator::PeerAuthenticator,
     },
     sync::{
-        manager::SyncManager,
+        manager::{SyncManager, OfflineStorage},
         resolver::ConflictResolver,
     },
     offline::{
-        storage::OfflineStorage,
+        storage::OfflineStorage as OfflineStorageImpl,
         queue::SyncQueue,
     },
 };
@@ -31,7 +32,7 @@ pub struct MeshService {
     authenticator: Arc<PeerAuthenticator>,
     sync_manager: Arc<SyncManager>,
     conflict_resolver: Arc<RwLock<ConflictResolver>>,
-    offline_storage: Arc<OfflineStorage>,
+    offline_storage: Arc<OfflineStorageImpl>,
     sync_queue: Arc<SyncQueue>,
 }
 
@@ -48,8 +49,8 @@ impl MeshService {
             
         let authenticator = Arc::new(PeerAuthenticator::new());
         
-        // Initialize SyncManager with required parameters
-        let storage = Arc::new(OfflineStorage::new(max_storage_size));
+        // Initialize with concrete implementation
+        let storage = Arc::new(OfflineStorageImpl::new(max_storage_size));
         let sync_manager = Arc::new(SyncManager::new(storage.clone()));
         
         let conflict_resolver = Arc::new(RwLock::new(ConflictResolver::new()));
@@ -92,14 +93,14 @@ impl MeshService {
                         item.clone()
                     ).await {
                         Ok(_) => {
-                            // Update sync status in storage
+                            // Convert UUID to string
+                            let id_str = item.id.to_string();
                             let _ = offline_storage.update_sync_status(
-                                &item.id,
+                                &id_str,
                                 crate::types::sync::SyncStatus::Completed
                             ).await;
                         }
                         Err(e) => {
-                            // Handle sync failure
                             let _ = sync_queue.requeue_failed(item).await;
                             eprintln!("Sync error: {}", e);
                         }
@@ -114,46 +115,42 @@ impl MeshService {
 
     async fn process_sync_item(
         sync_manager: &SyncManager,
-        offline_storage: &OfflineStorage,
+        offline_storage: &OfflineStorageImpl,
         conflict_resolver: &RwLock<ConflictResolver>,
         item: QueueItem,
     ) -> Result<(), MeshError> {
+        let id_str = item.id.to_string();
+        
         // Get data from storage
-        let data = offline_storage.get(&item.id).await
-            .ok_or_else(|| MeshError::DataNotFound(item.id.clone()))?;
+        let data = offline_storage.get(&id_str).await
+            .ok_or_else(|| MeshError::DataNotFound(id_str.clone()))?;
 
         // Check for conflicts
-        if let Some(remote_data) = sync_manager.get_remote_data(&item.id).await {
+        if let Some(remote_data) = sync_manager.get_remote_data(&id_str).await {
             let resolver = conflict_resolver.read().await;
             let resolution = resolver.resolve_conflicts(
-                &data.into(),
+                &Change::from(data),
                 &remote_data
             ).await;
 
             match resolution {
                 Resolution::Accept(change) => {
-                    sync_manager.apply_change(change).await
-                        .map_err(|e| MeshError::SyncFailed {
-                            peer_id: item.id.clone(),
-                            reason: e.to_string(),
-                        })?;
+                    sync_manager.apply_change(change).await?;
                 }
                 Resolution::Reject => {
                     return Err(MeshError::ConflictResolutionFailed {
-                        resource_id: item.id,
+                        resource_id: id_str,
                         reason: "Change rejected".to_string(),
                     });
                 }
                 Resolution::Merge(merged) => {
-                    sync_manager.apply_change(merged).await
-                        .map_err(|e| MeshError::SyncFailed {
-                            peer_id: item.id.clone(),
-                            reason: e.to_string(),
-                        })?;
+                    sync_manager.apply_change(merged).await?;
                 }
             }
         }
 
+        // Update sync status using types from centralized location
+        offline_storage.update_sync_status(&id_str, crate::types::sync::SyncStatus::Completed).await?;
         Ok(())
     }
 
@@ -161,7 +158,7 @@ impl MeshService {
         // Get peer info
         let peers = self.peer_scanner.get_available_peers().await;
         let peer = peers.iter()
-            .find(|p| p.node_id == peer_id)
+            .find(|p| p.id.to_string() == peer_id)
             .ok_or_else(|| MeshError::PeerNotFound(peer_id.to_string()))?;
 
         // Authenticate peer

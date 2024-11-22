@@ -1,4 +1,7 @@
-use crate::services::core::audit::{AuditEvent, AuditError};
+use crate::types::{
+    audit::{AuditEvent, AuditError},
+    security::SecurityContext,
+};
 use ring::digest::{Context, SHA256};
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -29,7 +32,11 @@ impl AuditChain {
         }
     }
 
-    pub async fn add_event(&self, event: AuditEvent) -> Result<(), AuditError> {
+    pub async fn add_event(
+        &self,
+        event: AuditEvent,
+        context: &SecurityContext,
+    ) -> Result<(), AuditError> {
         let mut pending = self.pending_events.write().await;
         pending.push(event);
 
@@ -49,7 +56,7 @@ impl AuditChain {
         }
 
         let previous_block = blocks.last().ok_or_else(|| {
-            AuditError::Storage("Chain is empty".to_string())
+            AuditError::ChainVerification("Chain is empty".to_string())
         })?;
 
         let events: Vec<AuditEvent> = pending.drain(..).collect();
@@ -130,16 +137,11 @@ impl AuditBlock {
         // Add events to hash
         for event in &self.events {
             context.update(event.id.as_bytes());
-            context.update(event.timestamp.timestamp().to_be_bytes());
-            context.update(event.event_type.as_bytes());
-            context.update(event.action.as_bytes());
-            if let Some(user_id) = &event.user_id {
-                context.update(user_id.as_bytes());
-            }
-            if let Some(resource_id) = &event.resource_id {
-                context.update(resource_id.as_bytes());
-            }
-            context.update(&serde_json::to_vec(&event.details).unwrap_or_default());
+            let timestamp_bytes = event.timestamp.timestamp_nanos().to_be_bytes();
+            context.update(&timestamp_bytes);
+            context.update(serde_json::to_string(&event.event_type).unwrap_or_default().as_bytes());
+            context.update(serde_json::to_string(&event.status).unwrap_or_default().as_bytes());
+            context.update(serde_json::to_string(&event.details).unwrap_or_default().as_bytes());
         }
 
         let digest = context.finish();

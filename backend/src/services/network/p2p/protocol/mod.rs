@@ -1,6 +1,6 @@
 use crate::types::{
     mesh::{
-        Message, PeerInfo, PeerCapability, AssetState,
+        Message, PeerInfo, PeerCapability,
         DiscoveryMessage, AssetMessage, LocationMessage,
         TransferMessage, SyncMessage,
     },

@@ -1,4 +1,7 @@
-use crate::services::core::audit::{AuditEvent, AuditError, AuditStatus};
+use crate::types::{
+    audit::{AuditEvent, AuditStatus, AuditEventType, AuditSeverity, AuditError},
+    security::SecurityContext,
+};
 use chrono::Utc;
 use serde_json::Value;
 use std::sync::Arc;
@@ -19,54 +22,13 @@ impl AuditLogger {
 
     pub async fn log_event(
         &self,
-        event_type: &str,
-        action: &str,
-        status: AuditStatus,
-        details: Value,
-    ) -> Result<AuditEvent, AuditError> {
-        let event = AuditEvent {
-            id: uuid::Uuid::new_v4().to_string(),
-            timestamp: Utc::now(),
-            event_type: event_type.to_string(),
-            user_id: None,
-            resource_id: None,
-            action: action.to_string(),
-            status,
-            details,
-        };
-
-        self.buffer_event(event.clone()).await?;
-        Ok(event)
-    }
-
-    pub async fn log_user_event(
-        &self,
-        user_id: &str,
-        event_type: &str,
-        action: &str,
-        status: AuditStatus,
-        details: Value,
-    ) -> Result<AuditEvent, AuditError> {
-        let event = AuditEvent {
-            id: uuid::Uuid::new_v4().to_string(),
-            timestamp: Utc::now(),
-            event_type: event_type.to_string(),
-            user_id: Some(user_id.to_string()),
-            resource_id: None,
-            action: action.to_string(),
-            status,
-            details,
-        };
-
-        self.buffer_event(event.clone()).await?;
-        Ok(event)
-    }
-
-    async fn buffer_event(&self, event: AuditEvent) -> Result<(), AuditError> {
+        event: AuditEvent,
+        context: &SecurityContext,
+    ) -> Result<(), AuditError> {
         let mut buffer = self.buffer.lock().await;
         
         if buffer.len() >= self.buffer_size {
-            return Err(AuditError::Storage("Audit buffer is full".to_string()));
+            return Err(AuditError::LoggingFailed("Audit buffer is full".to_string()));
         }
 
         buffer.push(event);

@@ -1,62 +1,97 @@
+use std::sync::Arc;
+use async_trait::async_trait;
+use deadpool_postgres::Pool;
+use tokio_postgres::Row;
+use uuid::Uuid;
+
+use crate::types::{
+    app::DatabaseService,
+    error::CoreError,
+    security::SecurityContext,
+    asset::Asset,
+};
+
+use self::storage::{
+    DatabaseConnection,
+    postgres::{
+        PostgresConnection,
+        repositories::PostgresAssetRepository,
+        migrations,
+    },
+};
+
 pub mod storage;
 
-use std::sync::Arc;
-use crate::services::core::security::SecurityModule;
-use crate::types::error::DatabaseError;
-
-/// Infrastructure service factory
 pub struct InfrastructureService {
-    storage: Arc<storage::postgres::PostgresPool>,
+    db_pool: Pool,
+    asset_repo: PostgresAssetRepository,
 }
 
 impl InfrastructureService {
-    /// Create a new infrastructure service
-    pub async fn new(security: Arc<SecurityModule>) -> Result<Self, DatabaseError> {
-        let storage = Arc::new(storage::postgres::PostgresPool::new(security).await?);
+    pub fn new(db_pool: Pool) -> Self {
+        Self {
+            db_pool,
+            asset_repo: PostgresAssetRepository::default(),
+        }
+    }
+
+    pub async fn get_connection(&self) -> Result<PostgresConnection, CoreError> {
+        let pool_conn = self.db_pool
+            .get()
+            .await
+            .map_err(|e| CoreError::Database(e.to_string()))?;
         
-        Ok(Self {
-            storage,
-        })
+        let client = pool_conn.into_inner();
+        Ok(PostgresConnection::new(client))
     }
 
-    /// Get the asset repository
-    pub fn asset_repository(&self) -> Arc<dyn storage::repositories::AssetRepository + Send + Sync> {
-        Arc::new(storage::postgres::repositories::PostgresAssetRepository::new(self.storage.clone()))
-    }
+    pub async fn initialize(&self) -> Result<(), CoreError> {
+        let pool_conn = self.db_pool
+            .get()
+            .await
+            .map_err(|e| CoreError::Database(e.to_string()))?;
 
-    /// Get the audit repository
-    pub fn audit_repository(&self) -> Arc<dyn storage::repositories::AuditRepository + Send + Sync> {
-        // TODO: Implement PostgresAuditRepository
-        unimplemented!()
-    }
-
-    /// Get the security repository
-    pub fn security_repository(&self) -> Arc<dyn storage::repositories::SecurityRepository + Send + Sync> {
-        // TODO: Implement PostgresSecurityRepository
-        unimplemented!()
-    }
-
-    /// Get the raw database connection pool
-    /// 
-    /// Warning: This is provided for legacy support and direct database access.
-    /// New code should use the repository interfaces instead.
-    #[deprecated(
-        since = "0.1.0",
-        note = "Use repository interfaces instead of direct database access"
-    )]
-    pub fn database(&self) -> Arc<storage::postgres::PostgresPool> {
-        self.storage.clone()
+        let client = pool_conn.into_inner();
+        migrations::run_migrations(&client).await?;
+        Ok(())
     }
 }
 
-#[cfg(test)]
-pub mod test {
-    use super::*;
-    use crate::services::core::security::test::MockSecurityModule;
+#[async_trait]
+impl DatabaseService for InfrastructureService {
+    async fn execute_query(
+        &self,
+        query: &str,
+        params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
+        _security_context: &SecurityContext,
+    ) -> Result<Vec<Row>, CoreError> {
+        let conn = self.get_connection().await?;
+        conn.query(query, params).await
+    }
 
-    /// Create a test infrastructure service
-    pub async fn create_test_service() -> InfrastructureService {
-        let security = Arc::new(MockSecurityModule::new());
-        InfrastructureService::new(security).await.unwrap()
+    async fn get_asset(
+        &self,
+        id: Uuid,
+        security_context: &SecurityContext,
+    ) -> Result<Option<Asset>, CoreError> {
+        let conn = self.get_connection().await?;
+        self.asset_repo.get_by_id(&conn, id, security_context).await
+    }
+
+    async fn update_asset(
+        &self,
+        asset: &Asset,
+        security_context: &SecurityContext,
+    ) -> Result<(), CoreError> {
+        let conn = self.get_connection().await?;
+        self.asset_repo.update(&conn, asset, security_context).await
+    }
+
+    async fn list_assets(
+        &self,
+        security_context: &SecurityContext,
+    ) -> Result<Vec<Asset>, CoreError> {
+        let conn = self.get_connection().await?;
+        self.asset_repo.list(&conn, security_context).await
     }
 }

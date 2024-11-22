@@ -4,6 +4,8 @@ use aes_gcm::{
 };
 use ring::rand::SystemRandom;
 use std::error::Error;
+use async_trait::async_trait;
+use crate::types::error::MeshError;
 
 pub struct EncryptionService {
     cipher: Aes256Gcm,
@@ -65,4 +67,25 @@ pub enum EncryptionError {
 
     #[error("Key generation failed")]
     KeyGenerationFailed,
+}
+
+#[async_trait]
+pub trait KeyManagement: Send + Sync {
+    async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError>;
+    async fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError>;
+}
+
+pub struct DefaultKeyManager;
+
+#[async_trait]
+impl KeyManagement for DefaultKeyManager {
+    async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError> {
+        // TODO: Implement real encryption
+        Ok(data.to_vec())
+    }
+
+    async fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError> {
+        // TODO: Implement real decryption
+        Ok(data.to_vec())
+    }
 }

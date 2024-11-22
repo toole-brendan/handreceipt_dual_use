@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 use sha2::{Sha256, Digest};
 use crate::models::signature::{SignatureType, CommandSignature};
-use crate::core::SecurityClassification;
+use crate::types::security::SecurityClassification;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AssetTransfer {

@@ -4,23 +4,22 @@ pub mod service;
 pub mod manager;
 
 pub use service::SyncService;
-pub use manager::{SyncManager, SyncStatus, SyncType};
+pub use manager::SyncManager;
 
-// Common sync types
-#[derive(Debug, Clone)]
-pub enum SyncError {
-    ConnectionFailed(String),
-    AuthenticationFailed(String),
-    ValidationFailed(String),
-    TransferFailed(String),
-    Timeout(String),
-}
+use crate::types::{
+    sync::{
+        SyncType, SyncStatus, SyncPriority, SyncMetrics,
+        SyncMetadata, SyncHandler, SyncError,
+    },
+    error::MeshError,
+    security::SecurityContext,
+};
 
-#[derive(Debug, Clone)]
-pub struct SyncMetrics {
-    pub total_transfers: usize,
-    pub successful_transfers: usize,
-    pub failed_transfers: usize,
-    pub last_sync: Option<chrono::DateTime<chrono::Utc>>,
-    pub average_sync_time: std::time::Duration,
-}
+// Re-export commonly used types
+pub use crate::types::sync::{
+    Change,
+    ChangeOperation,
+    Resolution,
+    BroadcastMessage,
+    OfflineData,
+};

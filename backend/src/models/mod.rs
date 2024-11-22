@@ -26,6 +26,7 @@ use postgres_types::{ToSql, FromSql, Type};
 use bytes::BytesMut;
 use postgres_types::to_sql_checked;
 use postgis::ewkb::Point;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeoPoint {
@@ -64,40 +65,18 @@ pub struct LocationMetadata {
 }
 
 #[derive(Debug, Clone)]
-pub struct UuidWrapper(pub uuid::Uuid);
+pub struct UuidWrapper(pub Uuid);
 
-impl From<UuidWrapper> for uuid::Uuid {
-    fn from(wrapper: UuidWrapper) -> Self {
-        wrapper.0
-    }
-}
-
-impl ToSql for UuidWrapper {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) 
-        -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Send + Sync>> {
-        postgres_types::ToSql::to_sql(&self.0, ty, out)
+impl tokio_postgres::types::ToSql for UuidWrapper {
+    fn to_sql(&self, ty: &tokio_postgres::types::Type, out: &mut bytes::BytesMut) -> Result<tokio_postgres::types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
+        self.0.to_sql(ty, out)
     }
 
-    fn accepts(ty: &Type) -> bool {
-        <uuid::Uuid as ToSql>::accepts(ty)
+    fn accepts(ty: &tokio_postgres::types::Type) -> bool {
+        <Uuid as tokio_postgres::types::ToSql>::accepts(ty)
     }
 
-    fn to_sql_checked(&self, ty: &Type, out: &mut BytesMut) 
-        -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Send + Sync>> {
-        postgres_types::ToSql::to_sql_checked(&self.0, ty, out)
-    }
-}
-
-impl<'a> FromSql<'a> for UuidWrapper {
-    fn from_sql(ty: &Type, raw: &'a [u8]) 
-        -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let uuid = uuid::Uuid::from_sql(ty, raw)?;
-        Ok(UuidWrapper(uuid))
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <uuid::Uuid as FromSql>::accepts(ty)
-    }
+    to_sql_checked!();
 }
 
 #[derive(Debug, Clone)]

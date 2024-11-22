@@ -4,7 +4,7 @@ use qrcode::render::svg;
 use chrono::Utc;
 use async_trait::async_trait;
 
-use crate::core::CoreError;
+use crate::types::error::CoreError;
 use crate::services::asset::scanning::common::{Scanner, ScanResult, ScanError, ScanType};
 
 pub struct QRCodeService {

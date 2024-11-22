@@ -28,47 +28,43 @@ impl Default for DiscoveryConfig {
 /// Represents a peer in the mesh network
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerInfo {
-    pub node_id: String,
+    pub id: Uuid,
     pub address: String,
     pub capabilities: Vec<PeerCapability>,
     pub last_seen: DateTime<Utc>,
-    pub metadata: HashMap<String, String>,
+    pub status: AuthStatus,
 }
 
 /// Represents capabilities of a peer
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PeerCapability {
     Sync,
-    Storage,
+    Discovery,
     Relay,
-    Gateway,
-    Scanner,
-    Validator,
+    Storage,
 }
 
 /// Represents the authentication status of a peer
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AuthStatus {
-    Verified,
     Pending,
+    Verified,
+    Authenticated,
     Failed,
-    Revoked,
 }
 
 /// Represents a queue item for sync operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueueItem {
-    pub id: String,
-    pub peer_id: String,
-    pub sync_type: SyncType,
+    pub id: Uuid,
+    pub data: Vec<u8>,
+    pub timestamp: DateTime<Utc>,
     pub priority: SyncPriority,
     pub attempts: u32,
-    pub last_attempt: Option<DateTime<Utc>>,
-    pub status: SyncStatus,
 }
 
 /// Represents different types of mesh network messages
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Message {
     Discovery(DiscoveryMessage),
     Asset(AssetMessage),
@@ -77,99 +73,64 @@ pub enum Message {
     Sync(SyncMessage),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DiscoveryMessage {
     Ping,
     Pong,
     Announce(PeerInfo),
-    Leave(String), // peer_id
+    Leave(String),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum AssetMessage {
-    LocationUpdate {
-        asset_id: String,
-        location: GeoPoint,
-        timestamp: DateTime<Utc>,
-    },
-    StatusUpdate {
-        asset_id: String,
-        status: AssetStatus,
-        metadata: serde_json::Value,
-    },
-    Query {
-        asset_id: String,
-        query_type: AssetQueryType,
-    },
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssetMessage {
+    pub id: Uuid,
+    pub data: Vec<u8>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum LocationMessage {
-    Update(GeoPoint),
-    Request(String), // asset_id
-    Response {
-        asset_id: String,
-        location: Option<GeoPoint>,
-    },
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocationMessage {
+    pub id: Uuid,
+    pub latitude: f64,
+    pub longitude: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum TransferMessage {
-    Request {
-        transfer_id: String,
-        asset_id: String,
-        destination: String,
-    },
-    Validation {
-        transfer_id: String,
-        is_valid: bool,
-        reason: Option<String>,
-    },
-    Complete {
-        transfer_id: String,
-        success: bool,
-        metadata: Option<serde_json::Value>,
-    },
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferMessage {
+    pub id: Uuid,
+    pub from: String,
+    pub to: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum SyncMessage {
-    StateRequest {
-        from_timestamp: DateTime<Utc>,
-        asset_ids: Vec<String>,
-    },
-    StateResponse {
-        states: Vec<AssetState>,
-        timestamp: DateTime<Utc>,
-    },
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncMessage {
+    pub id: Uuid,
+    pub data: Vec<u8>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AssetState {
-    pub asset_id: String,
-    pub location: Option<GeoPoint>,
-    pub status: AssetStatus,
-    pub last_updated: DateTime<Utc>,
-    pub metadata: serde_json::Value,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum AssetQueryType {
-    Location,
-    Status,
-    History,
-    Full,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfflineData {
+    pub id: Uuid,
+    pub data: Vec<u8>,
+    pub timestamp: DateTime<Utc>,
+    pub sync_priority: SyncPriority,
+    pub attempts: u32,
+    pub created_at: DateTime<Utc>,
 }
 
 impl PeerInfo {
-    pub fn new(node_id: String, address: String) -> Self {
+    pub fn new(id: String, address: String) -> Self {
         Self {
-            node_id,
+            id: Uuid::new_v4(),
             address,
             capabilities: Vec::new(),
             last_seen: Utc::now(),
-            metadata: HashMap::new(),
+            status: AuthStatus::Pending,
         }
+    }
+
+    pub fn with_capabilities(mut self, capabilities: Vec<PeerCapability>) -> Self {
+        self.capabilities = capabilities;
+        self
     }
 
     pub fn with_capability(mut self, capability: PeerCapability) -> Self {
@@ -183,28 +144,5 @@ impl PeerInfo {
 
     pub fn update_last_seen(&mut self) {
         self.last_seen = Utc::now();
-    }
-}
-
-impl QueueItem {
-    pub fn new(id: String, peer_id: String, sync_type: SyncType, priority: SyncPriority) -> Self {
-        Self {
-            id,
-            peer_id,
-            sync_type,
-            priority,
-            attempts: 0,
-            last_attempt: None,
-            status: SyncStatus::Pending,
-        }
-    }
-
-    pub fn increment_attempts(&mut self) {
-        self.attempts += 1;
-        self.last_attempt = Some(Utc::now());
-    }
-
-    pub fn should_retry(&self, max_attempts: u32) -> bool {
-        self.attempts < max_attempts
     }
 }

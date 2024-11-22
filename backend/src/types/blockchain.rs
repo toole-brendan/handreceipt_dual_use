@@ -54,6 +54,16 @@ pub enum NodeStatus {
     Error,
 }
 
+/// Represents network metrics for the blockchain
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkMetrics {
+    pub connected_peers: usize,
+    pub pending_transactions: usize,
+    pub blocks_processed: u64,
+    pub network_latency: f64,
+    pub sync_status: String,
+}
+
 impl Block {
     pub fn new(transactions: Vec<Transaction>, previous_hash: String, classification: SecurityClassification) -> Self {
         Self {

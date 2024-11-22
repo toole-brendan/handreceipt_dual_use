@@ -1,37 +1,69 @@
+pub mod encryption;
 pub mod access_control;
 pub mod audit;
-pub mod encryption;
 pub mod hsm;
 pub mod key_management;
 pub mod mfa;
 pub mod validation;
 
-// Use types from the new types module
+pub use encryption::KeyManagement;
+pub use access_control::AccessControl;
+
+use std::sync::Arc;
+use uuid::Uuid;
 use crate::types::{
-    permissions::{Permission, ResourceType, Action},
-    security::{SecurityContext, SecurityClassification, KeyType, AuditEvent},
-    error::{SecurityError, CoreError},
+    security::{SecurityContext, SecurityClassification},
+    permissions::{Action, Permission, ResourceType},
+    error::CoreError,
 };
 
-// Re-export service traits and implementations
-pub use self::access_control::AccessControl;
-pub use self::encryption::EncryptionService;
-pub use self::hsm::{HsmManager, HsmConfig};
-pub use self::key_management::KeyRotationManager;
-pub use self::mfa::MfaManager;
+pub struct SecurityModule {
+    context: Arc<SecurityContext>,
+}
 
-// Re-export error types from the new error module
-pub use crate::types::error::{
-    SecurityError as AccessControlError,
-    SecurityError as AuditError,
-    SecurityError as EncryptionError,
-    SecurityError as HsmError,
-    SecurityError as KeyError,
-    SecurityError as MfaError,
-};
+impl SecurityModule {
+    pub fn new() -> Self {
+        // Create a default security context for initialization
+        let context = SecurityContext::new(
+            SecurityClassification::Unclassified,
+            Uuid::new_v4(),
+            "default-token".to_string(),
+            vec![],
+        );
+        
+        Self {
+            context: Arc::new(context),
+        }
+    }
 
-// Re-export status types from the new types module
-pub use crate::types::security::{
-    AuditEvent as AuditEventType,
-    KeyType as MfaTokenType,
-};
+    pub fn with_context(context: SecurityContext) -> Self {
+        Self {
+            context: Arc::new(context),
+        }
+    }
+
+    pub async fn hash_document(&self, data: &str) -> Result<String, CoreError> {
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(data);
+        Ok(format!("{:x}", hasher.finalize()))
+    }
+
+    pub fn get_context(&self) -> Arc<SecurityContext> {
+        self.context.clone()
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::*;
+
+    pub fn create_test_context() -> SecurityContext {
+        SecurityContext::new(
+            SecurityClassification::Unclassified,
+            Uuid::new_v4(),
+            "test-token".to_string(),
+            vec![],
+        )
+    }
+}

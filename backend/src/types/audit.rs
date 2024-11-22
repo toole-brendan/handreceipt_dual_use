@@ -1,22 +1,32 @@
+use thiserror::Error;
 use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use std::collections::HashMap;
 
-/// Represents an audit event
+use super::security::SecurityContext;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditEvent {
-    pub id: String,
+    pub id: Uuid,
     pub timestamp: DateTime<Utc>,
-    pub event_type: String,
-    pub user_id: Option<String>,
-    pub resource_id: Option<String>,
-    pub action: String,
+    pub event_type: AuditEventType,
     pub status: AuditStatus,
     pub details: serde_json::Value,
+    pub context: AuditContext,
 }
 
-/// Represents the status of an audit event
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AuditEventType {
+    AssetCreated,
+    AssetUpdated,
+    AssetDeleted,
+    AssetTransferred,
+    SecurityViolation,
+    SystemEvent,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuditStatus {
     Success,
     Failure,
@@ -24,89 +34,45 @@ pub enum AuditStatus {
     Info,
 }
 
-/// Represents different types of audit events
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum AuditEventType {
-    Security,
-    Asset,
-    Transfer,
-    Access,
-    System,
-    Network,
-    Blockchain,
-    Sync,
-    Scan,
-}
-
-/// Represents the severity of an audit event
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuditSeverity {
-    Critical,
-    High,
-    Medium,
     Low,
-    Info,
+    Medium,
+    High,
+    Critical,
 }
 
-impl AuditEvent {
-    pub fn new(
-        event_type: String,
-        action: String,
-        status: AuditStatus,
-        details: serde_json::Value,
-    ) -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            timestamp: Utc::now(),
-            event_type,
-            user_id: None,
-            resource_id: None,
-            action,
-            status,
-            details,
-        }
-    }
-
-    pub fn with_user(mut self, user_id: String) -> Self {
-        self.user_id = Some(user_id);
-        self
-    }
-
-    pub fn with_resource(mut self, resource_id: String) -> Self {
-        self.resource_id = Some(resource_id);
-        self
-    }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditContext {
+    pub user_id: Option<String>,
+    pub resource_id: Option<String>,
+    pub action: String,
+    pub severity: AuditSeverity,
+    pub metadata: Option<HashMap<String, String>>,
 }
 
-impl Default for AuditStatus {
-    fn default() -> Self {
-        Self::Info
-    }
+#[derive(Error, Debug)]
+pub enum AuditError {
+    #[error("Database error: {0}")]
+    Database(String),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("Chain verification failed: {0}")]
+    ChainVerification(String),
+
+    #[error("Logging failed: {0}")]
+    LoggingFailed(String),
 }
 
-impl std::fmt::Display for AuditStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AuditStatus::Success => write!(f, "SUCCESS"),
-            AuditStatus::Failure => write!(f, "FAILURE"),
-            AuditStatus::Warning => write!(f, "WARNING"),
-            AuditStatus::Info => write!(f, "INFO"),
-        }
-    }
-}
-
-impl std::fmt::Display for AuditEventType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AuditEventType::Security => write!(f, "SECURITY"),
-            AuditEventType::Asset => write!(f, "ASSET"),
-            AuditEventType::Transfer => write!(f, "TRANSFER"),
-            AuditEventType::Access => write!(f, "ACCESS"),
-            AuditEventType::System => write!(f, "SYSTEM"),
-            AuditEventType::Network => write!(f, "NETWORK"),
-            AuditEventType::Blockchain => write!(f, "BLOCKCHAIN"),
-            AuditEventType::Sync => write!(f, "SYNC"),
-            AuditEventType::Scan => write!(f, "SCAN"),
+impl From<AuditError> for super::error::CoreError {
+    fn from(err: AuditError) -> Self {
+        match err {
+            AuditError::Database(msg) => Self::Database(msg),
+            AuditError::Validation(msg) => Self::ValidationError(msg),
+            AuditError::ChainVerification(msg) => Self::SecurityViolation(msg),
+            AuditError::LoggingFailed(msg) => Self::InternalError(msg),
         }
     }
 }

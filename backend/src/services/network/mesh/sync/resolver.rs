@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use crate::types::sync::{
-    Change, ChangeOperation, ChangeSet,
-    Resolution, ResolutionStrategy,
+    Change, ChangeOperation, Resolution, ResolutionStrategy,
 };
 
 pub struct ConflictResolver {
@@ -48,54 +47,16 @@ impl ConflictResolver {
     }
 
     fn merge_changes(&self, local: &Change, remote: &Change) -> Change {
-        match local.operation {
-            ChangeOperation::Create => {
-                // For create operations, prefer the newer version
-                if local.version > remote.version {
-                    local.clone()
-                } else {
-                    remote.clone()
-                }
-            },
-            ChangeOperation::Update => {
-                // For updates, merge the data if possible
-                let mut merged_data = local.data.clone();
-                if let (Some(local_obj), Some(remote_obj)) = (local.data.as_object(), remote.data.as_object()) {
-                    for (key, value) in remote_obj {
-                        if !local_obj.contains_key(key) {
-                            if let Some(obj) = merged_data.as_object_mut() {
-                                obj.insert(key.clone(), value.clone());
-                            }
-                        }
-                    }
-                }
-
-                Change::new(
-                    local.resource_id.clone(),
-                    ChangeOperation::Update,
-                    merged_data,
-                )
-                .with_version(std::cmp::max(local.version, remote.version) + 1)
-                .with_metadata(local.metadata.clone().unwrap_or_default())
-            },
-            ChangeOperation::Delete => {
-                // For deletes, prefer the delete operation
-                if local.operation == ChangeOperation::Delete {
-                    local.clone()
-                } else {
-                    remote.clone()
-                }
-            },
-            ChangeOperation::Merge => {
-                // For merge operations, combine metadata and use higher version
-                let mut merged = local.clone();
-                if let (Some(local_meta), Some(remote_meta)) = (&local.metadata, &remote.metadata) {
-                    let mut combined_meta = local_meta.clone();
-                    combined_meta.extend(remote_meta.clone());
-                    merged = merged.with_metadata(combined_meta);
-                }
-                merged.with_version(std::cmp::max(local.version, remote.version) + 1)
-            },
+        let mut merged = local.clone();
+        merged.version = std::cmp::max(local.version, remote.version) + 1;
+        
+        // Merge metadata if present
+        if let (Some(local_meta), Some(remote_meta)) = (&local.metadata, &remote.metadata) {
+            let mut combined_meta = local_meta.clone();
+            combined_meta.extend(remote_meta.clone());
+            merged.metadata = Some(combined_meta);
         }
+
+        merged
     }
 }

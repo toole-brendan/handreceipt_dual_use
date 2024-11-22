@@ -2,10 +2,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
-use tokio_postgres::types::{ToSql, FromSql, Type, IsNull};
+use uuid::Uuid;
+use tokio_postgres::types::{FromSql, ToSql, Type, IsNull};
 use bytes::BytesMut;
 use postgres_types::{accepts, to_sql_checked};
-use uuid::Uuid;
+use std::error::Error;
 
 use super::error::CoreError;
 use super::security::SecurityClassification;
@@ -150,22 +151,19 @@ impl FromStr for AssetStatus {
 }
 
 impl ToSql for AssetStatus {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
-        let s = self.to_string();
-        s.to_sql(ty, out)
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Send + Sync>> {
+        self.to_string().to_sql(ty, out)
     }
 
-    accepts!(VARCHAR, TEXT);
-
+    accepts!(TEXT);
     to_sql_checked!();
 }
 
 impl<'a> FromSql<'a> for AssetStatus {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let s = <String as FromSql>::from_sql(ty, raw)?;
-        AssetStatus::from_str(&s)
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let s = <&str as FromSql>::from_sql(ty, raw)?;
+        s.parse().map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)
     }
 
-    accepts!(VARCHAR, TEXT);
+    accepts!(TEXT);
 }

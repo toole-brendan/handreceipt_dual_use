@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use ring::signature::{self, KeyPair};
 use ring::rand::SystemRandom;
-use crate::core::security::key_management::KeyType;
+use crate::types::security::key_management::KeyType;
 
 #[derive(Debug, Clone)]
 pub struct HsmConfig {

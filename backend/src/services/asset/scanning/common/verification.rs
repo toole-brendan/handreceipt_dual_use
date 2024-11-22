@@ -1,16 +1,18 @@
 use super::{ScanResult, ScanError, ScanVerifier};
-use crate::core::security::SecurityModule;
-use crate::infrastructure::database::DatabaseService;
+use crate::{
+    types::app::DatabaseService,
+    services::core::security::SecurityModule,
+};
 use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct VerificationService {
-    db: Arc<DatabaseService>,
+    db: Arc<dyn DatabaseService>,
     security: Arc<SecurityModule>,
 }
 
 impl VerificationService {
-    pub fn new(db: Arc<DatabaseService>, security: Arc<SecurityModule>) -> Self {
+    pub fn new(db: Arc<dyn DatabaseService>, security: Arc<SecurityModule>) -> Self {
         Self { db, security }
     }
 }

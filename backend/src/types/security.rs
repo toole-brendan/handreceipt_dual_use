@@ -11,6 +11,15 @@ use uuid::Uuid;
 use super::error::CoreError;
 use super::permissions::{Action, Permission, ResourceType};
 
+pub mod key_management {
+    #[derive(Debug, Clone, Copy)]
+    pub enum KeyType {
+        Encryption,
+        Signing,
+        Authentication,
+    }
+}
+
 /// Represents different security classification levels
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SecurityClassification {
@@ -109,7 +118,7 @@ impl SecurityContext {
 
     pub fn can_replicate(&self) -> bool {
         self.permissions.iter().any(|perm| {
-            perm.resource == ResourceType::REPLICATION
+            perm.resource == ResourceType::Replication
         })
     }
 

@@ -1,14 +1,16 @@
-pub mod repositories;
-pub mod migrations;
-pub mod extensions;
-pub mod models;
-
 use async_trait::async_trait;
 use tokio_postgres::{Client, Row, Transaction};
 use std::pin::Pin;
 use futures::Future;
 use crate::types::error::CoreError;
-use super::{DatabaseConnection, StorageResult};
+
+pub type StorageResult<T> = Result<T, CoreError>;
+
+#[async_trait]
+pub trait DatabaseConnection: Send + Sync {
+    async fn execute(&self, query: &str, params: &[&(dyn tokio_postgres::types::ToSql + Sync)]) -> StorageResult<u64>;
+    async fn query(&self, query: &str, params: &[&(dyn tokio_postgres::types::ToSql + Sync)]) -> StorageResult<Vec<Row>>;
+}
 
 pub struct PostgresConnection {
     client: Client,
@@ -19,17 +21,19 @@ impl PostgresConnection {
         Self { client }
     }
 
-    pub async fn transaction<'a, F, T>(&'a self, f: F) -> StorageResult<T>
+    pub async fn transaction<'a, F, T>(&'a mut self, f: F) -> StorageResult<T>
     where
-        F: for<'b> FnOnce(&'b mut Transaction<'b>) -> Pin<Box<dyn Future<Output = StorageResult<T>> + Send + 'b>> + Send + 'a,
+        F: FnOnce(&'a mut Transaction<'_>) -> Pin<Box<dyn Future<Output = StorageResult<T>> + Send + 'a>> + Send + 'a,
         T: Send + 'static,
     {
         let tx = self.client.transaction()
             .await
             .map_err(|e| CoreError::Database(e.to_string()))?;
 
-        let mut tx = tx;
-        let result = f(&mut tx).await;
+        let result = {
+            let mut tx = tx;
+            f(&mut tx).await
+        };
 
         match result {
             Ok(value) => {
@@ -39,33 +43,9 @@ impl PostgresConnection {
                 Ok(value)
             }
             Err(e) => {
-                let _ = tx.rollback().await;
-                Err(e)
-            }
-        }
-    }
-
-    pub async fn execute_in_transaction<'a, F, T>(&'a self, f: F) -> StorageResult<T>
-    where
-        F: FnOnce(&mut Transaction<'_>) -> Pin<Box<dyn Future<Output = StorageResult<T>> + Send + '_>> + Send + 'a,
-        T: Send + 'static,
-    {
-        let tx = self.client.transaction()
-            .await
-            .map_err(|e| CoreError::Database(e.to_string()))?;
-
-        let mut tx = tx;
-        let result = f(&mut tx).await;
-
-        match result {
-            Ok(value) => {
-                tx.commit()
+                tx.rollback()
                     .await
                     .map_err(|e| CoreError::Database(e.to_string()))?;
-                Ok(value)
-            }
-            Err(e) => {
-                let _ = tx.rollback().await;
                 Err(e)
             }
         }
@@ -85,4 +65,4 @@ impl DatabaseConnection for PostgresConnection {
             .await
             .map_err(|e| CoreError::Database(e.to_string()))
     }
-}
+} 

@@ -1,44 +1,37 @@
-pub mod connection;
-pub mod models;
-pub mod queries;
+use async_trait::async_trait;
+use tokio_postgres::Row;
+use crate::types::error::CoreError;
+
+pub mod postgres;
 pub mod repositories;
+pub mod models;
 
-// Re-export commonly used types
-pub use connection::DatabaseConnection;
-pub use models::StorageModel;
-pub use repositories::Repository;
+pub type StorageResult<T> = Result<T, CoreError>;
 
-use crate::types::error::DatabaseError;
+#[async_trait]
+pub trait DatabaseConnection: Send + Sync {
+    async fn execute(
+        &self,
+        query: &str,
+        params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
+    ) -> StorageResult<u64>;
 
-/// Result type for storage operations
-pub type StorageResult<T> = Result<T, DatabaseError>;
-
-/// Trait for database-backed models
-pub trait StorageModel: Send + Sync {
-    /// The type of the model's primary key
-    type Id;
-
-    /// Convert the model to a database-friendly format
-    fn to_storage(&self) -> StorageResult<serde_json::Value>;
-
-    /// Create a model from database data
-    fn from_storage(data: serde_json::Value) -> StorageResult<Self>
-    where
-        Self: Sized;
+    async fn query(
+        &self,
+        query: &str,
+        params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
+    ) -> StorageResult<Vec<Row>>;
 }
 
-/// Trait for database connections
-#[async_trait::async_trait]
-pub trait DatabaseConnection: Send + Sync {
-    /// Execute a query that returns no rows
-    async fn execute(&self, query: &str, params: &[&(dyn tokio_postgres::types::ToSql + Sync)]) -> StorageResult<u64>;
+pub trait FromRow: Sized {
+    fn from_row(row: &tokio_postgres::Row) -> Result<Self, CoreError>;
+}
 
-    /// Execute a query that returns rows
-    async fn query(&self, query: &str, params: &[&(dyn tokio_postgres::types::ToSql + Sync)]) -> StorageResult<Vec<tokio_postgres::Row>>;
+pub trait ToRow {
+    fn to_row(&self) -> Vec<Box<dyn tokio_postgres::types::ToSql + Sync>>;
+}
 
-    /// Begin a transaction
-    async fn transaction<F, T>(&self, f: F) -> StorageResult<T>
-    where
-        F: FnOnce(&tokio_postgres::Transaction<'_>) -> futures::future::BoxFuture<'_, StorageResult<T>> + Send,
-        T: Send + 'static;
+pub trait Repository<T> {
+    fn table_name() -> &'static str;
+    fn columns() -> &'static [&'static str];
 }

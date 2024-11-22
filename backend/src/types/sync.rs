@@ -2,6 +2,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
+use async_trait::async_trait;
+use crate::types::{
+    error::CoreError,
+    security::SecurityContext,
+};
+use std::sync::Arc;
 
 /// Represents the status of a sync operation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -23,25 +29,24 @@ pub enum SyncType {
     SecurityOnly,
 }
 
-/// Represents a sync request between nodes
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyncRequest {
-    pub id: Uuid,
-    pub peer_id: String,
-    pub sync_type: SyncType,
-    pub timestamp: DateTime<Utc>,
-    pub priority: SyncPriority,
-    pub metadata: Option<HashMap<String, String>>,
+/// Common sync error types
+#[derive(Debug, Clone)]
+pub enum SyncError {
+    ConnectionFailed(String),
+    AuthenticationFailed(String),
+    ValidationFailed(String),
+    TransferFailed(String),
+    Timeout(String),
 }
 
-/// Represents the priority of a sync operation
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SyncPriority {
-    Critical,
-    High,
-    Normal,
-    Low,
-    Background,
+/// Sync metrics for monitoring
+#[derive(Debug, Clone)]
+pub struct SyncMetrics {
+    pub total_transfers: usize,
+    pub successful_transfers: usize,
+    pub failed_transfers: usize,
+    pub last_sync: Option<DateTime<Utc>>,
+    pub average_sync_time: std::time::Duration,
 }
 
 /// Represents a set of changes to be synced
@@ -74,12 +79,23 @@ pub enum ChangeOperation {
 }
 
 /// Represents different conflict resolution strategies
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ResolutionStrategy {
     LastWriteWins,
     MergeChanges,
     RequireManual,
-    Custom(Box<dyn Fn(&Change, &Change) -> Resolution + Send + Sync>),
+    Custom(Arc<dyn Fn(&Change, &Change) -> Resolution + Send + Sync>),
+}
+
+impl std::fmt::Debug for ResolutionStrategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LastWriteWins => write!(f, "LastWriteWins"),
+            Self::MergeChanges => write!(f, "MergeChanges"),
+            Self::RequireManual => write!(f, "RequireManual"),
+            Self::Custom(_) => write!(f, "Custom(...)"),
+        }
+    }
 }
 
 /// Represents the resolution of a sync conflict
@@ -101,6 +117,59 @@ pub struct OfflineData {
     pub attempts: u32,
 }
 
+/// Represents the priority of a sync operation
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SyncPriority {
+    Critical,
+    High,
+    Normal,
+    Low,
+    Background,
+}
+
+/// Represents a sync request between nodes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncRequest {
+    pub id: Uuid,
+    pub peer_id: String,
+    pub sync_type: SyncType,
+    pub timestamp: DateTime<Utc>,
+    pub priority: SyncPriority,
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BroadcastMessage {
+    pub id: Uuid,
+    pub message: String,
+    pub timestamp: DateTime<Utc>,
+    pub priority: SyncPriority,
+}
+
+/// Metadata about a sync operation
+#[derive(Debug, Clone)]
+pub struct SyncMetadata {
+    pub id: Uuid,
+    pub timestamp: DateTime<Utc>,
+    pub priority: SyncPriority,
+    pub status: SyncStatus,
+}
+
+/// Trait for handling sync operations
+#[async_trait]
+pub trait SyncHandler: Send + Sync {
+    async fn handle_sync(&self, sync_type: SyncType, context: &SecurityContext) -> Result<(), CoreError>;
+    async fn get_status(&self) -> Result<SyncStatus, CoreError>;
+    async fn cancel_sync(&self) -> Result<(), CoreError>;
+}
+
+/// Trait for blockchain service operations
+#[async_trait]
+pub trait BlockchainService: Send + Sync {
+    async fn broadcast_message(&self, message: &BroadcastMessage) -> Result<(), CoreError>;
+}
+
+// Implementation helpers
 impl Change {
     pub fn new(
         resource_id: String,
@@ -132,5 +201,16 @@ impl Change {
 impl Default for ResolutionStrategy {
     fn default() -> Self {
         Self::LastWriteWins
+    }
+}
+
+impl BroadcastMessage {
+    pub fn new(message: String, priority: SyncPriority) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            message,
+            timestamp: Utc::now(),
+            priority,
+        }
     }
 }

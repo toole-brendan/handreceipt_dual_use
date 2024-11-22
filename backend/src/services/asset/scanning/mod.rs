@@ -26,5 +26,5 @@ pub use self::nfc::{
 };
 
 use std::sync::Arc;
-use crate::infrastructure::database::DatabaseService;
-use crate::core::security::SecurityModule;
+use crate::types::app::DatabaseService;
+use crate::services::core::security::SecurityModule;

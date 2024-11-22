@@ -1,4 +1,4 @@
-use crate::core::security::EncryptionService;
+use crate::services::core::security::encryption::EncryptionService;
 use super::{ScanResult, ScanError};
 use ring::signature::{self, Ed25519KeyPair, KeyPair};
 use ring::rand::SystemRandom;

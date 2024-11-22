@@ -5,13 +5,16 @@ use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
 
-use crate::core::{SecurityContext, SecurityClassification};
-use crate::models::{
+use crate::types::{
+    security::{SecurityContext, SecurityClassification},
     error::CoreError,
     blockchain::{Block, Transaction},
 };
-use crate::services::SecurityModule;
-use crate::services::NetworkService;
+
+use crate::services::{
+    core::security::SecurityModule,
+    network::sync::SyncService as NetworkService,
+};
 
 pub struct MilitaryBlockchain {
     security: Arc<SecurityModule>,

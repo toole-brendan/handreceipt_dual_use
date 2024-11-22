@@ -1,29 +1,34 @@
-// backend/src/services/network/mesh/mod.rs
+use async_trait::async_trait;
+use crate::types::{
+    app::MeshService,
+    error::CoreError,
+};
 
 pub mod discovery;
-pub mod sync;
-pub mod offline;
 pub mod error;
+pub mod offline;
 pub mod service;
+pub mod sync;
 
-// Re-export commonly used types
-pub use discovery::{
-    peer_scanner::PeerScanner,
-    authenticator::{PeerAuthenticator, AuthStatus},
-};
+pub struct MeshServiceImpl;
 
-pub use sync::{
-    manager::{SyncManager, SyncType, SyncPriority, SyncStatus},
-    resolver::{ConflictResolver, Resolution, Change, ChangeOperation},
-};
+impl MeshServiceImpl {
+    pub fn new() -> Self {
+        Self
+    }
+}
 
-pub use offline::{
-    storage::{OfflineStorage, OfflineData, SyncStatus as StorageSyncStatus},
-    queue::{SyncQueue, QueueItem},
-};
+#[async_trait]
+impl MeshService for MeshServiceImpl {
+    async fn start(&self) -> Result<(), CoreError> {
+        // Initialize mesh networking
+        Ok(())
+    }
 
-pub use service::MeshService;
-pub use error::MeshError;
+    async fn stop(&self) -> Result<(), CoreError> {
+        // Cleanup mesh networking
+        Ok(())
+    }
+}
 
-// Export common types used across mesh modules
-pub use crate::services::core::security::encryption::KeyManagement;
+pub use service::MeshServiceImpl as MeshModule;

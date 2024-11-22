@@ -3,6 +3,7 @@ use tokio::sync::{mpsc, RwLock};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
+use serde_json::Value;
 
 use crate::types::{
     sync::{
@@ -11,7 +12,6 @@ use crate::types::{
     },
     error::MeshError,
     security::{SecurityClassification, SecurityContext},
-    mesh::OfflineData as MeshOfflineData,
 };
 
 #[derive(Debug, Clone)]
@@ -32,10 +32,31 @@ pub enum DataType {
     Audit,
 }
 
+#[async_trait::async_trait]
+pub trait OfflineStorage: Send + Sync {
+    async fn store(&self, data: OfflineData) -> Result<(), MeshError>;
+    async fn get(&self, id: &str) -> Option<OfflineData>;
+    async fn update_sync_status(&self, id: &str, status: SyncStatus) -> Result<(), MeshError>;
+}
+
+#[async_trait::async_trait]
+pub trait KeyManagement: Send + Sync {
+    async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError>;
+    async fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError>;
+}
+
+#[async_trait::async_trait]
+pub trait DebugOfflineStorage: OfflineStorage + std::fmt::Debug {}
+impl<T: OfflineStorage + std::fmt::Debug> DebugOfflineStorage for T {}
+
+#[async_trait::async_trait]
+pub trait DebugKeyManagement: KeyManagement + std::fmt::Debug {}
+impl<T: KeyManagement + std::fmt::Debug> DebugKeyManagement for T {}
+
 #[derive(Debug)]
 pub struct SyncManager {
-    storage: Arc<dyn OfflineStorage>,
-    key_management: Option<Arc<dyn KeyManagement>>,
+    storage: Arc<dyn DebugOfflineStorage>,
+    key_management: Option<Arc<dyn DebugKeyManagement>>,
     sync_state: Arc<RwLock<HashMap<String, SyncState>>>,
     sync_channel: mpsc::Sender<SyncRequest>,
 }
@@ -47,33 +68,80 @@ struct SyncState {
     retry_count: u32,
 }
 
-#[async_trait::async_trait]
-pub trait OfflineStorage: Send + Sync {
-    async fn store(&self, data: MeshOfflineData) -> Result<(), MeshError>;
-    async fn get(&self, id: &str) -> Option<MeshOfflineData>;
-    async fn update_sync_status(&self, id: &str, status: SyncStatus) -> Result<(), MeshError>;
-}
-
-#[async_trait::async_trait]
-pub trait KeyManagement: Send + Sync {
-    async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError>;
-    async fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError>;
-}
-
-impl From<MeshOfflineData> for Change {
-    fn from(data: MeshOfflineData) -> Self {
+impl From<OfflineData> for Change {
+    fn from(data: OfflineData) -> Self {
         Self {
             id: data.id,
-            data_type: data.data_type,
-            data: serde_json::to_vec(&data.data).unwrap_or_default(),
+            resource_id: data.data_type.clone(),
+            operation: ChangeOperation::Create,
+            data: data.data,
+            version: 1,
             timestamp: data.created_at,
-            priority: data.sync_priority,
+            metadata: Some(HashMap::new()),
         }
     }
 }
 
+#[derive(Debug)]
+pub struct KeyManagementImpl {
+    encryption_key: Vec<u8>,
+    signing_key: Vec<u8>,
+}
+
+impl KeyManagementImpl {
+    pub fn new(encryption_key: Vec<u8>, signing_key: Vec<u8>) -> Self {
+        Self {
+            encryption_key,
+            signing_key,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl KeyManagement for KeyManagementImpl {
+    async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError> {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm,
+        };
+        use generic_array::GenericArray;
+        
+        // Create cipher instance
+        let key = GenericArray::from_slice(&self.encryption_key);
+        let cipher = Aes256Gcm::new(key);
+        
+        // Create nonce
+        let nonce = generic_array::GenericArray::from_slice(&[0u8; 12]); // Use proper nonce in production
+        
+        // Encrypt
+        cipher
+            .encrypt(nonce, data)
+            .map_err(|e| MeshError::SystemError(format!("Encryption failed: {}", e)))
+    }
+
+    async fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, MeshError> {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm,
+        };
+        use generic_array::GenericArray;
+        
+        // Create cipher instance
+        let key = GenericArray::from_slice(&self.encryption_key);
+        let cipher = Aes256Gcm::new(key);
+        
+        // Create nonce
+        let nonce = generic_array::GenericArray::from_slice(&[0u8; 12]); // Use proper nonce in production
+        
+        // Decrypt
+        cipher
+            .decrypt(nonce, data)
+            .map_err(|e| MeshError::SystemError(format!("Decryption failed: {}", e)))
+    }
+}
+
 impl SyncManager {
-    pub fn new(storage: Arc<dyn OfflineStorage>) -> Self {
+    pub fn new(storage: Arc<dyn DebugOfflineStorage>) -> Self {
         let (tx, _) = mpsc::channel(100);
         
         Self {
@@ -84,7 +152,8 @@ impl SyncManager {
         }
     }
 
-    pub fn with_key_management(mut self, key_management: Arc<dyn KeyManagement>) -> Self {
+    pub fn with_key_management(mut self, encryption_key: Vec<u8>, signing_key: Vec<u8>) -> Self {
+        let key_management = Arc::new(KeyManagementImpl::new(encryption_key, signing_key));
         self.key_management = Some(key_management);
         self
     }
@@ -109,11 +178,7 @@ impl SyncManager {
         self.validate_classification(&data)?;
 
         // Encrypt sensitive data if key management is available
-        let encrypted_data = if let Some(ref km) = self.key_management {
-            self.encrypt_data(km, &data).await?
-        } else {
-            data.clone()
-        };
+        let encrypted_data = self.encrypt_data(&data).await?;
 
         // Update sync state
         let mut state = self.sync_state.write().await;
@@ -159,10 +224,11 @@ impl SyncManager {
         Ok(())
     }
 
-    async fn encrypt_data(&self, key_management: &dyn KeyManagement, data: &SyncData) -> Result<SyncData, MeshError> {
-        // Implement data encryption
+    async fn encrypt_data(&self, data: &SyncData) -> Result<SyncData, MeshError> {
         let mut encrypted = data.clone();
-        encrypted.payload = key_management.encrypt(&data.payload).await?;
+        if let Some(ref km) = self.key_management {
+            encrypted.payload = km.encrypt(&data.payload).await?;
+        }
         Ok(encrypted)
     }
 
@@ -171,7 +237,8 @@ impl SyncManager {
             SecurityClassification::TopSecret => SyncPriority::Critical,
             SecurityClassification::Secret => SyncPriority::High,
             SecurityClassification::Confidential => SyncPriority::Normal,
-            SecurityClassification::Unclassified => SyncPriority::Low,
+            SecurityClassification::Restricted => SyncPriority::Low,
+            SecurityClassification::Unclassified => SyncPriority::Background,
         }
     }
 }

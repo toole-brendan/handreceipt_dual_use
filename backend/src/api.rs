@@ -9,25 +9,23 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 // Import from types module
-use crate::types::{
-    app::AppState,
-    security::{SecurityContext, SecurityClassification},
-    permissions::{ResourceType, Action},
-    asset::{Asset, AssetStatus},
-    blockchain::{Block, Transaction, BlockchainTransaction},
-    error::CoreError,
-    sync::{SyncType, SyncRequest},
-    audit::AuditStatus,
-};
-
-// Import services
-use crate::services::{
-    security::SecurityModule,
-    infrastructure::{
-        blockchain::MilitaryBlockchain,
-        database::DatabaseService,
+use crate::{
+    models::UuidWrapper,
+    types::{
+        app::{AppState, DatabaseService},
+        security::{SecurityContext, SecurityClassification},
+        permissions::{ResourceType, Action},
+        asset::{Asset, AssetStatus},
+        blockchain::{Block, Transaction, BlockchainTransaction},
+        error::CoreError,
+        sync::{SyncType, SyncRequest, BroadcastMessage, SyncPriority},
+        audit::{AuditEvent, AuditStatus, AuditEventType, AuditContext, AuditSeverity},
+        signature::{CommandSignature, SignatureType},
     },
-    network::mesh::MeshService,
+    services::{
+        core::security::SecurityModule,
+        network::mesh::MeshService,
+    },
 };
 
 // Import handlers
@@ -70,12 +68,6 @@ pub struct ValidationRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BroadcastRequest {
     pub message: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SyncRequest {
-    pub target_nodes: Vec<String>,
-    pub sync_type: SyncType,
 }
 
 #[derive(Debug, Serialize)]
@@ -159,114 +151,56 @@ pub mod handlers {
     /// Asset Management Handlers
     pub async fn create_asset(
         state: web::Data<AppState>,
-        req: web::Json<CreateAssetRequest>,
+        asset_data: web::Json<Asset>,
         security_context: web::ReqData<SecurityContext>,
     ) -> Result<HttpResponse, Error> {
-        // Validate permissions
-        if !security_context.has_permission(&ResourceType::Asset, &Action::Create) {
-            return Ok(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
-                "Insufficient permissions".to_string(),
-            )));
-        }
+        // Create audit event
+        let event = AuditEvent {
+            id: Uuid::new_v4(),
+            timestamp: Utc::now(),
+            event_type: AuditEventType::AssetCreated,
+            status: AuditStatus::Success,
+            details: serde_json::json!({
+                "asset_name": asset_data.name,
+                "classification": asset_data.classification,
+            }),
+            context: AuditContext {
+                user_id: Some(security_context.user_id.to_string()),
+                resource_id: None,
+                action: "CREATE_ASSET".to_string(),
+                severity: AuditSeverity::Medium,
+                metadata: None,
+            },
+        };
 
-        // Log the action before creating the asset
-        state.audit_logger
-            .log_action(
-                "CREATE_ASSET",
-                &format!("Creating new asset: {}", req.name),
-                &security_context,
-                "Asset",
-                None,
-                AuditStatus::Info,
-                serde_json::json!({
-                    "asset_name": req.name,
-                    "classification": req.classification,
-                }),
-            )
+        // Log the event
+        state.audit_logger.log_event(event, &security_context)
             .await
-            .map_err(actix_web::error::ErrorInternalServerError)?;
+            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
         // Create asset
-        let mut asset = Asset::new(
-            req.name.clone(),
-            req.description.clone(),
-            req.classification.clone(),
-        );
+        let mut asset = asset_data.into_inner();
+        
+        // Store in database
+        state.db.update_asset(&asset, &security_context)
+            .await
+            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
-        // Add metadata if present
-        if let Some(metadata) = &req.metadata {
-            for (key, value) in metadata {
-                asset.update_metadata(key.clone(), value.clone());
-            }
-        }
-
-        // Serialize asset data
-        let asset_data = serde_json::to_string(&asset)
-            .map_err(actix_web::error::ErrorInternalServerError)?;
-
-        // Create transaction
-        let signature = CommandSignature::new(
-            security_context.user_id,
-            SignatureType::Asset,
-            format!("HASH_{}", Uuid::new_v4()),
-            req.signature.clone().unwrap_or_default(),
-            security_context.classification.clone(),
-        );
-
+        // Create blockchain transaction
         let transaction = Transaction {
             id: Uuid::new_v4(),
             timestamp: Utc::now(),
-            data: asset_data.clone(),
-            signature: signature.signature.clone(),
+            data: serde_json::to_string(&asset)?,
+            signature: String::new(),
             classification: asset.classification.clone(),
         };
 
-        // Add transaction to blockchain
-        state
-            .blockchain
-            .add_transaction(Transaction {
-                id: transaction.id,
-                timestamp: transaction.timestamp,
-                data: transaction.data,
-                signature: transaction.signature,
-                classification: transaction.classification,
-            }, &security_context)
+        // Submit to blockchain
+        state.blockchain.submit_transaction(transaction.data.as_bytes().to_vec())
             .await
-            .map_err(actix_web::error::ErrorInternalServerError)?;
+            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
-        // Save asset to database
-        state
-            .database
-            .execute_query(
-                "INSERT INTO assets (id, data, classification) VALUES ($1, $2, $3)",
-                &[
-                    &asset.id,
-                    &asset_data,
-                    &asset.classification.to_string(),
-                ],
-                &security_context,
-            )
-            .await
-            .map_err(actix_web::error::ErrorInternalServerError)?;
-
-        // Log successful creation
-        state.audit_logger
-            .log_action(
-                "CREATE_ASSET",
-                &format!("Asset created successfully: {}", asset.id),
-                &security_context,
-                "Asset",
-                Some(asset.id),
-                AuditStatus::Info,
-                serde_json::json!({
-                    "asset_id": asset.id,
-                    "asset_name": asset.name,
-                }),
-            )
-            .await
-            .map_err(actix_web::error::ErrorInternalServerError)?;
-
-        Ok(HttpResponse::Created().json(ApiResponse::success(asset)))
+        Ok(HttpResponse::Created().json(asset))
     }
 
     pub async fn list_assets(
@@ -308,25 +242,12 @@ pub mod handlers {
         id: web::Path<Uuid>,
         security_context: web::ReqData<SecurityContext>,
     ) -> Result<HttpResponse, Error> {
-        // Extract UUID once at the beginning
         let asset_id = id.into_inner();
-
-        // Validate permissions
-        if !security_context.has_permission(&ResourceType::Asset, &Action::Read) {
-            return Ok(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
-                "Insufficient permissions".to_string(),
-            )));
-        }
-
-        // Query asset from database
         let rows = state
             .database
             .execute_query(
                 "SELECT data FROM assets WHERE id = $1 AND classification <= $2",
-                &[
-                    &UuidWrapper(asset_id),
-                    &UuidWrapper(security_context.classification.into()),
-                ],
+                &[&asset_id, &security_context.classification],
                 &security_context,
             )
             .await
@@ -521,7 +442,6 @@ pub mod handlers {
         state: web::Data<AppState>,
         security_context: web::ReqData<SecurityContext>,
     ) -> Result<HttpResponse, actix_web::Error> {
-        // Validate permissions
         if !security_context.has_permission(&ResourceType::Transaction, &Action::Read) {
             return Ok(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
                 "Insufficient permissions".to_string(),
@@ -530,7 +450,7 @@ pub mod handlers {
 
         let transactions = state
             .blockchain
-            .get_pending_transactions(&security_context)
+            .get_pending_transactions()
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -541,17 +461,15 @@ pub mod handlers {
         state: web::Data<AppState>,
         security_context: web::ReqData<SecurityContext>,
     ) -> Result<HttpResponse, Error> {
-        // Validate permissions
         if !security_context.has_permission(&ResourceType::Block, &Action::Create) {
             return Ok(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
                 "Insufficient permissions".to_string(),
             )));
         }
 
-        // Mine new block
         let block = state
             .blockchain
-            .mine_block(&security_context)
+            .mine_block()
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -563,17 +481,15 @@ pub mod handlers {
         block: web::Json<Block>,
         security_context: web::ReqData<SecurityContext>,
     ) -> Result<HttpResponse, Error> {
-        // Validate permissions
         if !security_context.has_permission(&ResourceType::Block, &Action::Verify) {
             return Ok(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
                 "Insufficient permissions".to_string(),
             )));
         }
 
-        // Verify block
         let is_valid = state
             .blockchain
-            .verify_block(&block.into_inner(), &security_context)
+            .verify_block(&block.into_inner())
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -661,17 +577,20 @@ pub mod handlers {
         req: web::Json<BroadcastRequest>,
         security_context: web::ReqData<SecurityContext>,
     ) -> Result<HttpResponse, Error> {
-        // Validate permissions
         if !security_context.has_permission(&ResourceType::Node, &Action::Broadcast) {
             return Ok(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
                 "Insufficient permissions".to_string(),
             )));
         }
 
-        // Use blockchain network service instead of mesh_network
+        let broadcast_msg = BroadcastMessage::new(
+            req.message.clone(),
+            SyncPriority::Normal,
+        );
+
         state
             .blockchain
-            .broadcast_message(&req.message, &security_context)
+            .broadcast_message(&broadcast_msg)
             .await
             .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -807,5 +726,9 @@ fn create_security_context(
         auth_str.to_string(),
         vec![],
     ))
+}
+
+pub async fn health_check() -> HttpResponse {
+    HttpResponse::Ok().json(ApiResponse::success("Service is healthy"))
 }
 

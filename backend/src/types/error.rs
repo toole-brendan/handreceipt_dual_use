@@ -1,286 +1,135 @@
+use std::error::Error as StdError;
 use std::fmt;
-use thiserror::Error;
+use std::io;
 
-/// Core error types for the application
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum CoreError {
-    #[error("Database error: {0}")]
     Database(String),
-
-    #[error("Security violation: {0}")]
-    SecurityViolation(String),
-
-    #[error("Validation error: {0}")]
-    ValidationError(String),
-
-    #[error("Authentication error: {0}")]
-    AuthenticationError(String),
-
-    #[error("Authorization error: {0}")]
-    AuthorizationError(String),
-
-    #[error("Network error: {0}")]
-    NetworkError(String),
-
-    #[error("Blockchain error: {0}")]
-    BlockchainError(String),
-
-    #[error("Sync error: {0}")]
-    SyncError(String),
-
-    #[error("Encryption error: {0}")]
-    EncryptionError(String),
-
-    #[error("Signature error: {0}")]
-    SignatureError(String),
-
-    #[error("QR code error: {0}")]
-    QRCodeError(String),
-
-    #[error("RFID error: {0}")]
-    RFIDError(String),
-
-    #[error("Not found: {0}")]
-    NotFound(String),
-
-    #[error("System error: {0}")]
-    SystemError(String),
-
-    #[error("Resource not found: {0}")]
-    ResourceNotFound(String),
-
-    #[error("Internal error: {0}")]
-    InternalError(String),
-
-    #[error("Location error: {0}")]
-    LocationError(String),
-
-    #[error("Geofence violation: {0}")]
-    GeofenceViolation(String),
-
-    #[error("Location classification error: {0}")]
-    LocationClassificationError(String),
-
-    #[error("Chain of custody error: {0}")]
-    ChainOfCustodyError(String),
-
-    #[error("Timestamp error: {0}")]
-    TimestampError(String),
-
-    #[error("Scanning error: {0}")]
-    ScanningError(String),
-
-    #[error("Mesh network error: {0}")]
-    MeshNetworkError(String),
-
-    #[error("Mobile sync error: {0}")]
-    MobileSyncError(String),
+    Validation(String),
+    Security(String),
+    Network(String),
+    Configuration(String),
+    IO(io::Error),
+    Other(Box<dyn StdError + Send + Sync>),
 }
 
-/// Network-specific errors
-#[derive(Error, Debug)]
-pub enum NetworkError {
-    #[error("Connection failed: {0}")]
-    ConnectionFailed(String),
-
-    #[error("Peer error: {0}")]
-    PeerError(String),
-
-    #[error("Protocol error: {0}")]
-    ProtocolError(String),
-
-    #[error("Sync failed: {0}")]
-    SyncFailed(String),
-
-    #[error("Timeout: {0}")]
-    Timeout(String),
-
-    #[error("Mesh error: {0}")]
-    MeshError(String),
-
-    #[error("Mobile sync error: {0}")]
-    MobileSyncError(String),
-}
-
-/// Protocol-specific errors
-#[derive(Error, Debug)]
-pub enum ProtocolError {
-    #[error("Invalid message format: {0}")]
-    InvalidFormat(String),
-
-    #[error("Unsupported message type: {0}")]
-    UnsupportedType(String),
-
-    #[error("Invalid state transition: {0}")]
-    InvalidState(String),
-
-    #[error("Message handling failed: {0}")]
-    HandlingFailed(String),
-
-    #[error("Protocol version mismatch: {0}")]
-    VersionMismatch(String),
-
-    #[error("Message validation failed: {0}")]
-    ValidationFailed(String),
-
-    #[error("Network error: {0}")]
-    NetworkError(String),
-}
-
-/// Mesh network-specific errors
-#[derive(Error, Debug)]
-pub enum MeshError {
-    #[error("System error: {0}")]
-    SystemError(String),
-    
-    #[error("Sync error: {0}")]
-    SyncError(String),
-    
-    #[error("Data not found: {0}")]
-    DataNotFound(String),
-    
-    #[error("Authentication failed for peer {peer_id}: {reason}")]
-    AuthenticationFailed { peer_id: String, reason: String },
-    
-    #[error("Sync failed for peer {peer_id}: {reason}")]
-    SyncFailed { peer_id: String, reason: String },
-    
-    #[error("Peer not found: {0}")]
-    PeerNotFound(String),
-    
-    #[error("Conflict resolution failed for resource {resource_id}: {reason}")]
-    ConflictResolutionFailed { resource_id: String, reason: String },
-}
-
-/// Security-specific errors
-#[derive(Error, Debug)]
-pub enum SecurityError {
-    #[error("Invalid token: {0}")]
-    InvalidToken(String),
-
-    #[error("Token expired: {0}")]
-    TokenExpired(String),
-
-    #[error("Invalid credentials: {0}")]
-    InvalidCredentials(String),
-
-    #[error("Access denied: {0}")]
-    AccessDenied(String),
-
-    #[error("Encryption error: {0}")]
-    EncryptionError(String),
-
-    #[error("HSM error: {0}")]
-    HsmError(String),
-
-    #[error("Geofence violation: {0}")]
-    GeofenceViolation(String),
-
-    #[error("Classification error: {0}")]
-    ClassificationError(String),
-
-    #[error("Chain of custody error: {0}")]
-    ChainOfCustodyError(String),
-}
-
-/// Asset-specific errors
-#[derive(Error, Debug)]
-pub enum AssetError {
-    #[error("Invalid status transition: {0}")]
-    InvalidStatusTransition(String),
-
-    #[error("Transfer error: {0}")]
-    TransferError(String),
-
-    #[error("Verification failed: {0}")]
-    VerificationFailed(String),
-
-    #[error("Invalid location: {0}")]
-    InvalidLocation(String),
-
-    #[error("Scanning error: {0}")]
-    ScanningError(String),
-
-    #[error("QR code error: {0}")]
-    QRCodeError(String),
-
-    #[error("RFID error: {0}")]
-    RFIDError(String),
-}
-
-/// Database-specific errors
-#[derive(Error, Debug)]
-pub enum DatabaseError {
-    #[error("Connection error: {0}")]
-    ConnectionError(String),
-
-    #[error("Query error: {0}")]
-    QueryError(String),
-
-    #[error("Transaction error: {0}")]
-    TransactionError(String),
-
-    #[error("Migration error: {0}")]
-    MigrationError(String),
-
-    #[error("Replication error: {0}")]
-    ReplicationError(String),
-}
-
-// Implement conversions between error types
-impl From<NetworkError> for CoreError {
-    fn from(err: NetworkError) -> Self {
-        CoreError::NetworkError(err.to_string())
-    }
-}
-
-impl From<SecurityError> for CoreError {
-    fn from(err: SecurityError) -> Self {
-        CoreError::SecurityViolation(err.to_string())
-    }
-}
-
-impl From<AssetError> for CoreError {
-    fn from(err: AssetError) -> Self {
-        match err {
-            AssetError::ScanningError(msg) => CoreError::ScanningError(msg),
-            AssetError::QRCodeError(msg) => CoreError::QRCodeError(msg),
-            AssetError::RFIDError(msg) => CoreError::RFIDError(msg),
-            _ => CoreError::InternalError(err.to_string()),
+impl fmt::Display for CoreError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CoreError::Database(msg) => write!(f, "Database error: {}", msg),
+            CoreError::Validation(msg) => write!(f, "Validation error: {}", msg),
+            CoreError::Security(msg) => write!(f, "Security error: {}", msg),
+            CoreError::Network(msg) => write!(f, "Network error: {}", msg),
+            CoreError::Configuration(msg) => write!(f, "Configuration error: {}", msg),
+            CoreError::IO(err) => write!(f, "IO error: {}", err),
+            CoreError::Other(err) => write!(f, "Error: {}", err),
         }
     }
 }
 
-impl From<DatabaseError> for CoreError {
-    fn from(err: DatabaseError) -> Self {
+impl StdError for CoreError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            CoreError::IO(err) => Some(err),
+            CoreError::Other(err) => err.source(),
+            _ => None,
+        }
+    }
+}
+
+impl From<io::Error> for CoreError {
+    fn from(err: io::Error) -> Self {
+        CoreError::IO(err)
+    }
+}
+
+impl From<tokio_postgres::Error> for CoreError {
+    fn from(err: tokio_postgres::Error) -> Self {
         CoreError::Database(err.to_string())
+    }
+}
+
+impl From<deadpool_postgres::PoolError> for CoreError {
+    fn from(err: deadpool_postgres::PoolError) -> Self {
+        CoreError::Database(err.to_string())
+    }
+}
+
+// Network-related errors
+#[derive(Debug)]
+pub enum NetworkError {
+    Connection(String),
+    Protocol(String),
+    Timeout(String),
+    Other(Box<dyn StdError + Send + Sync>),
+}
+
+impl fmt::Display for NetworkError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NetworkError::Connection(msg) => write!(f, "Connection error: {}", msg),
+            NetworkError::Protocol(msg) => write!(f, "Protocol error: {}", msg),
+            NetworkError::Timeout(msg) => write!(f, "Timeout error: {}", msg),
+            NetworkError::Other(err) => write!(f, "Network error: {}", err),
+        }
+    }
+}
+
+impl StdError for NetworkError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            NetworkError::Other(err) => err.source(),
+            _ => None,
+        }
+    }
+}
+
+impl From<NetworkError> for CoreError {
+    fn from(err: NetworkError) -> Self {
+        CoreError::Network(err.to_string())
+    }
+}
+
+// Mesh-related errors
+#[derive(Debug)]
+pub enum MeshError {
+    Discovery(String),
+    Sync(String),
+    Peer(String),
+    Network(NetworkError),
+    Other(Box<dyn StdError + Send + Sync>),
+}
+
+impl fmt::Display for MeshError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MeshError::Discovery(msg) => write!(f, "Discovery error: {}", msg),
+            MeshError::Sync(msg) => write!(f, "Sync error: {}", msg),
+            MeshError::Peer(msg) => write!(f, "Peer error: {}", msg),
+            MeshError::Network(err) => write!(f, "Network error: {}", err),
+            MeshError::Other(err) => write!(f, "Mesh error: {}", err),
+        }
+    }
+}
+
+impl StdError for MeshError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            MeshError::Network(err) => Some(err),
+            MeshError::Other(err) => err.source(),
+            _ => None,
+        }
     }
 }
 
 impl From<MeshError> for CoreError {
     fn from(err: MeshError) -> Self {
-        CoreError::MeshNetworkError(err.to_string())
+        CoreError::Network(err.to_string())
     }
 }
 
 impl From<NetworkError> for MeshError {
     fn from(err: NetworkError) -> Self {
-        match err {
-            NetworkError::ConnectionFailed(msg) => MeshError::SystemError(msg),
-            NetworkError::ProtocolError(msg) => MeshError::SyncError(msg),
-            _ => MeshError::SystemError(err.to_string()),
-        }
-    }
-}
-
-impl From<ProtocolError> for NetworkError {
-    fn from(err: ProtocolError) -> Self {
-        NetworkError::ProtocolError(err.to_string())
-    }
-}
-
-impl From<ProtocolError> for CoreError {
-    fn from(err: ProtocolError) -> Self {
-        CoreError::NetworkError(err.to_string())
+        MeshError::Network(err)
     }
 }

@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::types::{
     mesh::QueueItem,
@@ -64,7 +65,7 @@ impl SyncQueue {
         self.enqueue(item).await
     }
 
-    pub async fn remove(&self, id: &str) -> Option<QueueItem> {
+    pub async fn remove(&self, id: Uuid) -> Option<QueueItem> {
         let mut queue = self.queue.write().await;
         if let Some(pos) = queue.iter().position(|x| x.id == id) {
             queue.remove(pos)
@@ -108,5 +109,43 @@ impl SyncQueue {
             .filter(|i| i.priority == priority)
             .cloned()
             .collect()
+    }
+
+    async fn insert_with_priority(&self, item: QueueItem) -> Result<(), MeshError> {
+        let mut queue = self.queue.write().await;
+        
+        // Find position based on priority and timestamp
+        let pos = queue.iter().position(|x| {
+            if x.priority < item.priority {
+                true
+            } else if x.priority == item.priority {
+                x.timestamp > item.timestamp
+            } else {
+                false
+            }
+        }).unwrap_or(queue.len());
+        
+        queue.insert(pos, item);
+        Ok(())
+    }
+
+    async fn requeue_with_backoff(&self, mut item: QueueItem) -> Result<(), MeshError> {
+        if item.attempts >= self.max_retries {
+            return Err(MeshError::SyncError("Max retries exceeded".into()));
+        }
+
+        // Exponential backoff
+        let backoff = std::time::Duration::from_secs(2u64.pow(item.attempts));
+        tokio::time::sleep(backoff).await;
+
+        item.attempts += 1;
+        // Lower priority for retried items
+        item.priority = match item.priority {
+            SyncPriority::Critical => SyncPriority::High,
+            SyncPriority::High => SyncPriority::Normal,
+            _ => item.priority,
+        };
+
+        self.insert_with_priority(item).await
     }
 }

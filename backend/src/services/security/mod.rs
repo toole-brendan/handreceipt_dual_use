@@ -1,22 +1,38 @@
-use std::sync::Arc;
-use crate::core::SecurityContext;
-use crate::models::error::CoreError;
+use async_trait::async_trait;
+use crate::types::{
+    app::SecurityService,
+    error::CoreError,
+};
 
-pub struct SecurityModule {
-    context: Arc<SecurityContext>,
+pub struct SecurityModuleImpl;
+
+impl SecurityModuleImpl {
+    pub fn new() -> Self {
+        Self
+    }
 }
 
-impl SecurityModule {
-    pub fn new(context: SecurityContext) -> Self {
-        Self {
-            context: Arc::new(context),
-        }
+#[async_trait]
+impl SecurityService for SecurityModuleImpl {
+    async fn validate_access(
+        &self,
+        _context: &crate::types::security::SecurityContext,
+        _resource: &str,
+        _action: &str,
+    ) -> Result<bool, CoreError> {
+        // Implement access validation
+        Ok(true)
     }
 
-    pub async fn hash_document(&self, data: &str) -> Result<String, CoreError> {
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(data);
-        Ok(format!("{:x}", hasher.finalize()))
+    async fn encrypt_data(&self, data: &[u8]) -> Result<Vec<u8>, CoreError> {
+        // Implement encryption
+        Ok(data.to_vec())
     }
-} 
+
+    async fn decrypt_data(&self, data: &[u8]) -> Result<Vec<u8>, CoreError> {
+        // Implement decryption
+        Ok(data.to_vec())
+    }
+}
+
+pub use self::SecurityModuleImpl as SecurityModule;

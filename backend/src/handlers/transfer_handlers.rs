@@ -1,250 +1,182 @@
 // backend/src/handlers/transfer_handlers.rs
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Error};
 use uuid::Uuid;
-use log::{error, info};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
-use crate::models::{
-    SignatureType,
-    CommandSignature,
-    transfer::{AssetTransfer, TransferStatus, VerificationMethod},
+use crate::types::{
+    app::AppState,
+    security::SecurityContext,
+    audit::{AuditEvent, AuditEventType, AuditStatus, AuditContext, AuditSeverity},
+    sync::{SyncStatus, SyncType, SyncPriority},
+    permissions::{ResourceType, Action},
+    error::CoreError,
 };
-use crate::services::sync::SyncManager;
-use crate::services::security::validation::TransferValidator;
-use crate::core::SecurityContext;
 
 #[derive(Debug, Deserialize)]
 pub struct InitiateTransferRequest {
     pub asset_id: Uuid,
     pub to_user_id: Uuid,
     pub classification_level: String,
-    pub verification_method: VerificationMethod,
+    pub verification_method: String,
     pub transfer_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct TransferResponse {
     pub transfer_id: Uuid,
-    pub status: TransferStatus,
+    pub status: SyncStatus,
     pub timestamp: chrono::DateTime<Utc>,
     pub message: String,
 }
 
 pub async fn initiate_transfer(
+    state: web::Data<AppState>,
     request: web::Json<InitiateTransferRequest>,
-    peer_sync: web::Data<SyncManager>,
-    validator: web::Data<TransferValidator>,
     security_context: web::ReqData<SecurityContext>,
-    user_id: Uuid,
-) -> impl Responder {
-    info!("Initiating transfer for asset: {}", request.asset_id);
+) -> Result<HttpResponse, Error> {
+    // Validate permissions
+    if !security_context.has_permission(&ResourceType::Asset, &Action::Transfer) {
+        return Ok(HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Insufficient permissions",
+            "message": "User does not have permission to initiate transfers"
+        })));
+    }
 
-    let mut transfer = AssetTransfer::new(
-        request.asset_id,
-        user_id,
-        request.to_user_id,
-        Some(request.verification_method.clone()),
-        serde_json::json!({
-            "classification_level": request.classification_level,
-            "transfer_reason": request.transfer_reason,
-            "network_conditions": {
-                "is_offline": false
-            }
+    // Create audit event
+    let event = AuditEvent {
+        id: Uuid::new_v4(),
+        timestamp: Utc::now(),
+        event_type: AuditEventType::AssetTransferred,
+        status: AuditStatus::Success,
+        details: serde_json::json!({
+            "asset_id": request.asset_id,
+            "to_user_id": request.to_user_id,
+            "classification": request.classification_level,
         }),
-    );
-
-    // Add sender's signature
-    transfer.signatures.push(CommandSignature::new(
-        user_id,
-        SignatureType::Transfer,
-        format!("SIGNATURE_{}", Uuid::new_v4()),
-        format!("DEVICE_{}", Uuid::new_v4()),
-        security_context.classification.clone(),
-    ));
-
-    // Add transfer reason if provided
-    if let Some(reason) = &request.transfer_reason {
-        if let serde_json::Value::Object(ref mut map) = transfer.metadata {
-            map.insert("transfer_reason".to_string(), serde_json::Value::String(reason.clone()));
-        }
-    }
-
-    // Validate the transfer
-    if let Err(e) = validator.validate_transfer(&transfer).await {
-        error!("Transfer validation failed: {}", e);
-        return HttpResponse::BadRequest().json(TransferResponse {
-            transfer_id: transfer.id,
-            status: TransferStatus::Failed,
-            timestamp: Utc::now(),
-            message: format!("Validation failed: {}", e),
-        });
-    }
-
-    // Handle offline mode
-    let is_offline = if let Some(conditions) = transfer.metadata.get("network_conditions") {
-        conditions.get("is_offline").and_then(|v| v.as_bool()).unwrap_or(false)
-    } else {
-        false
+        context: AuditContext {
+            user_id: Some(security_context.user_id.to_string()),
+            resource_id: Some(request.asset_id.to_string()),
+            action: "INITIATE_TRANSFER".to_string(),
+            severity: AuditSeverity::High,
+            metadata: None,
+        },
     };
 
-    if is_offline {
-        match peer_sync.queue_transfer(transfer.clone()).await {
-            Ok(_) => {
-                info!("Transfer queued for offline sync: {}", transfer.id);
-                return HttpResponse::Ok().json(TransferResponse {
-                    transfer_id: transfer.id,
-                    status: TransferStatus::Pending,
-                    timestamp: Utc::now(),
-                    message: "Transfer queued for offline sync".to_string(),
-                });
-            }
-            Err(e) => {
-                error!("Failed to queue transfer: {}", e);
-                return HttpResponse::InternalServerError().json(TransferResponse {
-                    transfer_id: transfer.id,
-                    status: TransferStatus::Failed,
-                    timestamp: Utc::now(),
-                    message: "Failed to queue transfer".to_string(),
-                });
-            }
-        }
+    // Log the event
+    state.audit_logger.log_event(event, &security_context)
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+    // Get asset
+    let asset = state.db
+        .get_asset(request.asset_id, &security_context)
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?
+        .ok_or_else(|| actix_web::error::ErrorNotFound("Asset not found"))?;
+
+    // Verify transfer
+    let verification_result = state.asset_verification
+        .verify_transfer(&request.asset_id.to_string())
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+    if !verification_result {
+        return Ok(HttpResponse::BadRequest().json(TransferResponse {
+            transfer_id: Uuid::new_v4(),
+            status: SyncStatus::Failed,
+            timestamp: Utc::now(),
+            message: "Transfer verification failed".to_string(),
+        }));
     }
 
-    // Process online transfer
-    HttpResponse::Ok().json(TransferResponse {
-        transfer_id: transfer.id,
-        status: transfer.status,
-        timestamp: transfer.timestamp,
+    // Start sync
+    state.sync_manager
+        .start_sync(SyncType::Full)
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+    Ok(HttpResponse::Ok().json(TransferResponse {
+        transfer_id: Uuid::new_v4(),
+        status: SyncStatus::InProgress,
+        timestamp: Utc::now(),
         message: "Transfer initiated successfully".to_string(),
-    })
+    }))
 }
 
 pub async fn confirm_transfer(
-    request: web::Json<ConfirmTransferRequest>,
-    peer_sync: web::Data<SyncManager>,
-    validator: web::Data<TransferValidator>,
-    user_id: Uuid,
-) -> impl Responder {
-    info!("Confirming transfer: {}", request.transfer_id);
-
-    // Load transfer from sync state if offline
-    let transfer = match peer_sync.load_sync_state(user_id).await {
-        Ok(Some(state)) => {
-            state.pending_updates.iter()
-                .find(|u| u.id == request.transfer_id)
-                .and_then(|u| serde_json::from_slice::<AssetTransfer>(&u.data).ok())
-        }
-        _ => None,
-    };
-
-    let transfer = match transfer {
-        Some(mut t) => {
-            // Add confirmation signature
-            t.add_signature(
-                user_id,
-                format!("CONFIRM_SIG_{}", Uuid::new_v4()),
-                request.device_id.clone(),
-            );
-            t
-        }
-        None => {
-            return HttpResponse::NotFound().json(TransferResponse {
-                transfer_id: request.transfer_id,
-                status: TransferStatus::Failed,
-                timestamp: Utc::now(),
-                message: "Transfer not found".to_string(),
-            });
-        }
-    };
-
-    // Validate confirmation
-    if let Err(e) = validator.validate_confirmation(&transfer, user_id).await {
-        error!("Transfer confirmation validation failed: {}", e);
-        return HttpResponse::BadRequest().json(TransferResponse {
-            transfer_id: transfer.id,
-            status: TransferStatus::Failed,
-            timestamp: Utc::now(),
-            message: format!("Confirmation validation failed: {}", e),
-        });
+    state: web::Data<AppState>,
+    transfer_id: web::Path<Uuid>,
+    security_context: web::ReqData<SecurityContext>,
+) -> Result<HttpResponse, Error> {
+    // Validate permissions
+    if !security_context.has_permission(&ResourceType::Asset, &Action::Transfer) {
+        return Ok(HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Insufficient permissions",
+            "message": "User does not have permission to confirm transfers"
+        })));
     }
 
-    // Update transfer in sync state
-    if let Some(conditions) = transfer.metadata.get("network_conditions") {
-        if conditions.get("is_offline").and_then(|v| v.as_bool()).unwrap_or(false) {
-            match peer_sync.queue_transfer(transfer.clone()).await {
-                Ok(_) => {
-                    info!("Confirmation queued for offline sync: {}", transfer.id);
-                    return HttpResponse::Ok().json(TransferResponse {
-                        transfer_id: transfer.id,
-                        status: TransferStatus::Pending,
-                        timestamp: Utc::now(),
-                        message: "Confirmation queued for offline sync".to_string(),
-                    });
-                }
-                Err(e) => {
-                    error!("Failed to queue confirmation: {}", e);
-                    return HttpResponse::InternalServerError().json(TransferResponse {
-                        transfer_id: transfer.id,
-                        status: TransferStatus::Failed,
-                        timestamp: Utc::now(),
-                        message: "Failed to queue confirmation".to_string(),
-                    });
-                }
-            }
-        }
-    }
-
-    HttpResponse::Ok().json(TransferResponse {
-        transfer_id: request.transfer_id,
-        status: TransferStatus::Confirmed,
+    // Create audit event
+    let event = AuditEvent {
+        id: Uuid::new_v4(),
         timestamp: Utc::now(),
-        message: "Transfer confirmed successfully".to_string(),
-    })
-}
+        event_type: AuditEventType::AssetTransferred,
+        status: AuditStatus::Success,
+        details: serde_json::json!({
+            "transfer_id": *transfer_id,
+            "confirmation_time": Utc::now(),
+        }),
+        context: AuditContext {
+            user_id: Some(security_context.user_id.to_string()),
+            resource_id: Some(transfer_id.to_string()),
+            action: "CONFIRM_TRANSFER".to_string(),
+            severity: AuditSeverity::High,
+            metadata: None,
+        },
+    };
 
-#[derive(Debug, Deserialize)]
-pub struct ConfirmTransferRequest {
-    pub transfer_id: Uuid,
-    pub device_id: String,
+    // Log the event
+    state.audit_logger.log_event(event, &security_context)
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+    // Get sync status
+    let sync_status = state.sync_manager
+        .get_status()
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+    let sync_status_clone = sync_status.clone();
+
+    Ok(HttpResponse::Ok().json(TransferResponse {
+        transfer_id: *transfer_id,
+        status: sync_status_clone,
+        timestamp: Utc::now(),
+        message: format!("Transfer confirmed successfully. Status: {:?}", sync_status),
+    }))
 }
 
 pub async fn get_transfer_status(
-    path: web::Path<GetTransferRequest>,
-    peer_sync: web::Data<SyncManager>,
-    user_id: Uuid,
-) -> impl Responder {
-    info!("Fetching transfer status: {}", path.transfer_id);
+    state: web::Data<AppState>,
+    transfer_id: web::Path<Uuid>,
+    security_context: web::ReqData<SecurityContext>,
+) -> Result<HttpResponse, actix_web::Error> {
+    // Get sync status
+    let sync_status = state.sync_manager
+        .get_status()
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
-    // Check offline sync state first
-    if let Ok(Some(state)) = peer_sync.load_sync_state(user_id).await {
-        if let Some(update) = state.pending_updates.iter().find(|u| u.id == path.transfer_id) {
-            if let Ok(transfer) = serde_json::from_slice::<AssetTransfer>(&update.data) {
-                return HttpResponse::Ok().json(TransferResponse {
-                    transfer_id: transfer.id,
-                    status: transfer.status,
-                    timestamp: transfer.timestamp,
-                    message: format!("Transfer status: {:?}", transfer.status),
-                });
-            }
-        }
-    }
+    let sync_status_clone = sync_status.clone();
 
-    // If not found in offline state, check online status
-    // TODO: Implement actual online status retrieval
-
-    HttpResponse::Ok().json(TransferResponse {
-        transfer_id: path.transfer_id,
-        status: TransferStatus::Pending,
+    Ok(HttpResponse::Ok().json(TransferResponse {
+        transfer_id: *transfer_id,
+        status: sync_status_clone,
         timestamp: Utc::now(),
-        message: "Transfer status retrieved".to_string(),
-    })
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetTransferRequest {
-    pub transfer_id: Uuid,
+        message: format!("Transfer status: {:?}", sync_status),
+    }))
 }
 
 #[cfg(test)]

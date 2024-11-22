@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 use chrono::Utc;
 
 use crate::types::{
-    mesh::{PeerInfo, PeerCapability},
+    mesh::{PeerInfo, PeerCapability, AuthStatus, Message, DiscoveryMessage},
     error::MeshError,
 };
 
@@ -15,7 +15,7 @@ const DISCOVERY_PORT: u16 = 8338;
 const BROADCAST_ADDR: &str = "255.255.255.255";
 
 #[derive(Debug, Serialize, Deserialize)]
-struct DiscoveryMessage {
+struct DiscoveryPayload {
     message_type: MessageType,
     node_id: String,
     capabilities: Vec<PeerCapability>,
@@ -90,11 +90,11 @@ impl PeerScanner {
             loop {
                 match socket.recv_from(&mut buf).await {
                     Ok((len, addr)) => {
-                        if let Ok(message) = serde_json::from_slice::<DiscoveryMessage>(&buf[..len]) {
+                        if let Ok(message) = serde_json::from_slice::<DiscoveryPayload>(&buf[..len]) {
                             match message.message_type {
                                 MessageType::Announce => {
                                     // Respond to announcements
-                                    let response = DiscoveryMessage {
+                                    let response = DiscoveryPayload {
                                         message_type: MessageType::Response,
                                         node_id: node_id.clone(),
                                         capabilities: vec![
@@ -128,7 +128,7 @@ impl PeerScanner {
     }
 
     async fn broadcast_presence(socket: &UdpSocket, node_id: &str) -> Result<(), MeshError> {
-        let message = DiscoveryMessage {
+        let message = DiscoveryPayload {
             message_type: MessageType::Announce,
             node_id: node_id.to_string(),
             capabilities: vec![
@@ -160,7 +160,10 @@ impl PeerScanner {
 
     pub async fn get_available_peers(&self) -> Vec<PeerInfo> {
         let peers = self.peers.lock().unwrap();
-        peers.values().cloned().collect()
+        peers.values()
+            .filter(|p| p.status != AuthStatus::Failed)
+            .cloned()
+            .collect()
     }
 
     pub async fn get_peer(&self, node_id: &str) -> Option<PeerInfo> {
@@ -178,6 +181,36 @@ impl PeerScanner {
             Ok(())
         } else {
             Err(MeshError::PeerNotFound(node_id.to_string()))
+        }
+    }
+
+    pub async fn update_peer_status(&self, node_id: &str, status: AuthStatus) -> Result<(), MeshError> {
+        let mut peers = self.peers.lock().unwrap();
+        if let Some(peer) = peers.get_mut(node_id) {
+            peer.status = status;
+            peer.last_seen = Utc::now();
+            Ok(())
+        } else {
+            Err(MeshError::PeerNotFound(node_id.to_string()))
+        }
+    }
+
+    async fn handle_discovery_message(&self, message: Message, addr: SocketAddr) -> Result<(), MeshError> {
+        match message {
+            Message::Discovery(DiscoveryMessage::Announce(mut peer_info)) => {
+                // Update peer address from actual connection
+                peer_info.address = addr.to_string();
+                peer_info.last_seen = Utc::now();
+                
+                let mut peers = self.peers.lock().unwrap();
+                peers.insert(peer_info.id.to_string(), peer_info);
+                Ok(())
+            },
+            Message::Discovery(DiscoveryMessage::Leave(id)) => {
+                self.remove_peer(&id).await;
+                Ok(())
+            },
+            _ => Ok(()),
         }
     }
 }

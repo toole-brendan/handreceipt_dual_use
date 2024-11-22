@@ -1,7 +1,8 @@
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use crate::core::SecurityClassification;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::types::security::SecurityClassification;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {

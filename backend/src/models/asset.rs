@@ -1,18 +1,25 @@
 // backend/src/models/asset.rs
 
-use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use crate::core::SecurityClassification;
-use crate::models::signature::CommandSignature;
-use crate::models::LocationMetadata;
-use crate::services::blockchain::PropertyMetadata;
-use crate::services::qr_code::QRCodeService;
 use std::str::FromStr;
 use tokio_postgres::types::{ToSql, FromSql, Type, IsNull};
 use bytes::BytesMut;
 use postgres_types::{accepts, to_sql_checked};
+use uuid::Uuid;
+
+use crate::types::{
+    security::SecurityClassification,
+    blockchain::BlockchainTransaction as PropertyMetadata,
+};
+
+use crate::models::{
+    signature::CommandSignature,
+    LocationMetadata,
+};
+
+use crate::services::asset::scanning::qr::QRCodeService;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Asset {
@@ -153,13 +160,19 @@ impl Asset {
 
     pub fn to_property_metadata(&self) -> PropertyMetadata {
         PropertyMetadata {
-            name: self.name.clone(),
-            description: self.description.clone(),
-            serial_number: self.metadata.get("serial_number")
-                .cloned()
-                .unwrap_or_default(),
+            id: self.id,
+            timestamp: Utc::now(),
+            data: serde_json::to_string(&serde_json::json!({
+                "name": self.name.clone(),
+                "description": self.description.clone(),
+                "serial_number": self.metadata.get("serial_number")
+                    .cloned()
+                    .unwrap_or_default(),
+                "classification": self.classification,
+                "status": self.status.to_string(),
+            })).unwrap(),
+            signature: String::new(),
             classification: self.classification.clone(),
-            status: self.status.to_string(),
         }
     }
 }

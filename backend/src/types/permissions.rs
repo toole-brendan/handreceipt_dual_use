@@ -19,6 +19,7 @@ pub enum ResourceType {
     Replication,
     ReplicationAuthority,
     ManageReplication,
+    WebSocket,
 }
 
 /// Represents different actions that can be performed on resources
@@ -86,6 +87,7 @@ impl Permission {
             ResourceType::Replication => "replication",
             ResourceType::ReplicationAuthority => "replication_authority",
             ResourceType::ManageReplication => "manage_replication",
+            ResourceType::WebSocket => "websocket",
         }
     }
 

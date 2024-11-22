@@ -5,9 +5,13 @@ use actix_web::{
 use futures::future::{ready, Ready};
 use std::future::Future;
 use std::pin::Pin;
-use crate::core::{SecurityContext, SecurityClassification, Permission, ResourceType, Action};
 use uuid::Uuid;
 use std::collections::HashMap;
+
+use crate::types::{
+    security::{SecurityContext, SecurityClassification},
+    permissions::{Permission, ResourceType, Action},
+};
 
 pub struct Authentication;
 

@@ -1,111 +1,55 @@
-//! Military Asset Tracking System (MATS) Library
-//! Provides core functionality for asset tracking with security classifications
-
-use log::{info};
-
-// Public modules
+pub mod actors;
 pub mod api;
+pub mod app_builder;
+pub mod blockchain;
+pub mod config;
 pub mod core;
 pub mod error;
-pub mod services;
-pub mod middleware;
-pub mod app_builder;
 pub mod handlers;
+pub mod middleware;
 pub mod models;
-pub mod utils;
-pub mod actors;
+pub mod prelude;
+pub mod security;
+pub mod services;
 pub mod types;
+pub mod utils;
 
-// Re-export commonly used items
-pub use utils::ResponseExt;
-pub use models::UuidWrapper;
-pub use actors::websocket_actor::WebSocketActor;
-pub use types::{
-    app::AppState,
-    error::CoreError,
-    security::SecurityContext,
-    Result,
+// Re-export core types and traits
+pub use crate::{
+    app_builder::AppBuilder,
+    blockchain::{
+        Block, Transaction, TransactionData,
+        BlockchainService, ConsensusService,
+    },
+    config::{
+        Config, ServerConfig, DatabaseConfig,
+        SecurityConfig, mesh_config::MeshConfig,
+    },
+    services::{
+        ServiceInit, ServiceLifecycle,
+        core::CoreServiceImpl as CoreModule,
+        security::SecurityModuleImpl as SecurityModule,
+        infrastructure::InfrastructureService as DatabaseModule,
+        network::{
+            mesh::MeshServiceImpl as MeshModule,
+            p2p::P2PServiceImpl as P2PModule,
+            sync::service::SyncManagerImpl as SyncModule,
+        },
+    },
+    types::{
+        app::{
+            AppState, DatabaseService, SecurityService,
+            AssetVerification, AuditLogger, MeshService,
+            P2PService, SyncManager,
+        },
+        error::CoreError,
+        security::SecurityContext,
+    },
 };
 
-// Add middleware re-exports
-pub mod prelude {
-    pub use crate::utils::ResponseExt;
-    pub use crate::models::UuidWrapper;
-    pub use crate::middleware::{
-        ErrorHandler,
-        RateLimiter,
-        RequestValidator,
-        ApiVersioning,
-    };
-}
+pub type Result<T> = std::result::Result<T, CoreError>;
 
-// Debugging utilities
-#[cfg(debug_assertions)]
-pub mod debug {
-    use log::{debug, error, trace, warn};
-    use std::time::Instant;
-
-    pub fn log_request_processing(middleware_name: &str, path: &str) {
-        trace!("[{}] Processing request: {}", middleware_name, path);
-    }
-
-    pub fn log_response_processing(middleware_name: &str, status: u16, duration: std::time::Duration) {
-        debug!(
-            "[{}] Response completed - Status: {}, Duration: {:?}",
-            middleware_name, status, duration
-        );
-    }
-
-    pub fn log_error(middleware_name: &str, error: &dyn std::error::Error) {
-        error!(
-            "[{}] Error occurred: {}\nBacktrace: {:?}",
-            middleware_name,
-            error,
-            std::backtrace::Backtrace::capture()
-        );
-    }
-
-    pub fn log_performance_metric(middleware_name: &str, operation: &str, start: Instant) {
-        let duration = start.elapsed();
-        if duration.as_millis() > 100 {
-            warn!(
-                "[{}] Slow operation detected - {}: {:?}",
-                middleware_name, operation, duration
-            );
-        } else {
-            debug!(
-                "[{}] Operation timing - {}: {:?}",
-                middleware_name, operation, duration
-            );
-        }
-    }
-}
-
-// Initialize logging for the entire library
-pub fn init() {
-    use env_logger::{Builder, Env};
-    use log::LevelFilter;
-
-    let env = Env::default()
-        .filter_or("RUST_LOG", "debug")
-        .write_style_or("RUST_LOG_STYLE", "always");
-
-    Builder::from_env(env)
-        .format(|buf, record| {
-            use std::io::Write;
-            writeln!(
-                buf,
-                "{} [{}] {} - {}:{} - {}",
-                chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
-                record.level(),
-                record.target(),
-                record.file().unwrap_or("unknown"),
-                record.line().unwrap_or(0),
-                record.args()
-            )
-        })
-        .filter(None, LevelFilter::Debug)
-        .init();
-
-    info!("MATS library initialized with debug logging enabled");
-}
+// Re-export commonly used external crates
+pub use async_trait::async_trait;
+pub use serde::{Deserialize, Serialize};
+pub use uuid::Uuid;

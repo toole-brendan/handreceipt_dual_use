@@ -1,6 +1,11 @@
 use actix_web::{web, HttpResponse, Error};
 use serde::{Serialize, Deserialize};
-use crate::core::{AppState, SecurityContext};
+
+use crate::types::{
+    app::AppState,
+    security::SecurityContext,
+};
+
 use crate::api::ApiResponse;
 
 #[derive(Debug, Serialize, Deserialize)]
