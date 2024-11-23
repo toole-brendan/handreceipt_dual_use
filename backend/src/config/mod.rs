@@ -1,13 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-pub mod mesh_config;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub security: SecurityConfig,
-    pub mesh: mesh_config::MeshConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

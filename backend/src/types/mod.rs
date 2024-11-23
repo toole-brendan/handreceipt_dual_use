@@ -2,12 +2,10 @@ pub mod app;
 pub mod asset;
 pub mod audit;
 pub mod blockchain;
-pub mod mesh;
 pub mod permissions;
 pub mod scanning;
 pub mod security;
 pub mod signature;
-pub mod sync;
 pub mod validation;
 pub mod verification;
 
@@ -23,11 +21,6 @@ pub use self::{
         Block, Transaction, TransactionType, TransactionStatus,
         ChainState, ChainStatus, BlockchainEvent,
     },
-    mesh::{
-        PeerInfo, Message, MessageType, NodeInfo, NodeStatus,
-        PeerCapability, ConnectionType, DiscoveryConfig,
-        OfflineData, QueueItem,
-    },
     permissions::{Permission, Role, AccessLevel},
     scanning::{Scanner, ScanError, ScanVerifier, GeoPoint},
     security::{
@@ -37,11 +30,6 @@ pub use self::{
     signature::{
         SignatureMetadata, SignatureType, SignatureAlgorithm,
         Signature, SignatureChain,
-    },
-    sync::{
-        SyncStatus, SyncType, SyncRequest, SyncPriority,
-        Change, ChangeSet, ChangeOperation, ChangeStatus,
-        BroadcastMessage, Resolution, SyncHandler,
     },
     validation::{ValidationContext, ValidationResult},
     verification::{VerificationContext, VerificationResult},

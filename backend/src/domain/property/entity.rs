@@ -3,6 +3,19 @@ use uuid::Uuid;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
+/// Categories of military property
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PropertyCategory {
+    Equipment,      // Durable items like vehicles
+    Supplies,       // Consumable items
+    Electronics,    // Electronic devices
+    Communications, // Comms equipment
+    Weapons,        // Weapons and weapon systems
+    Ammunition,     // Ammo and explosives
+    Tools,         // Tools and tool kits
+    Clothing,      // Uniforms and gear
+}
+
 /// Property status in the system
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PropertyStatus {
@@ -23,24 +36,16 @@ pub enum PropertyCondition {
     Unknown,
 }
 
-/// Property categories
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PropertyCategory {
-    Weapons,
-    Electronics,
-    Equipment,
-    Supplies,
-    Vehicles,
-    Other,
-}
-
 /// Location information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Location {
-    pub building: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: Option<f64>,
+    pub accuracy: Option<f64>,
+    pub timestamp: DateTime<Utc>,
+    pub building: Option<String>,
     pub room: Option<String>,
-    pub notes: Option<String>,
-    pub grid_coordinates: Option<String>,
 }
 
 /// Verification record
@@ -85,6 +90,7 @@ pub struct Property {
     // Custody
     custodian: Option<String>,
     hand_receipt_number: Option<String>,
+    sub_hand_receipt_number: Option<String>,
     
     // Location
     current_location: Option<Location>,
@@ -139,6 +145,7 @@ impl Property {
             qr_code: None,
             custodian: None,
             hand_receipt_number: None,
+            sub_hand_receipt_number: None,
             current_location: None,
             location_history: Vec::new(),
             verifications: Vec::new(),
@@ -159,11 +166,14 @@ impl Property {
     pub fn is_sensitive(&self) -> bool { self.is_sensitive }
     pub fn quantity(&self) -> i32 { self.quantity }
     pub fn unit_of_issue(&self) -> &str { &self.unit_of_issue }
+    pub fn value(&self) -> Option<f64> { self.value }
     pub fn nsn(&self) -> Option<&String> { self.nsn.as_ref() }
     pub fn serial_number(&self) -> Option<&String> { self.serial_number.as_ref() }
     pub fn model_number(&self) -> Option<&String> { self.model_number.as_ref() }
     pub fn qr_code(&self) -> Option<&String> { self.qr_code.as_ref() }
     pub fn custodian(&self) -> Option<&String> { self.custodian.as_ref() }
+    pub fn hand_receipt_number(&self) -> Option<&String> { self.hand_receipt_number.as_ref() }
+    pub fn sub_hand_receipt_number(&self) -> Option<&String> { self.sub_hand_receipt_number.as_ref() }
     pub fn current_location(&self) -> Option<&Location> { self.current_location.as_ref() }
     pub fn verifications(&self) -> &[Verification] { &self.verifications }
     pub fn metadata(&self) -> &HashMap<String, String> { &self.metadata }
@@ -203,13 +213,23 @@ impl Property {
     }
 
     /// Updates property location
-    pub fn update_location(&mut self, location: Location) {
-        // Store current location in history if it exists
+    pub fn update_location(&mut self, location: Location) -> Result<(), String> {
+        // Validate location data
+        if !(-90.0..=90.0).contains(&location.latitude) {
+            return Err("Invalid latitude".to_string());
+        }
+        if !(-180.0..=180.0).contains(&location.longitude) {
+            return Err("Invalid longitude".to_string());
+        }
+
+        // Store current location in history before updating
         if let Some(current) = self.current_location.take() {
             self.location_history.push(current);
         }
+
         self.current_location = Some(location);
         self.updated_at = Utc::now();
+        Ok(())
     }
 
     /// Records a verification
@@ -240,28 +260,12 @@ impl Property {
         self.updated_at = Utc::now();
     }
 
-    /// Initiates a transfer
-    pub fn initiate_transfer(&mut self) -> Result<(), String> {
-        match self.status {
-            PropertyStatus::Available | PropertyStatus::Assigned => {
-                self.status = PropertyStatus::InTransit;
-                self.updated_at = Utc::now();
-                Ok(())
-            }
-            _ => Err("Property cannot be transferred in current status".to_string()),
+    /// Updates quantity
+    pub fn update_quantity(&mut self, new_quantity: i32) -> Result<(), String> {
+        if new_quantity <= 0 {
+            return Err("Quantity must be positive".to_string());
         }
-    }
-
-    /// Cancels a transfer
-    pub fn cancel_transfer(&mut self) -> Result<(), String> {
-        if self.status != PropertyStatus::InTransit {
-            return Err("Property is not in transit".to_string());
-        }
-        self.status = if self.custodian.is_some() {
-            PropertyStatus::Assigned
-        } else {
-            PropertyStatus::Available
-        };
+        self.quantity = new_quantity;
         self.updated_at = Utc::now();
         Ok(())
     }
@@ -271,6 +275,7 @@ impl Property {
         &mut self,
         new_custodian: String,
         hand_receipt_number: Option<String>,
+        sub_hand_receipt_number: Option<String>,
     ) -> Result<(), String> {
         if new_custodian.trim().is_empty() {
             return Err("Custodian cannot be empty".to_string());
@@ -278,9 +283,15 @@ impl Property {
 
         self.custodian = Some(new_custodian);
         self.hand_receipt_number = hand_receipt_number;
+        self.sub_hand_receipt_number = sub_hand_receipt_number;
         self.status = PropertyStatus::Assigned;
         self.updated_at = Utc::now();
         Ok(())
+    }
+
+    /// Checks if property is available for transfer
+    pub fn is_available_for_transfer(&self) -> bool {
+        matches!(self.status, PropertyStatus::Available | PropertyStatus::Assigned)
     }
 }
 
@@ -307,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn test_transfer_workflow() {
+    fn test_transfer_custody() {
         let mut property = Property::new(
             "M4 Carbine".to_string(),
             "5.56mm Rifle".to_string(),
@@ -317,21 +328,20 @@ mod tests {
             "Each".to_string(),
         ).unwrap();
 
-        // Initiate transfer
-        property.initiate_transfer().unwrap();
-        assert_eq!(property.status(), &PropertyStatus::InTransit);
-
-        // Complete transfer
         property.transfer_custody(
             "NEW_SOLDIER".to_string(),
             Some("HR-123".to_string()),
+            Some("SUB-456".to_string()),
         ).unwrap();
+
         assert_eq!(property.status(), &PropertyStatus::Assigned);
         assert_eq!(property.custodian().unwrap(), "NEW_SOLDIER");
+        assert_eq!(property.hand_receipt_number().unwrap(), "HR-123");
+        assert_eq!(property.sub_hand_receipt_number().unwrap(), "SUB-456");
     }
 
     #[test]
-    fn test_verification() {
+    fn test_location_update() {
         let mut property = Property::new(
             "M4 Carbine".to_string(),
             "5.56mm Rifle".to_string(),
@@ -341,22 +351,33 @@ mod tests {
             "Each".to_string(),
         ).unwrap();
 
-        let verification = Verification {
+        let location = Location {
+            latitude: 34.0522,
+            longitude: -118.2437,
+            altitude: Some(100.0),
+            accuracy: Some(10.0),
             timestamp: Utc::now(),
-            verifier: "SGT.DOE".to_string(),
-            method: VerificationMethod::ManualCheck,
-            location: Some(Location {
-                building: "HQ".to_string(),
-                room: Some("101".to_string()),
-                notes: None,
-                grid_coordinates: None,
-            }),
-            condition_code: Some(PropertyCondition::Serviceable),
-            notes: None,
+            building: Some("HQ".to_string()),
+            room: Some("Armory".to_string()),
         };
 
-        property.verify(verification).unwrap();
-        assert!(property.last_inventoried.is_some());
-        assert_eq!(property.verifications().len(), 1);
+        property.update_location(location).unwrap();
+        assert!(property.current_location().is_some());
+        assert_eq!(property.location_history.len(), 0);
+
+        // Update location again to test history
+        let new_location = Location {
+            latitude: 34.0523,
+            longitude: -118.2438,
+            altitude: Some(101.0),
+            accuracy: Some(10.0),
+            timestamp: Utc::now(),
+            building: Some("Range".to_string()),
+            room: None,
+        };
+
+        property.update_location(new_location).unwrap();
+        assert!(property.current_location().is_some());
+        assert_eq!(property.location_history.len(), 1);
     }
 }

@@ -1,13 +1,14 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use thiserror::Error;
 
-use super::entity::{Property, PropertyStatus, PropertyCondition};
+use super::entity::{Property, PropertyCategory, PropertyStatus};
 
-/// Error types for repository operations
-#[derive(Debug, thiserror::Error)]
+/// Custom error type for repository operations
+#[derive(Debug, Error)]
 pub enum RepositoryError {
-    #[error("Property not found")]
+    #[error("Entity not found")]
     NotFound,
     
     #[error("Validation error: {0}")]
@@ -15,30 +16,28 @@ pub enum RepositoryError {
     
     #[error("Storage error: {0}")]
     Storage(String),
-    
-    #[error("Concurrency error: {0}")]
-    Concurrency(String),
 }
 
-/// Search criteria for finding property
+/// Defines the criteria for searching property
 #[derive(Debug, Default)]
 pub struct PropertySearchCriteria {
+    pub status: Option<PropertyStatus>,
+    pub category: Option<PropertyCategory>,
+    pub is_sensitive: Option<bool>,
+    pub custodian: Option<String>,
     pub nsn: Option<String>,
     pub serial_number: Option<String>,
-    pub custodian: Option<String>,
-    pub status: Option<PropertyStatus>,
-    pub condition: Option<PropertyCondition>,
-    pub is_sensitive: Option<bool>,
-    pub location_building: Option<String>,
-    pub last_inventoried_before: Option<DateTime<Utc>>,
+    pub hand_receipt_number: Option<String>,
+    pub command_id: Option<String>,
+    pub verified_after: Option<DateTime<Utc>>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
 
-/// Repository interface for property management
+/// Repository interface for Property entity
 #[async_trait]
 pub trait PropertyRepository: Send + Sync {
-    /// Creates a new property record
+    /// Creates a new property item
     async fn create(&self, property: Property) -> Result<Property, RepositoryError>;
     
     /// Retrieves a property by its ID
@@ -47,42 +46,55 @@ pub trait PropertyRepository: Send + Sync {
     /// Updates an existing property
     async fn update(&self, property: Property) -> Result<Property, RepositoryError>;
     
-    /// Deletes a property (soft delete)
+    /// Deletes a property by its ID
     async fn delete(&self, id: Uuid) -> Result<(), RepositoryError>;
     
     /// Searches for property based on criteria
     async fn search(&self, criteria: PropertySearchCriteria) -> Result<Vec<Property>, RepositoryError>;
     
-    /// Gets property by NSN
-    async fn get_by_nsn(&self, nsn: &str) -> Result<Vec<Property>, RepositoryError>;
-    
-    /// Gets property by serial number
-    async fn get_by_serial(&self, serial: &str) -> Result<Option<Property>, RepositoryError>;
-    
-    /// Gets property assigned to a custodian
+    /// Retrieves property by custodian
     async fn get_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError>;
     
-    /// Gets sensitive items for a custodian
+    /// Retrieves property by command
+    async fn get_by_command(&self, command_id: &str) -> Result<Vec<Property>, RepositoryError>;
+    
+    /// Retrieves sensitive items by custodian
     async fn get_sensitive_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError> {
         let mut items = self.get_by_custodian(custodian).await?;
         items.retain(|item| item.is_sensitive());
         Ok(items)
     }
     
-    /// Gets property needing inventory
-    async fn get_needing_inventory(
+    /// Retrieves property by status
+    async fn get_by_status(&self, status: PropertyStatus) -> Result<Vec<Property>, RepositoryError>;
+    
+    /// Retrieves property by category
+    async fn get_by_category(&self, category: PropertyCategory) -> Result<Vec<Property>, RepositoryError>;
+    
+    /// Retrieves property by NSN
+    async fn get_by_nsn(&self, nsn: &str) -> Result<Vec<Property>, RepositoryError>;
+    
+    /// Retrieves property by serial number
+    async fn get_by_serial_number(&self, serial: &str) -> Result<Vec<Property>, RepositoryError>;
+    
+    /// Retrieves property by hand receipt number
+    async fn get_by_hand_receipt(
         &self,
-        threshold: chrono::Duration
+        receipt_number: &str
     ) -> Result<Vec<Property>, RepositoryError>;
     
-    /// Gets property by QR code
-    async fn get_by_qr_code(&self, qr_code: &str) -> Result<Option<Property>, RepositoryError>;
+    /// Retrieves property needing verification
+    async fn get_pending_verification(
+        &self,
+        threshold: chrono::Duration,
+        category: Option<PropertyCategory>
+    ) -> Result<Vec<Property>, RepositoryError>;
     
     /// Begins a new transaction
     async fn begin_transaction(&self) -> Result<Box<dyn PropertyTransaction>, RepositoryError>;
 }
 
-/// Transaction interface for property operations
+/// Represents a transaction for property operations
 #[async_trait]
 pub trait PropertyTransaction: Send + Sync {
     /// Commits the transaction
@@ -101,13 +113,14 @@ pub trait PropertyTransaction: Send + Sync {
     async fn delete(&mut self, id: Uuid) -> Result<(), RepositoryError>;
 }
 
-/// Mock implementation for testing
+/// Provides a way to mock the repository for testing
 #[cfg(test)]
 pub mod mock {
     use super::*;
-    use std::collections::HashMap;
     use std::sync::Mutex;
+    use std::collections::HashMap;
 
+    /// A mock implementation of PropertyRepository for testing
     pub struct MockPropertyRepository {
         properties: Mutex<HashMap<Uuid, Property>>,
     }
@@ -158,28 +171,57 @@ pub mod mock {
 
         async fn search(&self, criteria: PropertySearchCriteria) -> Result<Vec<Property>, RepositoryError> {
             let properties = self.properties.lock().unwrap();
-            let mut results: Vec<Property> = properties.values().cloned().collect();
-
-            // Apply filters
-            if let Some(status) = criteria.status {
-                results.retain(|p| p.status() == &status);
+            let mut result: Vec<Property> = properties.values().cloned().collect();
+            
+            if let Some(category) = criteria.category {
+                result.retain(|p| p.category() == &category);
             }
+            
             if let Some(is_sensitive) = criteria.is_sensitive {
-                results.retain(|p| p.is_sensitive() == is_sensitive);
+                result.retain(|p| p.is_sensitive() == is_sensitive);
             }
+            
+            if let Some(status) = criteria.status {
+                result.retain(|p| p.status() == &status);
+            }
+            
             if let Some(custodian) = criteria.custodian {
-                results.retain(|p| p.custodian() == Some(&custodian));
+                result.retain(|p| p.custodian() == Some(&custodian));
             }
+            
+            Ok(result)
+        }
 
-            // Apply pagination
-            if let Some(offset) = criteria.offset {
-                results = results.into_iter().skip(offset as usize).collect();
-            }
-            if let Some(limit) = criteria.limit {
-                results = results.into_iter().take(limit as usize).collect();
-            }
+        async fn get_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError> {
+            let properties = self.properties.lock().unwrap();
+            Ok(properties.values()
+                .filter(|p| p.custodian() == Some(custodian))
+                .cloned()
+                .collect())
+        }
 
-            Ok(results)
+        async fn get_by_command(&self, command_id: &str) -> Result<Vec<Property>, RepositoryError> {
+            let properties = self.properties.lock().unwrap();
+            Ok(properties.values()
+                .filter(|p| p.command_id() == Some(command_id))
+                .cloned()
+                .collect())
+        }
+
+        async fn get_by_status(&self, status: PropertyStatus) -> Result<Vec<Property>, RepositoryError> {
+            let properties = self.properties.lock().unwrap();
+            Ok(properties.values()
+                .filter(|p| p.status() == &status)
+                .cloned()
+                .collect())
+        }
+
+        async fn get_by_category(&self, category: PropertyCategory) -> Result<Vec<Property>, RepositoryError> {
+            let properties = self.properties.lock().unwrap();
+            Ok(properties.values()
+                .filter(|p| p.category() == &category)
+                .cloned()
+                .collect())
         }
 
         async fn get_by_nsn(&self, nsn: &str) -> Result<Vec<Property>, RepositoryError> {
@@ -190,32 +232,28 @@ pub mod mock {
                 .collect())
         }
 
-        async fn get_by_serial(&self, serial: &str) -> Result<Option<Property>, RepositoryError> {
+        async fn get_by_serial_number(&self, serial: &str) -> Result<Vec<Property>, RepositoryError> {
             let properties = self.properties.lock().unwrap();
             Ok(properties.values()
-                .find(|p| p.serial_number() == Some(&serial.to_string()))
-                .cloned())
-        }
-
-        async fn get_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError> {
-            let properties = self.properties.lock().unwrap();
-            Ok(properties.values()
-                .filter(|p| p.custodian() == Some(&custodian.to_string()))
+                .filter(|p| p.serial_number() == Some(&serial.to_string()))
                 .cloned()
                 .collect())
         }
 
-        async fn get_needing_inventory(
-            &self,
-            threshold: chrono::Duration
-        ) -> Result<Vec<Property>, RepositoryError> {
-            // Simplified mock implementation
-            Ok(Vec::new())
+        async fn get_by_hand_receipt(&self, receipt_number: &str) -> Result<Vec<Property>, RepositoryError> {
+            let properties = self.properties.lock().unwrap();
+            Ok(properties.values()
+                .filter(|p| p.hand_receipt_number() == Some(&receipt_number.to_string()))
+                .cloned()
+                .collect())
         }
 
-        async fn get_by_qr_code(&self, _qr_code: &str) -> Result<Option<Property>, RepositoryError> {
-            // Simplified mock implementation
-            Ok(None)
+        async fn get_pending_verification(
+            &self,
+            _threshold: chrono::Duration,
+            _category: Option<PropertyCategory>
+        ) -> Result<Vec<Property>, RepositoryError> {
+            Ok(Vec::new()) // Simplified mock implementation
         }
 
         async fn begin_transaction(&self) -> Result<Box<dyn PropertyTransaction>, RepositoryError> {
@@ -223,6 +261,7 @@ pub mod mock {
         }
     }
 
+    /// Mock transaction implementation
     pub struct MockPropertyTransaction {
         properties: Mutex<HashMap<Uuid, Property>>,
     }

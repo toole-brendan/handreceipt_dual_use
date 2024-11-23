@@ -51,14 +51,14 @@ pub struct ConsensusMechanism {
     validators: Arc<RwLock<Vec<ValidatorInfo>>>,
     audit_trail: Arc<dyn AuditTrailHandler>,
     chain_state: Arc<RwLock<ChainState>>,
-    validation_engine: Arc<ValidationEngine>,
+    validation_engine: Arc<dyn ValidationEngine>,
 }
 
 impl ConsensusMechanism {
     pub fn new(
         config: ConsensusConfig,
         audit_trail: Arc<dyn AuditTrailHandler>,
-        validation_engine: Arc<ValidationEngine>,
+        validation_engine: Arc<dyn ValidationEngine>,
     ) -> Self {
         Self {
             config,
@@ -100,6 +100,7 @@ impl ConsensusMechanism {
                 "add_validator".to_string(),
                 AuditSeverity::High,
                 context.classification,
+                Some(validator.id.to_string()),
             ),
             SignatureMetadata::new(
                 Uuid::new_v4(),
@@ -141,6 +142,7 @@ impl ConsensusMechanism {
                 "remove_validator".to_string(),
                 AuditSeverity::Low,
                 context.classification,
+                Some(validator_id.to_string()),
             ),
             SignatureMetadata::new(
                 Uuid::new_v4(),
@@ -169,7 +171,7 @@ impl ConsensusMechanism {
             .collect())
     }
 
-    pub async fn create_block(
+    async fn create_block(
         &self,
         transactions: Vec<Transaction>,
         previous_hash: &str,
@@ -191,26 +193,21 @@ impl ConsensusMechanism {
 
         // Create block
         let now = Utc::now();
-        let mut block = Block {
-            id: Uuid::new_v4(),
-            version: 1,
-            previous_hash: previous_hash.to_string(),
-            merkle_root,
-            timestamp: now,
-            difficulty: self.config.min_difficulty,
-            nonce: 0,
-            hash: String::new(),
-            transactions,
-            block_height,
-            total_transactions: 0,
-            created_at: now,
-            confirmed_at: None,
-            classification,
+        let block = Block {
+            height: block_height,
+            metadata: serde_json::json!({
+                "version": 1,
+                "previous_hash": previous_hash,
+                "merkle_root": merkle_root,
+                "timestamp": now,
+                "difficulty": self.config.min_difficulty,
+                "nonce": 0,
+                "transactions": transactions,
+                "created_at": now,
+                "confirmed_at": None,
+                "classification": classification,
+            }),
         };
-
-        // Calculate block hash
-        block.hash = self.calculate_block_hash(&block)?;
-        block.total_transactions = block.transactions.len() as u64;
 
         Ok(block)
     }
@@ -225,10 +222,7 @@ impl ConsensusMechanism {
 
     fn calculate_block_hash(&self, block: &Block) -> Result<String, BlockchainError> {
         let mut hasher = Sha256::new();
-        hasher.update(block.previous_hash.as_bytes());
-        hasher.update(block.merkle_root.as_bytes());
-        hasher.update(block.timestamp.to_rfc3339().as_bytes());
-        hasher.update(&block.nonce.to_le_bytes());
+        hasher.update(serde_json::to_vec(&block.metadata).map_err(|e| BlockchainError::SerializationError(e.to_string()))?);
         Ok(format!("{:x}", hasher.finalize()))
     }
 }

@@ -1,22 +1,27 @@
-pub mod asset;
-pub mod core;
-pub mod infrastructure;
-pub mod network;
+pub mod property;
+pub mod transfer;
 
-// Re-export core modules
-pub use self::{
-    core::{
-        CoreServiceImpl as CoreModule,
-        verification::VerificationServiceImpl as VerificationModule,
-        audit::AuditServiceImpl as AuditModule,
-    },
-    infrastructure::storage::DatabaseServiceImpl as DatabaseModule,
-    network::{
-        mesh::MeshServiceImpl as MeshModule,
-        p2p::P2PServiceImpl as P2PModule,
-        sync::service::SyncManagerImpl as SyncModule,
-    },
+pub use property::PropertyService;
+pub use transfer::TransferService;
+
+use crate::domain::{
+    property::repository::PropertyRepository,
+    transfer::repository::TransferRepository,
 };
 
-// Re-export from security module
-pub use crate::security::SecurityModule;
+pub struct Services {
+    pub property: PropertyService,
+    pub transfer: TransferService,
+}
+
+impl Services {
+    pub fn new(
+        property_repo: Box<dyn PropertyRepository>,
+        transfer_repo: Box<dyn TransferRepository>,
+    ) -> Self {
+        Self {
+            property: PropertyService::new(property_repo),
+            transfer: TransferService::new(transfer_repo),
+        }
+    }
+}

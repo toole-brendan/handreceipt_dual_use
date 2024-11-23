@@ -1,21 +1,11 @@
 use std::sync::Arc;
 use actix_web::web;
 use deadpool_postgres::Pool;
-use std::collections::HashMap;
 
 use crate::{
     services::{
-        core::{
-            CoreServiceImpl,
-            audit::AuditManagerImpl,
-            verification::VerificationManagerImpl,
-        },
-        infrastructure::storage::DatabaseModule,
-        network::{
-            mesh::service::MeshServiceImpl,
-            p2p::P2PServiceImpl,
-            sync::service::SyncManagerImpl,
-        },
+        property::PropertyService,
+        transfer::TransferService,
     },
     security::SecurityModule,
     types::{
@@ -23,6 +13,10 @@ use crate::{
         security::{SecurityContext, SecurityClassification, SecurityLevel, SecurityZone},
     },
     error::CoreError,
+    domain::{
+        property::repository::PropertyRepository,
+        transfer::repository::TransferRepository,
+    },
 };
 
 pub struct AppBuilder {
@@ -55,46 +49,22 @@ impl AppBuilder {
 
         let config = self.config.unwrap_or_default();
 
-        // Create database module
-        let database = Arc::new(DatabaseModule::new(db_pool));
-
         // Create security module
         let security = Arc::new(SecurityModule::new_default());
 
-        // Create verification service
-        let verification = Arc::new(VerificationManagerImpl::new(
-            database.clone(),
-            security.clone(),
-        ));
+        // Create repositories
+        let property_repo = Box::new(PropertyRepository::new(db_pool.clone()));
+        let transfer_repo = Box::new(TransferRepository::new(db_pool.clone()));
 
-        // Create audit service
-        let audit = Arc::new(AuditManagerImpl::new(
-            database.clone(),
-            security.clone(),
-        ));
-
-        // Create mesh service
-        let mesh = Arc::new(MeshServiceImpl::new());
-
-        // Create P2P service
-        let p2p = Arc::new(P2PServiceImpl::new());
-
-        // Create sync manager
-        let sync = Arc::new(SyncManagerImpl::new(
-            database.clone(),
-            mesh.clone(),
-            p2p.clone(),
-        ));
+        // Create services
+        let property_service = Arc::new(PropertyService::new(property_repo));
+        let transfer_service = Arc::new(TransferService::new(transfer_repo));
 
         Ok(web::Data::new(AppState {
             config,
-            database,
             security,
-            verification,
-            audit,
-            sync_manager: sync,
-            mesh_service: mesh,
-            p2p_service: p2p,
+            property_service,
+            transfer_service,
         }))
     }
 }
@@ -128,12 +98,8 @@ mod tests {
             .build()
             .expect("Failed to build app state");
 
-        assert!(app_state.database.is_some());
         assert!(app_state.security.is_some());
-        assert!(app_state.verification.is_some());
-        assert!(app_state.audit.is_some());
-        assert!(app_state.sync_manager.is_some());
-        assert!(app_state.mesh_service.is_some());
-        assert!(app_state.p2p_service.is_some());
+        assert!(app_state.property_service.is_some());
+        assert!(app_state.transfer_service.is_some());
     }
 }

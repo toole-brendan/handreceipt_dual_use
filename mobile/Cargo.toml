@@ -6,7 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-backend = { path = "../backend" }
+handreceipt = { path = "../backend" }
 
 # Use workspace dependencies
 tokio = { workspace = true }
