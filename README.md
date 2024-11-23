@@ -1,189 +1,192 @@
 # HandReceipt
 
-A modern digital hand receipt system for tracking and managing military assets with support for offline operations, mesh networking, and multi-level security.
+A secure military property management system using QR codes and blockchain verification.
 
-## Overview
+## Core Features
 
-HandReceipt modernizes the traditional military hand receipt process by providing:
-- Digital asset tracking and chain of custody
-- Offline-capable mobile scanning
-- Secure mesh networking for remote operations
-- Multi-level security classifications
-- Automated inventory management
+- **Property Management**
+  - QR code-based property tracking
+  - Role-based access control (Officers, NCOs, Soldiers)
+  - Location and condition tracking
+  - Audit trail with Merkle tree verification
 
-## Features
-
-- **Digital Hand Receipts**
-  - QR code and RFID scanning
-  - Digital signatures
-  - Chain of custody tracking
-  - Automated inventory reconciliation
+- **Transfer Workflow**
+  - QR code scanning for transfers
+  - Commander approval for sensitive items
+  - Blockchain verification of transfers
+  - Digital signatures with Ed25519
 
 - **Security**
-  - Multi-level security classifications
   - Role-based access control
-  - Comprehensive audit logging
-  - Hardware security module integration
-  - Quantum-resistant encryption
-
-- **Mesh Networking**
-  - Peer-to-peer communication
-  - Offline operation support
-  - Automatic sync when online
-  - Bluetooth and Wi-Fi Direct support
-
-- **Mobile Support**
-  - Native mobile apps
-  - Offline scanning capability
-  - Secure data storage
-  - Background sync
-
-## Architecture
-
-### Backend (Rust)
-- Clean architecture with domain-driven design
-- Repository pattern for data access
-- Async/await for high performance
-- PostgreSQL with PostGIS for location data
-- Comprehensive test coverage
-
-### Frontend (React + TypeScript)
-- Modern React with hooks
-- Type-safe development
-- Responsive design
-- Offline-first architecture
-- Progressive Web App (PWA)
-
-### Mobile (React Native + Rust)
-- Cross-platform mobile apps
-- Native device features
-- Secure storage
-- Background sync
+  - Audit trails with Merkle tree verification
+  - Encryption for sensitive data
+  - Command chain validation
 
 ## Project Structure
 
 ```
 .
-├── backend/             # Rust backend service
+├── backend/                 # Rust backend service
 │   ├── src/
-│   │   ├── services/   # Business logic
-│   │   ├── types/      # Domain types
-│   │   └── infrastructure/  # External interfaces
-│   └── tests/          # Unit and integration tests
-├── frontend/           # React web application
-│   ├── src/
-│   │   ├── components/ # UI components
-│   │   ├── pages/      # Route pages
-│   │   └── services/   # API clients
-│   └── public/         # Static assets
-└── mobile-app/         # React Native mobile app
-    ├── src/
-    │   ├── screens/    # Mobile screens
-    │   └── services/   # Mobile services
-    └── native/         # Native modules
+│   │   ├── domain/         # Core business logic
+│   │   │   ├── property/   # Property management
+│   │   │   └── transfer/   # Transfer processing
+│   │   ├── application/    # Application services
+│   │   ├── infrastructure/ # External implementations
+│   │   └── security/       # Security features
+│   └── tests/              # Integration & unit tests
+│
+├── frontend/               # React web interface
+│   └── src/
+│       ├── pages/         # Page components
+│       │   ├── property/  # Property views
+│       │   └── reports/   # Report generation
+│       └── ui/            # Reusable components
+│
+└── mobile/                # Mobile QR scanner
+    └── src/
+        └── scanner/       # QR code scanning
 ```
 
-## Setup
+## Getting Started
 
 ### Prerequisites
-- Rust 1.70 or later
-- Node.js 18 or later
-- PostgreSQL 14 or later
-- Docker (optional)
+
+- Rust 1.70+
+- Node.js 18+
+- PostgreSQL 14+
+- OpenSSL
 
 ### Backend Setup
+
+1. Install dependencies:
 ```bash
 cd backend
-cargo build
-cargo test
+cargo install sqlx-cli
+```
+
+2. Create database:
+```bash
+createdb handreceipt
+```
+
+3. Run migrations:
+```bash
+sqlx migrate run
+```
+
+4. Start server:
+```bash
 cargo run
 ```
 
 ### Frontend Setup
+
+1. Install dependencies:
 ```bash
 cd frontend
 npm install
+```
+
+2. Start development server:
+```bash
 npm run dev
 ```
 
 ### Mobile Setup
+
+1. Install dependencies:
 ```bash
-cd mobile-app
-npm install
-npm run ios     # For iOS
-npm run android # For Android
+cd mobile
+cargo build
 ```
 
-### Database Setup
+2. Run scanner:
 ```bash
-# Create database
-createdb handreceipt
-
-# Run migrations
-cd backend
-cargo run --bin migrate
+cargo run
 ```
 
 ## Development
 
-### Running Tests
+### Key Components
+
+1. Property Management
+   - Property entity with QR code support
+   - Role-based access control
+   - Location tracking
+   - Condition monitoring
+
+2. Transfer Processing
+   - QR code scanning
+   - Commander approval workflow
+   - Blockchain verification
+   - Digital signatures
+
+3. Security
+   - JWT authentication
+   - Role-based authorization
+   - Command hierarchy validation
+   - Audit trails
+
+### Architecture
+
+The system follows Domain-Driven Design with a clean architecture:
+
+- Domain Layer: Core business logic and rules
+- Application Layer: Use case implementations
+- Infrastructure Layer: External service implementations
+- API Layer: HTTP interface and middleware
+- Security Layer: Cross-cutting security concerns
+
+### Testing
+
+Run backend tests:
 ```bash
-# Backend tests
 cd backend
 cargo test
+```
 
-# Frontend tests
+Run frontend tests:
+```bash
 cd frontend
 npm test
-
-# Mobile tests
-cd mobile-app
-npm test
 ```
 
-### Code Style
-- Rust: `rustfmt` and `clippy`
-- TypeScript: ESLint and Prettier
-- Pre-commit hooks enforce style
+## Security Features
 
-## Deployment
+### Authentication
 
-### Production Build
-```bash
-# Backend
-cd backend
-cargo build --release
+Uses JWT tokens with:
+- User ID
+- Name
+- Rank
+- Unit
+- Role
 
-# Frontend
-cd frontend
-npm run build
+### Authorization
 
-# Mobile
-cd mobile-app
-npm run build
-```
+Role-based access control:
+- Officers can approve sensitive transfers
+- NCOs can manage property
+- Soldiers can initiate transfers
 
-### Docker
-```bash
-docker-compose up -d
-```
+### Blockchain Verification
 
-## Security Considerations
+Transfers are verified using:
+- Digital signatures (Ed25519)
+- Authority consensus
+- Command chain validation
+- Merkle tree verification
 
-- All data is encrypted at rest
-- TLS for all network communication
-- Regular security audits
-- Hardware security module support
-- Multi-factor authentication
+### Audit Trail
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+All actions are logged with:
+- Merkle tree verification
+- Digital signatures
+- Timestamp
+- User information
+- Location data
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see LICENSE file for details.

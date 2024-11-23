@@ -1,129 +1,81 @@
-# backend/Cargo.toml
-
 [package]
-name = "backend"
+name = "handreceipt"
 version = "0.1.0"
 edition = "2021"
 authors = ["Your Organization"]
-description = "Military Asset Tracking System with blockchain and advanced security features"
+description = "Military property management system with QR codes and blockchain verification"
 license = "MIT"
 
 [dependencies]
-# Use workspace dependencies
-actix = { workspace = true }
+# Web Framework
 actix-web = { workspace = true }
 actix-http = { workspace = true }
 actix-service = { workspace = true }
 actix-rt = { workspace = true }
 actix-cors = { workspace = true }
-actix-web-actors = { workspace = true }
-reqwest = { workspace = true }
-getrandom = { workspace = true }
+
+# Async Runtime
 tokio = { workspace = true }
 futures = { workspace = true }
 async-trait = { workspace = true }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
+
+# Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
+
+# Core Utils
 uuid = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-hex = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
+
+# Logging
 tracing = { workspace = true }
+env_logger = { workspace = true }
+
+# Security
+ed25519-dalek = { version = "2.0", features = ["rand_core", "serde"] }
+rand = { workspace = true }
+base64 = { workspace = true }
 sha2 = { workspace = true }
 ring = { workspace = true }
-base64 = { workspace = true }
-bytes = { workspace = true }
-image = { workspace = true }
-bytestring = { workspace = true }
 
-# Database
-tokio-postgres = { workspace = true }
-deadpool-postgres = { workspace = true }
-postgres-types = { workspace = true }
-sqlx = { workspace = true }
-postgis = { workspace = true }
-postgres-native-tls = "0.5"
-postgres-openssl = "0.5"
-
-# Additional dependencies
-tokio-macros = "2.1"
-ciborium = "0.2"
-
-# P2P & Mesh Networking (Optional)
-libp2p = { version = "0.50", features = [
-    "tcp",
-    "mdns",
-    "floodsub",
-    "noise",
-    "mplex",
-    "yamux",
-    "ping",
-    "request-response"
-], optional = true }
-
-# Additional Cryptography & Security
-aead = "0.5"
-ed25519-dalek = { version = "2.0", features = ["rand_core", "serde"] }
-x25519-dalek = { version = "2.0", features = ["serde"] }
-chacha20poly1305 = { version = "0.10", features = ["std"] }
-argon2 = { version = "0.5", features = ["std", "password-hash"] }
-hmac = { version = "0.12", features = ["std"] }
-sha3 = { version = "0.10", features = ["std"] }
-aes-gcm = { version = "0.10", features = ["std", "aes"] }
-openssl = { version = "0.10", features = ["vendored"] }
-pkcs11 = "0.5"
-generic-array = "0.14"
-
-# Monitoring
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-metrics = "0.21"
-metrics-exporter-prometheus = "0.12"
-prometheus = { version = "0.13", features = ["process"] }
+# QR Code
+qrcode = { version = "0.12", features = ["svg"] }
 
 # Configuration
-dotenv = "0.15"
+dotenv = { workspace = true }
 config = { version = "0.13", features = ["yaml"] }
-
-# Additional Utils
-semver = "1.0"
-num_cpus = "1.0"
-
-# Asset Scanning & Imaging (Optional)
-quircs = { version = "0.10", optional = true }
-zxing-rs = { version = "0.1.0", optional = true }
-pcsc = { version = "2.8", optional = true }
-qrcode = { version = "0.12", features = ["svg"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
 pretty_assertions = "1.4"
 rstest = { version = "0.18", features = ["async-timeout"] }
 mockall = "0.12"
-criterion = { version = "0.5", features = ["async_tokio"] }
 wiremock = "0.5"
 test-log = { version = "0.2", features = ["trace"] }
 
 [features]
-default = ["standard-security", "scanning", "mesh-network"]
+default = ["standard-security"]
 
 # Security Levels
 standard-security = []
 military-grade = [
     "quantum-resistant",
-    "hardware-security",
-    "secure-enclave",
-    "hsm-support"
+    "hardware-security"
 ]
 
-# Feature Groups
-scanning = ["dep:quircs", "dep:zxing-rs", "dep:pcsc"]
-mesh-network = ["dep:libp2p"]
+# Optional Features
 quantum-resistant = []
-hardware-security = [] 
-secure-enclave = []
-hsm-support = []
-location-tracking = []
-high-availability = []
+hardware-security = []
+
+[[bin]]
+name = "handreceipt"
+path = "src/main.rs"
+
+[lib]
+name = "handreceipt"
+path = "src/lib.rs"

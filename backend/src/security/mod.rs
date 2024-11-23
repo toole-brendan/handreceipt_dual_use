@@ -1,24 +1,16 @@
-// backend/src/security/mod.rs
+//! Security module providing core security features for the property management system.
+//! 
+//! This module includes:
+//! - Role-based access control
+//! - Audit trail with Merkle tree verification
+//! - Encryption for sensitive data
+//! - Digital signatures for transfer verification
 
-use sha2::{Sha512, Digest};
-use crate::core::{SecurityContext, CoreError};
+pub mod access_control;
+pub mod audit;
+pub mod encryption;
+pub mod merkle;
 
-pub struct SecurityModule;
-
-impl SecurityModule {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub async fn hash_document(&self, content: &str) -> Result<String, CoreError> {
-        let mut hasher = Sha512::new();
-        hasher.update(content.as_bytes());
-        let result = hasher.finalize();
-        Ok(hex::encode(result))
-    }
-
-    pub async fn verify_token(&self, _token: &str) -> Result<SecurityContext, CoreError> {
-        // Implement actual token verification
-        Err(CoreError::SecurityViolation("Not implemented".to_string()))
-    }
-}
+pub use access_control::AccessControl;
+pub use audit::AuditChain;
+pub use encryption::Encryption;

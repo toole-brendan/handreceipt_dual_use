@@ -1,146 +1,142 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use std::collections::HashMap;
 
-use super::security::SecurityClassification;
+use crate::{
+    error::CoreError,
+    types::{
+        security::SecurityContext,
+        audit::AuditEvent,
+    },
+};
 
-/// Represents a block in the blockchain
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Block {
-    pub id: Uuid,
-    pub timestamp: DateTime<Utc>,
-    pub transactions: Vec<Transaction>,
-    pub previous_hash: String,
-    pub hash: String,
-    pub nonce: u64,
-    pub classification: SecurityClassification,
+#[async_trait]
+pub trait BlockchainService: Send + Sync {
+    async fn submit_transaction(&self, tx: BlockchainTransaction) -> Result<(), CoreError>;
+    async fn get_transaction(&self, id: Uuid) -> Result<Option<BlockchainTransaction>, CoreError>;
+    async fn verify_transaction(&self, tx: &BlockchainTransaction) -> Result<bool, CoreError>;
+    async fn get_block(&self, height: u64) -> Result<Option<Block>, CoreError>;
+    async fn get_latest_block(&self) -> Result<Block, CoreError>;
 }
 
-/// Represents a transaction in the blockchain
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Transaction {
-    pub id: Uuid,
-    pub timestamp: DateTime<Utc>,
-    pub data: String,
-    pub signature: String,
-    pub classification: SecurityClassification,
-}
-
-/// Represents a blockchain transaction before it's included in a block
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainTransaction {
     pub id: Uuid,
+    pub transaction_type: TransactionType,
+    pub data: TransactionData,
+    pub metadata: TransactionMetadata,
+    pub signatures: Vec<TransactionSignature>,
     pub timestamp: DateTime<Utc>,
-    pub data: String,
-    pub signature: String,
-    pub classification: SecurityClassification,
+    pub status: TransactionStatus,
 }
 
-/// Represents a node in the blockchain network
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BlockchainNode {
-    pub id: Uuid,
-    pub address: String,
-    pub status: NodeStatus,
-    pub last_seen: DateTime<Utc>,
+pub struct Block {
+    pub height: u64,
+    pub hash: String,
+    pub previous_hash: String,
+    pub transactions: Vec<BlockchainTransaction>,
+    pub timestamp: DateTime<Utc>,
+    pub metadata: HashMap<String, String>,
 }
 
-/// Represents the status of a blockchain node
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum NodeStatus {
-    Active,
-    Inactive,
-    Syncing,
-    Error,
-}
-
-/// Represents network metrics for the blockchain
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NetworkMetrics {
-    pub connected_peers: usize,
-    pub pending_transactions: usize,
-    pub blocks_processed: u64,
-    pub network_latency: f64,
-    pub sync_status: String,
+pub struct TransactionData {
+    pub payload: Vec<u8>,
+    pub hash: String,
+    pub size: usize,
 }
 
-impl Block {
-    pub fn new(transactions: Vec<Transaction>, previous_hash: String, classification: SecurityClassification) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            timestamp: Utc::now(),
-            transactions,
-            previous_hash,
-            hash: String::new(), // Will be set during mining
-            nonce: 0,            // Will be set during mining
-            classification,
-        }
-    }
-
-    pub fn calculate_hash(&self) -> String {
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        
-        // Combine all fields into a single string
-        let data = format!(
-            "{}{}{}{}{}",
-            self.id,
-            self.timestamp,
-            serde_json::to_string(&self.transactions).unwrap_or_default(),
-            self.previous_hash,
-            self.nonce
-        );
-        
-        hasher.update(data.as_bytes());
-        format!("{:x}", hasher.finalize())
-    }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionMetadata {
+    pub creator: String,
+    pub context: SecurityContext,
+    pub audit_events: Vec<AuditEvent>,
+    pub custom_fields: HashMap<String, String>,
 }
 
-impl Transaction {
-    pub fn new(data: String, signature: String, classification: SecurityClassification) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            timestamp: Utc::now(),
-            data,
-            signature,
-            classification,
-        }
-    }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionSignature {
+    pub signer: String,
+    pub signature: Vec<u8>,
+    pub timestamp: DateTime<Utc>,
+    pub valid: bool,
+}
 
-    pub fn verify_signature(&self) -> bool {
-        // TODO: Implement signature verification
-        // This would typically involve:
-        // 1. Extracting the public key from the signature
-        // 2. Verifying the signature against the transaction data
-        // 3. Checking if the signer had appropriate permissions
-        true
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TransactionType {
+    AssetCreation,
+    AssetTransfer,
+    AssetUpdate,
+    AssetDeletion,
+    AuditRecord,
+    SystemEvent,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TransactionStatus {
+    Pending,
+    Confirmed,
+    Failed,
+    Rejected,
+}
+
+impl std::fmt::Display for TransactionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransactionType::AssetCreation => write!(f, "ASSET_CREATION"),
+            TransactionType::AssetTransfer => write!(f, "ASSET_TRANSFER"),
+            TransactionType::AssetUpdate => write!(f, "ASSET_UPDATE"),
+            TransactionType::AssetDeletion => write!(f, "ASSET_DELETION"),
+            TransactionType::AuditRecord => write!(f, "AUDIT_RECORD"),
+            TransactionType::SystemEvent => write!(f, "SYSTEM_EVENT"),
+        }
     }
 }
 
-impl BlockchainNode {
-    pub fn new(address: String) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            address,
-            status: NodeStatus::Inactive,
-            last_seen: Utc::now(),
+impl std::str::FromStr for TransactionType {
+    type Err = CoreError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "ASSET_CREATION" => Ok(TransactionType::AssetCreation),
+            "ASSET_TRANSFER" => Ok(TransactionType::AssetTransfer),
+            "ASSET_UPDATE" => Ok(TransactionType::AssetUpdate),
+            "ASSET_DELETION" => Ok(TransactionType::AssetDeletion),
+            "AUDIT_RECORD" => Ok(TransactionType::AuditRecord),
+            "SYSTEM_EVENT" => Ok(TransactionType::SystemEvent),
+            _ => Err(CoreError::Validation(
+                format!("Invalid transaction type: {}", s).into()
+            )),
         }
     }
+}
 
-    pub fn update_status(&mut self, status: NodeStatus) {
-        self.status = status;
-        self.last_seen = Utc::now();
+impl std::fmt::Display for TransactionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransactionStatus::Pending => write!(f, "PENDING"),
+            TransactionStatus::Confirmed => write!(f, "CONFIRMED"),
+            TransactionStatus::Failed => write!(f, "FAILED"),
+            TransactionStatus::Rejected => write!(f, "REJECTED"),
+        }
     }
+}
 
-    pub fn is_active(&self) -> bool {
-        self.status == NodeStatus::Active
-    }
+impl std::str::FromStr for TransactionStatus {
+    type Err = CoreError;
 
-    pub fn is_syncing(&self) -> bool {
-        self.status == NodeStatus::Syncing
-    }
-
-    pub fn has_error(&self) -> bool {
-        self.status == NodeStatus::Error
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "PENDING" => Ok(TransactionStatus::Pending),
+            "CONFIRMED" => Ok(TransactionStatus::Confirmed),
+            "FAILED" => Ok(TransactionStatus::Failed),
+            "REJECTED" => Ok(TransactionStatus::Rejected),
+            _ => Err(CoreError::Validation(
+                format!("Invalid transaction status: {}", s).into()
+            )),
+        }
     }
 }

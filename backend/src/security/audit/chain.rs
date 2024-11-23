@@ -3,10 +3,13 @@
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
-use crate::services::database::postgresql::connection::DbPool;
-use crate::core::SecurityClassification;
-use super::{SignatureMetadata, SignatureType};
-use merkle::MerkleTree;
+use crate::types::{
+    security::SecurityClassification,
+    audit::{SignatureMetadata, SignatureType},
+    error::SecurityError,
+};
+use deadpool_postgres::Pool;
+use crate::security::merkle::MerkleTree;
 use sha2::{Sha256, Digest};
 use super::logger::AuditEvent;
 
@@ -32,11 +35,11 @@ pub struct CustodyVerification {
 }
 
 pub struct ChainOfCustody {
-    pool: DbPool,
+    pool: Pool,
 }
 
 impl ChainOfCustody {
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 
@@ -197,7 +200,7 @@ impl ChainOfCustody {
 }
 
 pub struct AuditChain {
-    merkle_tree: MerkleTree<Sha256>,
+    merkle_tree: MerkleTree,
     events: Vec<AuditEvent>,
 }
 

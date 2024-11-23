@@ -4,9 +4,13 @@ use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
-use crate::services::database::postgresql::connection::DbPool;
-use crate::core::SecurityClassification;
-use super::{SignatureMetadata, SignatureType, SignatureAlgorithm};
+use crate::types::{
+    security::SecurityClassification,
+    audit::{SignatureMetadata, SignatureType, SignatureAlgorithm},
+};
+use std::sync::Arc;
+use deadpool_postgres::Pool;
+use crate::error::security::SecurityError;  // Updated to use correct error path
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ValidationResult {
@@ -17,11 +21,11 @@ pub struct ValidationResult {
 }
 
 pub struct SignatureValidator {
-    pool: DbPool,
+    pool: Pool,
 }
 
 impl SignatureValidator {
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 
@@ -172,5 +176,20 @@ impl SignatureValidator {
         }).collect();
 
         Ok(history)
+    }
+}
+
+pub struct AuditValidator {
+    db_pool: Arc<Pool>,
+}
+
+impl AuditValidator {
+    pub fn new(db_pool: Arc<Pool>) -> Self {
+        Self { db_pool }
+    }
+
+    pub async fn validate_trail(&self, trail_id: uuid::Uuid) -> Result<bool, SecurityError> {
+        // Implementation here
+        Ok(true)
     }
 }

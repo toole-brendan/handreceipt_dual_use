@@ -4,11 +4,12 @@ use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
+use async_trait::async_trait;
 
 use crate::types::{
     security::{SecurityContext, SecurityClassification},
     error::CoreError,
-    blockchain::{Block, Transaction},
+    blockchain::{Block, Transaction, BlockchainService},
 };
 
 use crate::services::{
@@ -124,4 +125,30 @@ pub struct NetworkMetrics {
     pub connected_peers: usize,
     pub active_connections: usize,
     pub network_latency: f64,
+}
+
+pub struct BlockchainServiceImpl;
+
+impl BlockchainServiceImpl {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[async_trait]
+impl BlockchainService for BlockchainServiceImpl {
+    async fn add_block(&self, block: Block) -> Result<(), CoreError> {
+        // Implementation here
+        Ok(())
+    }
+
+    async fn get_block(&self, hash: &str) -> Result<Option<Block>, CoreError> {
+        // Implementation here
+        Ok(None)
+    }
+
+    async fn verify_transaction(&self, tx: &Transaction) -> Result<bool, CoreError> {
+        // Implementation here
+        Ok(true)
+    }
 }

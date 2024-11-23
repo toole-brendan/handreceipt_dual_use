@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
+    error::CoreError,
     services::{
         CoreModule,
         SecurityModule,
@@ -9,18 +10,15 @@ use crate::{
         P2PModule,
         SyncModule,
     },
-    types::{
-        app::{
-            AppConfig,
-            DatabaseService,
-            SecurityService,
-            AssetVerification,
-            AuditLogger,
-            MeshService,
-            P2PService,
-            SyncManager,
-        },
-        error::CoreError,
+    types::app::{
+        AppConfig,
+        DatabaseService,
+        SecurityService,
+        AssetVerification,
+        AuditLogger,
+        MeshService,
+        P2PService,
+        SyncManager,
     },
 };
 
@@ -39,8 +37,18 @@ impl Core {
     pub fn new(config: AppConfig) -> Result<Self, CoreError> {
         let database = Arc::new(DatabaseModule::new(config.database.clone()));
         let security = Arc::new(SecurityModule::new());
-        let verification = Arc::new(CoreModule::new());
-        let audit = Arc::new(CoreModule::new());
+        let verification = Arc::new(CoreModule::new(
+            database.clone(),
+            security.clone(),
+            config.clone(),
+            None,
+        ));
+        let audit = Arc::new(CoreModule::new(
+            database.clone(),
+            security.clone(),
+            config.clone(),
+            None,
+        ));
         let mesh = Arc::new(MeshModule::new());
         let p2p = Arc::new(P2PModule::new());
         let sync = Arc::new(SyncModule::new(

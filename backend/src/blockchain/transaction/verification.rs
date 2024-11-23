@@ -1,7 +1,5 @@
-// backend/src/blockchain/transaction/verification.rs
-
-use super::processing::Transaction;
-use crate::security::audit::chain::AuditChain;
+use crate::types::blockchain::Transaction;
+use crate::types::audit::AuditChain;
 use crate::models::asset::Asset;
 use async_trait::async_trait;
 use thiserror::Error;

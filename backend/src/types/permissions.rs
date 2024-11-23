@@ -1,111 +1,104 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use crate::types::security::SecurityClassification;
 
-/// Represents different types of resources that can be accessed
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Permission {
+    pub id: Uuid,
+    pub resource_type: ResourceType,
+    pub action: Action,
+    pub granted_at: DateTime<Utc>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub granted_by: String,
+    pub classification: SecurityClassification,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ResourceType {
     Asset,
     User,
-    Transfer,
+    Group,
+    Role,
+    Policy,
+    Key,
+    Certificate,
     Audit,
-    Security,
-    Network,
-    Blockchain,
-    Scanner,
-    MeshNode,
-    Transaction,
-    Block,
-    Node,
     System,
-    Replication,
-    ReplicationAuthority,
-    ManageReplication,
-    WebSocket,
 }
 
-/// Represents different actions that can be performed on resources
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
     Create,
     Read,
     Update,
     Delete,
-    Transfer,
-    Audit,
-    Verify,
-    Sign,
-    Sync,
-    Scan,
-    Connect,
-    Broadcast,
+    List,
     Execute,
-}
-
-/// Represents a permission to perform an action on a resource
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Permission {
-    pub resource: ResourceType,
-    pub action: Action,
-    pub conditions: Option<serde_json::Value>,
+    Grant,
+    Revoke,
 }
 
 impl Permission {
-    pub fn new(resource: ResourceType, action: Action) -> Self {
+    pub fn new(
+        resource_type: ResourceType,
+        action: Action,
+        granted_by: String,
+        classification: SecurityClassification,
+    ) -> Self {
         Self {
-            resource,
+            id: Uuid::new_v4(),
+            resource_type,
             action,
-            conditions: None,
+            granted_at: Utc::now(),
+            expires_at: None,
+            granted_by,
+            classification,
         }
     }
 
-    pub fn with_conditions(resource: ResourceType, action: Action, conditions: serde_json::Value) -> Self {
-        Self {
-            resource,
-            action,
-            conditions: Some(conditions),
-        }
+    pub fn with_expiry(mut self, expires_at: DateTime<Utc>) -> Self {
+        self.expires_at = Some(expires_at);
+        self
+    }
+
+    pub fn is_expired(&self) -> bool {
+        self.expires_at.map_or(false, |exp| exp < Utc::now())
     }
 
     pub fn to_string(&self) -> String {
-        format!("{}:{}", self.resource_str(), self.action_str())
+        format!("{}:{}", self.resource_type, self.action)
     }
+}
 
-    fn resource_str(&self) -> &'static str {
-        match self.resource {
-            ResourceType::Asset => "asset",
-            ResourceType::User => "user",
-            ResourceType::Transfer => "transfer",
-            ResourceType::Audit => "audit",
-            ResourceType::Security => "security",
-            ResourceType::Network => "network",
-            ResourceType::Blockchain => "blockchain",
-            ResourceType::Scanner => "scanner",
-            ResourceType::MeshNode => "mesh_node",
-            ResourceType::Transaction => "transaction",
-            ResourceType::Block => "block",
-            ResourceType::Node => "node",
-            ResourceType::System => "system",
-            ResourceType::Replication => "replication",
-            ResourceType::ReplicationAuthority => "replication_authority",
-            ResourceType::ManageReplication => "manage_replication",
-            ResourceType::WebSocket => "websocket",
+impl fmt::Display for ResourceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Asset => write!(f, "asset"),
+            Self::User => write!(f, "user"),
+            Self::Group => write!(f, "group"),
+            Self::Role => write!(f, "role"),
+            Self::Policy => write!(f, "policy"),
+            Self::Key => write!(f, "key"),
+            Self::Certificate => write!(f, "certificate"),
+            Self::Audit => write!(f, "audit"),
+            Self::System => write!(f, "system"),
         }
     }
+}
 
-    fn action_str(&self) -> &'static str {
-        match self.action {
-            Action::Create => "create",
-            Action::Read => "read",
-            Action::Update => "update",
-            Action::Delete => "delete",
-            Action::Transfer => "transfer",
-            Action::Audit => "audit",
-            Action::Verify => "verify",
-            Action::Sign => "sign",
-            Action::Sync => "sync",
-            Action::Scan => "scan",
-            Action::Connect => "connect",
-            Action::Broadcast => "broadcast",
-            Action::Execute => "execute",
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Create => write!(f, "create"),
+            Self::Read => write!(f, "read"),
+            Self::Update => write!(f, "update"),
+            Self::Delete => write!(f, "delete"),
+            Self::List => write!(f, "list"),
+            Self::Execute => write!(f, "execute"),
+            Self::Grant => write!(f, "grant"),
+            Self::Revoke => write!(f, "revoke"),
         }
     }
 }

@@ -1,6 +1,4 @@
-// Unit tests
-mod unit;
+//! Integration and unit tests for core functionality
 
-// Integration tests
-#[cfg(test)]
-mod integration; 
+pub mod integration;
+pub mod unit;

@@ -1,124 +1,131 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use crate::types::security::SecurityClassification;
 
-use super::security::SecurityClassification;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignatureChain {
+    pub id: Uuid,
+    pub signatures: Vec<Signature>,
+    pub metadata: Option<HashMap<String, String>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub classification: SecurityClassification,
+}
 
-/// Represents different types of signatures
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Signature {
+    pub id: Uuid,
+    pub signer_id: String,
+    pub signature: Vec<u8>,
+    pub algorithm: SignatureAlgorithm,
+    pub timestamp: DateTime<Utc>,
+    pub metadata: Option<HashMap<String, String>>,
+    pub classification: SecurityClassification,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SignatureAlgorithm {
+    Ed25519,
+    Secp256k1,
+    RSA,
+    ECDSA,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignatureMetadata {
+    pub key_id: Uuid,
+    pub signature: Vec<u8>,
+    pub signer_id: Uuid,
+    pub classification: SecurityClassification,
+    pub signature_type: SignatureType,
+    pub algorithm: SignatureAlgorithm,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SignatureType {
-    Command,
+    Message,
     Transaction,
     Block,
-    Asset,
-    Transfer,
-    Audit,
-    Verification,
+    Certificate,
+    System,
 }
 
-/// Represents a command signature
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommandSignature {
-    pub id: Uuid,
-    pub signer_id: Uuid,
-    pub signature_type: SignatureType,
-    pub data_hash: String,
-    pub signature: String,
-    pub timestamp: DateTime<Utc>,
-    pub classification: SecurityClassification,
-    pub metadata: HashMap<String, String>,
+impl SignatureChain {
+    pub fn new(classification: SecurityClassification) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            signatures: Vec::new(),
+            metadata: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            classification,
+        }
+    }
+
+    pub fn add_signature(&mut self, signature: Signature) {
+        self.signatures.push(signature);
+        self.updated_at = Utc::now();
+    }
+
+    pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
 }
 
-impl CommandSignature {
+impl Signature {
     pub fn new(
-        signer_id: Uuid,
-        signature_type: SignatureType,
-        data_hash: String,
-        signature: String,
+        signer_id: String,
+        signature: Vec<u8>,
+        algorithm: SignatureAlgorithm,
         classification: SecurityClassification,
     ) -> Self {
         Self {
             id: Uuid::new_v4(),
             signer_id,
-            signature_type,
-            data_hash,
             signature,
+            algorithm,
             timestamp: Utc::now(),
+            metadata: None,
             classification,
-            metadata: HashMap::new(),
         }
     }
 
-    pub fn add_metadata(&mut self, key: String, value: String) {
-        self.metadata.insert(key, value);
-    }
-
-    pub fn verify(&self) -> bool {
-        // TODO: Implement signature verification
-        // This would typically involve:
-        // 1. Retrieving the public key for the signer_id
-        // 2. Verifying the signature against the data_hash
-        // 3. Checking if the signer had appropriate permissions at timestamp
-        // 4. Validating any classification requirements
-        true
-    }
-
-    pub fn is_expired(&self, max_age: chrono::Duration) -> bool {
-        let now = Utc::now();
-        now.signed_duration_since(self.timestamp) > max_age
-    }
-
-    pub fn matches_hash(&self, data: &[u8]) -> bool {
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(data);
-        let computed_hash = format!("{:x}", hasher.finalize());
-        self.data_hash == computed_hash
+    pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = Some(metadata);
+        self
     }
 }
 
-/// Represents a chain of signatures
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignatureChain {
-    pub signatures: Vec<CommandSignature>,
-    pub root_hash: String,
-    pub last_updated: DateTime<Utc>,
+impl std::fmt::Display for SignatureAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ed25519 => write!(f, "ED25519"),
+            Self::Secp256k1 => write!(f, "SECP256K1"),
+            Self::RSA => write!(f, "RSA"),
+            Self::ECDSA => write!(f, "ECDSA"),
+        }
+    }
 }
 
-impl SignatureChain {
-    pub fn new() -> Self {
+impl SignatureMetadata {
+    pub fn new(
+        key_id: Uuid,
+        signature: Vec<u8>,
+        signer_id: Uuid,
+        classification: SecurityClassification,
+        signature_type: SignatureType,
+        algorithm: SignatureAlgorithm,
+    ) -> Self {
         Self {
-            signatures: Vec::new(),
-            root_hash: String::new(),
-            last_updated: Utc::now(),
+            key_id,
+            signature,
+            signer_id,
+            classification,
+            signature_type,
+            algorithm,
         }
-    }
-
-    pub fn add_signature(&mut self, signature: CommandSignature) {
-        self.signatures.push(signature);
-        self.update_root_hash();
-        self.last_updated = Utc::now();
-    }
-
-    pub fn verify_chain(&self) -> bool {
-        // TODO: Implement chain verification
-        // This would typically involve:
-        // 1. Verifying each signature in the chain
-        // 2. Ensuring signatures are in chronological order
-        // 3. Validating the root hash
-        // 4. Checking for any breaks in the chain
-        true
-    }
-
-    fn update_root_hash(&mut self) {
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        
-        for sig in &self.signatures {
-            hasher.update(sig.data_hash.as_bytes());
-        }
-        
-        self.root_hash = format!("{:x}", hasher.finalize());
     }
 }
