@@ -8,8 +8,11 @@ use crate::{
     error::CoreError,
     types::{
         security::{SecurityContext, SecurityClassification},
-        property::Property,
         audit::AuditEvent,
+    },
+    domain::{
+        property::entity::Property,
+        transfer::entity::Transfer,
     },
 };
 

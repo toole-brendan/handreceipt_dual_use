@@ -15,10 +15,7 @@ async-trait = { workspace = true }
 tracing = { workspace = true }
 sha2 = { workspace = true }
 base64 = { workspace = true }
-postgis = { workspace = true }
 sqlx = { workspace = true }
-deadpool-postgres = { workspace = true }
-tokio-postgres = { workspace = true }
 
 # Test-specific dependencies
 mockall = { version = "0.12", features = ["nightly"] }
@@ -26,6 +23,9 @@ rand = "0.8"
 pretty_assertions = "1.4"
 test-log = { version = "0.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+env_logger = "0.10"
+actix-web = { version = "4.4", features = ["openssl"] }
+actix-http = "3.4"
 
 # Reference the backend crate
 [dependencies.backend]
@@ -35,5 +35,4 @@ path = ".."
 default = ["test-utils"]
 test-utils = []
 integration-tests = []
-mesh-network-tests = ["backend/mesh-network"]
 scanning-tests = ["backend/scanning"]

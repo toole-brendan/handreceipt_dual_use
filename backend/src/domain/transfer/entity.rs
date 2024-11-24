@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 
-use crate::domain::property::Location;
+use crate::domain::models::location::Location;
 
 /// Status of a property transfer
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -205,13 +205,10 @@ mod tests {
             scanned_by: "TEST_USER".to_string(),
             scanned_at: Utc::now(),
             location: Some(Location {
-                latitude: 34.0522,
-                longitude: -118.2437,
-                altitude: Some(100.0),
-                accuracy: Some(10.0),
-                timestamp: Utc::now(),
-                building: Some("HQ".to_string()),
+                building: "HQ".to_string(),
                 room: Some("Armory".to_string()),
+                notes: None,
+                grid_coordinates: None,
             }),
             device_info: Some(DeviceInfo {
                 device_type: "iPhone".to_string(),

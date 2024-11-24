@@ -1,154 +1,211 @@
-use async_trait::async_trait;
+use std::sync::Arc;
 use uuid::Uuid;
-use thiserror::Error;
+use chrono::{DateTime, Utc};
+use serde::{Serialize, Deserialize};
+use async_trait::async_trait;
 
 use crate::{
-    domain::transfer::Transfer,
-    types::security::SecurityContext,
+    domain::models::transfer::{AssetTransfer, TransferStatus},
     error::CoreError,
+    types::security::SecurityContext,
 };
 
-#[derive(Debug, Error)]
-pub enum BlockchainVerificationError {
-    #[error("Invalid signature: {0}")]
-    InvalidSignature(String),
+use super::authority::{
+    AuthorityNode,
+    PropertyTransfer,
+    SignerRole,
+    TransferSignature,
+};
 
-    #[error("Verification failed: {0}")]
-    VerificationFailed(String),
-
-    #[error("Authority node error: {0}")]
-    AuthorityError(String),
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerificationResult {
+    pub status: TransferStatus,
+    pub blockchain_hash: Option<String>,
+    pub verified_at: DateTime<Utc>,
+    pub signatures: Vec<TransferSignature>,
 }
 
-/// Blockchain verification service for transfers
 #[async_trait]
-pub trait BlockchainVerification: Send + Sync {
+pub trait TransferVerification: Send + Sync {
     /// Verifies a transfer on the blockchain
     async fn verify_transfer(
         &self,
-        transfer: &Transfer,
+        transfer: &AssetTransfer,
         context: &SecurityContext,
-    ) -> Result<String, BlockchainVerificationError>;
+    ) -> Result<VerificationResult, CoreError>;
 
-    /// Gets verification status
-    async fn get_verification_status(
+    /// Gets transfer status from blockchain
+    async fn get_transfer_status(
         &self,
-        verification_id: &str,
-    ) -> Result<VerificationStatus, BlockchainVerificationError>;
+        transfer_id: Uuid,
+        context: &SecurityContext,
+    ) -> Result<TransferStatus, CoreError>;
 
-    /// Gets transfer history from blockchain
-    async fn get_transfer_history(
+    /// Records transfer on blockchain
+    async fn record_transfer(
         &self,
-        property_id: Uuid,
-    ) -> Result<Vec<BlockchainTransfer>, BlockchainVerificationError>;
+        transfer: &AssetTransfer,
+        context: &SecurityContext,
+    ) -> Result<String, CoreError>;
 }
 
-/// Verification status
-#[derive(Debug, Clone)]
-pub enum VerificationStatus {
-    Pending,
-    Verified,
-    Failed(String),
+pub struct BlockchainVerification {
+    authority_node: Arc<AuthorityNode>,
 }
 
-/// Transfer record on blockchain
-#[derive(Debug, Clone)]
-pub struct BlockchainTransfer {
-    pub transfer_id: Uuid,
-    pub property_id: Uuid,
-    pub from_custodian: Option<String>,
-    pub to_custodian: String,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub verification_hash: String,
-    pub command_signature: String,
-}
+impl BlockchainVerification {
+    pub fn new(authority_node: Arc<AuthorityNode>) -> Self {
+        Self { authority_node }
+    }
 
-pub struct BlockchainVerificationImpl {
-    authority_node: String,
-    verification_key: String,
-}
-
-impl BlockchainVerificationImpl {
-    pub fn new(authority_node: String, verification_key: String) -> Self {
-        Self {
-            authority_node,
-            verification_key,
+    /// Converts domain transfer to blockchain transfer
+    fn to_blockchain_transfer(&self, transfer: &AssetTransfer) -> PropertyTransfer {
+        PropertyTransfer {
+            property_id: transfer.asset_id,
+            from_custodian: Some(transfer.from_node.to_string()),
+            to_custodian: transfer.to_node.to_string(),
+            initiated_by: transfer.id.to_string(),
+            requires_approval: transfer.status == TransferStatus::Pending,
+            timestamp: transfer.timestamp,
+            signatures: Vec::new(), // Will be added during verification
         }
     }
 
-    /// Creates a verification hash for a transfer
-    fn create_verification_hash(&self, transfer: &Transfer) -> String {
-        use sha2::{Sha256, Digest};
-        
-        // Combine transfer data for hashing
-        let data = format!(
-            "{}:{}:{}:{}:{}",
-            transfer.id(),
-            transfer.property_id(),
-            transfer.from_custodian().unwrap_or(&"none".to_string()),
-            transfer.to_custodian(),
-            transfer.created_at(),
-        );
-        
-        // Hash the data
-        let mut hasher = Sha256::new();
-        hasher.update(data.as_bytes());
-        let result = hasher.finalize();
-        
-        // Encode as hex
-        hex::encode(result)
-    }
-
-    /// Signs a verification hash with command signature
-    fn sign_verification(&self, hash: &str, context: &SecurityContext) -> String {
-        use ed25519_dalek::{Keypair, Signer};
-        use rand::rngs::OsRng;
-
-        // In production, would use proper key management
-        let mut csprng = OsRng{};
-        let keypair: Keypair = Keypair::generate(&mut csprng);
-
-        // Create signature
-        let signature = keypair.sign(hash.as_bytes());
-        
-        // Encode signature
-        hex::encode(signature.to_bytes())
+    /// Gets signer role based on security context
+    fn get_signer_role(&self, context: &SecurityContext) -> SignerRole {
+        if context.is_officer() {
+            SignerRole::Commander
+        } else if context.is_supply_officer() {
+            SignerRole::SupplyOfficer
+        } else if context.is_property_book_officer() {
+            SignerRole::PropertyBook
+        } else {
+            SignerRole::Custodian
+        }
     }
 }
 
 #[async_trait]
-impl BlockchainVerification for BlockchainVerificationImpl {
+impl TransferVerification for BlockchainVerification {
     async fn verify_transfer(
         &self,
-        transfer: &Transfer,
+        transfer: &AssetTransfer,
         context: &SecurityContext,
-    ) -> Result<String, BlockchainVerificationError> {
-        // Create verification hash
-        let hash = self.create_verification_hash(transfer);
+    ) -> Result<VerificationResult, CoreError> {
+        // Convert to blockchain transfer
+        let mut blockchain_transfer = self.to_blockchain_transfer(transfer);
 
-        // Sign with command signature
-        let signature = self.sign_verification(&hash, context);
+        // Sign transfer with current authority
+        let role = self.get_signer_role(context);
+        self.authority_node
+            .sign_transfer(&mut blockchain_transfer, role)
+            .map_err(|e| CoreError::Blockchain(e))?;
 
-        // In production, would submit to blockchain network
-        // For now, just return the hash
-        Ok(hash)
+        // Validate transfer
+        self.authority_node
+            .validate_transfer(&blockchain_transfer)
+            .map_err(|e| CoreError::Blockchain(e))?;
+
+        // Record on blockchain
+        let hash = self.authority_node
+            .record_transfer(&blockchain_transfer)
+            .await
+            .map_err(|e| CoreError::Blockchain(e))?;
+
+        Ok(VerificationResult {
+            status: TransferStatus::Confirmed,
+            blockchain_hash: Some(hash),
+            verified_at: Utc::now(),
+            signatures: blockchain_transfer.signatures,
+        })
     }
 
-    async fn get_verification_status(
+    async fn get_transfer_status(
         &self,
-        verification_id: &str,
-    ) -> Result<VerificationStatus, BlockchainVerificationError> {
-        // In production, would check blockchain network
-        // For now, always return verified
-        Ok(VerificationStatus::Verified)
+        transfer_id: Uuid,
+        _context: &SecurityContext,
+    ) -> Result<TransferStatus, CoreError> {
+        self.authority_node
+            .get_transfer_status(transfer_id)
+            .await
+            .map_err(|e| CoreError::Blockchain(e))
     }
 
-    async fn get_transfer_history(
+    async fn record_transfer(
         &self,
-        property_id: Uuid,
-    ) -> Result<Vec<BlockchainTransfer>, BlockchainVerificationError> {
-        // In production, would query blockchain network
-        // For now, return empty history
-        Ok(Vec::new())
+        transfer: &AssetTransfer,
+        context: &SecurityContext,
+    ) -> Result<String, CoreError> {
+        // Convert and sign transfer
+        let mut blockchain_transfer = self.to_blockchain_transfer(transfer);
+        let role = self.get_signer_role(context);
+        
+        self.authority_node
+            .sign_transfer(&mut blockchain_transfer, role)
+            .map_err(|e| CoreError::Blockchain(e))?;
+
+        // Record on blockchain
+        self.authority_node
+            .record_transfer(&blockchain_transfer)
+            .await
+            .map_err(|e| CoreError::Blockchain(e))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ed25519_dalek::Keypair;
+    use std::collections::HashMap;
+
+    fn create_test_authority() -> Arc<AuthorityNode> {
+        let keypair = Keypair::generate(&mut rand::thread_rng());
+        let certificate = super::authority::MilitaryCertificate {
+            issuer: "DOD-CA".to_string(),
+            subject: "1-1 IN S4".to_string(),
+            valid_from: Utc::now(),
+            valid_until: Utc::now() + chrono::Duration::days(365),
+            certificate_id: "TEST123".to_string(),
+        };
+
+        let mut hierarchy = HashMap::new();
+        hierarchy.insert(
+            "1-DIV".to_string(),
+            vec!["1-BDE".to_string(), "2-BDE".to_string()],
+        );
+
+        Arc::new(AuthorityNode::new(
+            "1-1-IN".to_string(),
+            keypair,
+            certificate,
+            true,
+            hierarchy,
+        ))
+    }
+
+    #[tokio::test]
+    async fn test_transfer_verification() {
+        let authority = create_test_authority();
+        let verification = BlockchainVerification::new(authority);
+
+        let transfer = AssetTransfer {
+            id: Uuid::new_v4(),
+            asset_id: Uuid::new_v4(),
+            from_node: Uuid::new_v4(),
+            to_node: Uuid::new_v4(),
+            status: TransferStatus::Pending,
+            timestamp: Utc::now(),
+            metadata: serde_json::json!({}),
+            verification_method: None,
+            signatures: Vec::new(),
+        };
+
+        let context = SecurityContext::default(); // Mock context
+        let result = verification.verify_transfer(&transfer, &context).await;
+        assert!(result.is_ok());
+
+        let verification_result = result.unwrap();
+        assert_eq!(verification_result.status, TransferStatus::Confirmed);
+        assert!(verification_result.blockchain_hash.is_some());
     }
 }

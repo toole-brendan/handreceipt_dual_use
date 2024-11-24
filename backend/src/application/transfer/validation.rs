@@ -1,229 +1,233 @@
 use uuid::Uuid;
-use async_trait::async_trait;
-use thiserror::Error;
+use chrono::{DateTime, Utc, Duration};
+use serde::{Serialize, Deserialize};
+use std::sync::Arc;
 
 use crate::{
     domain::{
-        transfer::{Transfer, TransferStatus},
-        property::{Property, PropertyService},
+        models::{
+            transfer::{AssetTransfer, TransferStatus, VerificationMethod},
+            qr::QRData,
+        },
+        property::service::PropertyService,
     },
-    types::security::{SecurityContext, SecurityLevel},
     error::CoreError,
+    types::security::SecurityContext,
 };
 
-/// Transfer validation errors
-#[derive(Debug, Error)]
-pub enum TransferValidationError {
-    #[error("Property not found: {0}")]
-    PropertyNotFound(Uuid),
-
-    #[error("Property is not available for transfer")]
-    PropertyUnavailable,
-
-    #[error("Invalid custodian: {0}")]
-    InvalidCustodian(String),
-
-    #[error("Insufficient security clearance")]
-    InsufficientClearance,
-
-    #[error("Invalid transfer state: {0}")]
-    InvalidState(String),
-
-    #[error("QR code validation failed: {0}")]
-    QRValidationFailed(String),
-
-    #[error("Blockchain verification failed: {0}")]
-    BlockchainVerificationFailed(String),
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransferValidationResult {
+    pub is_valid: bool,
+    pub requires_approval: bool,
+    pub validation_errors: Vec<String>,
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
-/// Transfer validation service
-#[async_trait]
-pub trait TransferValidation: Send + Sync {
-    /// Validates a transfer initiation
-    async fn validate_initiation(
-        &self,
-        property_id: Uuid,
-        new_custodian: &str,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError>;
-
-    /// Validates a transfer approval
-    async fn validate_approval(
-        &self,
-        transfer: &Transfer,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError>;
-
-    /// Validates a transfer completion
-    async fn validate_completion(
-        &self,
-        transfer: &Transfer,
-        qr_code: &str,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError>;
-
-    /// Validates a transfer cancellation
-    async fn validate_cancellation(
-        &self,
-        transfer: &Transfer,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError>;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransferValidationContext {
+    pub qr_data: QRData,
+    pub scanned_at: DateTime<Utc>,
+    pub scanner_location: Option<String>,
+    pub property_id: Uuid,
+    pub new_custodian: String,
 }
 
-pub struct TransferValidationImpl<P: PropertyService> {
-    property_service: P,
+pub struct TransferValidationService {
+    property_service: Arc<dyn PropertyService>,
 }
 
-impl<P: PropertyService> TransferValidationImpl<P> {
-    pub fn new(property_service: P) -> Self {
+impl TransferValidationService {
+    pub fn new(property_service: Arc<dyn PropertyService>) -> Self {
         Self { property_service }
     }
 
-    /// Checks if a user has sufficient clearance for a sensitive item
-    async fn validate_security_clearance(
+    /// Validates a transfer request
+    pub async fn validate_transfer(
         &self,
-        property: &Property,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError> {
-        if property.is_sensitive() && context.security_level < SecurityLevel::Secret {
-            return Err(TransferValidationError::InsufficientClearance);
-        }
-        Ok(())
-    }
+        context: TransferValidationContext,
+        security_context: &SecurityContext,
+    ) -> Result<TransferValidationResult, CoreError> {
+        let mut validation_errors = Vec::new();
+        let mut requires_approval = false;
 
-    /// Validates custodian format and existence
-    fn validate_custodian(&self, custodian: &str) -> Result<(), TransferValidationError> {
-        if custodian.trim().is_empty() {
-            return Err(TransferValidationError::InvalidCustodian(
-                "Custodian cannot be empty".to_string(),
-            ));
-        }
-        // Additional custodian validation rules can be added here
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<P: PropertyService> TransferValidation for TransferValidationImpl<P> {
-    async fn validate_initiation(
-        &self,
-        property_id: Uuid,
-        new_custodian: &str,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError> {
         // Get property
-        let property = self.property_service
-            .get_property(property_id, context)
-            .await
-            .map_err(|_| TransferValidationError::PropertyNotFound(property_id))?
-            .ok_or(TransferValidationError::PropertyNotFound(property_id))?;
+        let property = match self.property_service
+            .get_property(context.property_id, security_context)
+            .await?
+        {
+            Some(p) => p,
+            None => {
+                validation_errors.push("Property not found".to_string());
+                return Ok(TransferValidationResult {
+                    is_valid: false,
+                    requires_approval: false,
+                    validation_errors,
+                    expires_at: None,
+                });
+            }
+        };
 
-        // Validate security clearance
-        self.validate_security_clearance(&property, context).await?;
+        // Validate QR code expiration
+        let qr_age = context.scanned_at - context.qr_data.timestamp;
+        if qr_age > Duration::hours(24) {
+            validation_errors.push("QR code has expired".to_string());
+        }
 
-        // Validate custodian
-        self.validate_custodian(new_custodian)?;
-
-        // Check if property is available for transfer
+        // Validate property status
         if !property.is_available_for_transfer() {
-            return Err(TransferValidationError::PropertyUnavailable);
+            validation_errors.push(format!(
+                "Property is not available for transfer. Current status: {:?}",
+                property.status()
+            ));
         }
 
-        Ok(())
+        // Check if property is sensitive
+        if property.is_sensitive() {
+            requires_approval = true;
+            
+            // Validate permissions for sensitive items
+            if !security_context.has_permission_for_sensitive_items() {
+                validation_errors.push("Insufficient permissions for sensitive item transfer".to_string());
+            }
+        }
+
+        // Validate current custodian
+        if let Some(current_custodian) = property.custodian() {
+            if current_custodian == context.new_custodian {
+                validation_errors.push("Cannot transfer to current custodian".to_string());
+            }
+        }
+
+        // Calculate expiration
+        let expires_at = if validation_errors.is_empty() {
+            Some(Utc::now() + Duration::hours(24))
+        } else {
+            None
+        };
+
+        Ok(TransferValidationResult {
+            is_valid: validation_errors.is_empty(),
+            requires_approval,
+            validation_errors,
+            expires_at,
+        })
     }
 
-    async fn validate_approval(
+    /// Validates transfer approval
+    pub async fn validate_approval(
         &self,
-        transfer: &Transfer,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError> {
-        // Validate transfer state
-        if transfer.status() != &TransferStatus::PendingApproval {
-            return Err(TransferValidationError::InvalidState(
-                "Transfer is not pending approval".to_string(),
+        transfer: &AssetTransfer,
+        security_context: &SecurityContext,
+    ) -> Result<TransferValidationResult, CoreError> {
+        let mut validation_errors = Vec::new();
+
+        // Verify officer role
+        if !security_context.is_officer() {
+            validation_errors.push("Only officers can approve transfers".to_string());
+        }
+
+        // Verify transfer status
+        if transfer.status != TransferStatus::Pending {
+            validation_errors.push(format!(
+                "Transfer cannot be approved in {:?} status",
+                transfer.status
             ));
         }
 
         // Get property
-        let property = self.property_service
-            .get_property(transfer.property_id(), context)
-            .await
-            .map_err(|_| TransferValidationError::PropertyNotFound(transfer.property_id()))?
-            .ok_or(TransferValidationError::PropertyNotFound(transfer.property_id()))?;
+        let property = match self.property_service
+            .get_property(transfer.asset_id, security_context)
+            .await?
+        {
+            Some(p) => p,
+            None => {
+                validation_errors.push("Property not found".to_string());
+                return Ok(TransferValidationResult {
+                    is_valid: false,
+                    requires_approval: false,
+                    validation_errors,
+                    expires_at: None,
+                });
+            }
+        };
 
-        // Validate security clearance
-        self.validate_security_clearance(&property, context).await?;
+        // Verify command chain
+        if !security_context.can_approve_for_command(&property.command_id().unwrap_or_default()) {
+            validation_errors.push("Officer cannot approve transfers for this command".to_string());
+        }
 
-        Ok(())
+        Ok(TransferValidationResult {
+            is_valid: validation_errors.is_empty(),
+            requires_approval: false,
+            validation_errors,
+            expires_at: None,
+        })
     }
 
-    async fn validate_completion(
+    /// Validates blockchain verification
+    pub async fn validate_blockchain_verification(
         &self,
-        transfer: &Transfer,
-        qr_code: &str,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError> {
-        // Validate transfer state
-        match transfer.status() {
-            TransferStatus::Pending | TransferStatus::Approved => (),
-            _ => return Err(TransferValidationError::InvalidState(
-                "Transfer cannot be completed in current state".to_string(),
-            )),
+        transfer: &AssetTransfer,
+        verification: &str,
+        security_context: &SecurityContext,
+    ) -> Result<TransferValidationResult, CoreError> {
+        let mut validation_errors = Vec::new();
+
+        // Verify transfer status
+        match transfer.status {
+            TransferStatus::Completed | TransferStatus::InProgress => {},
+            _ => {
+                validation_errors.push(format!(
+                    "Transfer cannot be blockchain verified in {:?} status",
+                    transfer.status
+                ));
+            }
         }
 
-        // Get property
-        let property = self.property_service
-            .get_property(transfer.property_id(), context)
-            .await
-            .map_err(|_| TransferValidationError::PropertyNotFound(transfer.property_id()))?
-            .ok_or(TransferValidationError::PropertyNotFound(transfer.property_id()))?;
-
-        // Validate security clearance
-        self.validate_security_clearance(&property, context).await?;
-
-        // Validate QR code
-        if !self.validate_qr_code(&property, qr_code) {
-            return Err(TransferValidationError::QRValidationFailed(
-                "Invalid QR code".to_string(),
-            ));
+        // Verify blockchain data
+        if verification.is_empty() {
+            validation_errors.push("Invalid blockchain verification data".to_string());
         }
 
-        Ok(())
-    }
-
-    async fn validate_cancellation(
-        &self,
-        transfer: &Transfer,
-        context: &SecurityContext,
-    ) -> Result<(), TransferValidationError> {
-        // Validate transfer state
-        match transfer.status() {
-            TransferStatus::Pending | TransferStatus::PendingApproval => (),
-            _ => return Err(TransferValidationError::InvalidState(
-                "Transfer cannot be cancelled in current state".to_string(),
-            )),
+        // Verify verification method
+        if !transfer.can_complete(&VerificationMethod::Blockchain) {
+            validation_errors.push("Transfer does not support blockchain verification".to_string());
         }
 
-        // Get property
-        let property = self.property_service
-            .get_property(transfer.property_id(), context)
-            .await
-            .map_err(|_| TransferValidationError::PropertyNotFound(transfer.property_id()))?
-            .ok_or(TransferValidationError::PropertyNotFound(transfer.property_id()))?;
-
-        // Validate security clearance
-        self.validate_security_clearance(&property, context).await?;
-
-        Ok(())
+        Ok(TransferValidationResult {
+            is_valid: validation_errors.is_empty(),
+            requires_approval: false,
+            validation_errors,
+            expires_at: None,
+        })
     }
 }
 
-impl<P: PropertyService> TransferValidationImpl<P> {
-    /// Validates a QR code against a property
-    fn validate_qr_code(&self, property: &Property, qr_code: &str) -> bool {
-        // QR code validation logic would go here
-        // This could involve checking digital signatures, comparing hashes, etc.
-        // For now, we'll just check if the QR code contains the property ID
-        qr_code.contains(&property.id().to_string())
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::property::repository::mock::MockPropertyRepository;
+
+    #[tokio::test]
+    async fn test_transfer_validation() {
+        let property_repository = Arc::new(MockPropertyRepository::new());
+        let property_service = Arc::new(PropertyServiceImpl::new(property_repository));
+        let validation_service = TransferValidationService::new(property_service);
+
+        let context = TransferValidationContext {
+            qr_data: QRData {
+                property_id: Uuid::new_v4(),
+                timestamp: Utc::now(),
+                signature: "test_signature".to_string(),
+            },
+            scanned_at: Utc::now(),
+            scanner_location: None,
+            property_id: Uuid::new_v4(),
+            new_custodian: "NEW_CUSTODIAN".to_string(),
+        };
+
+        let security_context = SecurityContext::default();
+        let result = validation_service.validate_transfer(context, &security_context).await;
+        assert!(result.is_ok());
     }
 }

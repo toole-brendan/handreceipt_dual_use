@@ -1,106 +1,179 @@
 use uuid::Uuid;
+use chrono::Utc;
+use ed25519_dalek::{SigningKey, VerifyingKey};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+
 use crate::{
-    services::asset::scanning::qr::QRCodeService,
-    types::{
-        scanning::{Scanner, ScanError, ScanType},
-        error::CoreError,
+    domain::models::qr::{
+        QRCodeService,
+        QRCodeServiceImpl,
+        QRFormat,
+        QRData,
+        VerifyQRRequest,
     },
+    types::security::SecurityContext,
+    error::CoreError,
 };
+
+fn create_test_service() -> (QRCodeServiceImpl, SigningKey) {
+    let signing_key = SigningKey::generate(&mut rand::thread_rng());
+    let service = QRCodeServiceImpl::new(signing_key.clone());
+    (service, signing_key)
+}
 
 #[tokio::test]
 async fn test_qr_code_generation() {
-    let service = QRCodeService::new(
-        "http://localhost:3000".to_string(),
-        "TEST-QR-001".to_string(),
-    );
+    let (service, _) = create_test_service();
+    let context = SecurityContext::default();
     
-    let asset_id = Uuid::new_v4();
-    let qr_svg = service.generate_asset_qr(asset_id).unwrap();
+    let property_id = Uuid::new_v4();
     
-    // Verify QR code generation
-    assert!(!qr_svg.is_empty());
-    assert!(qr_svg.contains("svg"));
-    assert!(qr_svg.contains(&asset_id.to_string()));
-}
-
-#[tokio::test]
-async fn test_qr_scanning() {
-    let service = QRCodeService::new(
-        "http://localhost:3000".to_string(),
-        "TEST-QR-001".to_string(),
-    );
-
-    // Create test QR data
-    let asset_id = Uuid::new_v4();
-    let url = format!("http://localhost:3000/assets/{}", asset_id);
-    let data = url.as_bytes();
-
-    // Test scanning
-    let scan_result = service.scan(data).await.unwrap();
+    // Test PNG generation
+    let png_response = service.generate_qr(
+        property_id,
+        QRFormat::PNG,
+        &context
+    ).await.unwrap();
     
-    // Verify scan result
-    assert_eq!(scan_result.scan_type, ScanType::QR);
-    assert!(scan_result.metadata.get("device_id").is_some());
-    assert_eq!(scan_result.metadata.get("device_id").unwrap().as_str(), "TEST-QR-001");
-    assert!(scan_result.metadata.get("asset_id").is_some());
-    assert!(scan_result.metadata.get("format").is_some());
-    assert_eq!(scan_result.metadata.get("format").unwrap().as_str(), "QR");
-    assert!(scan_result.metadata.get("url").is_some());
-}
-
-#[tokio::test]
-async fn test_qr_verification() {
-    let service = QRCodeService::new(
-        "http://localhost:3000".to_string(),
-        "TEST-QR-001".to_string(),
-    );
-
-    // Create and verify valid QR data
-    let asset_id = Uuid::new_v4();
-    let url = format!("http://localhost:3000/assets/{}", asset_id);
-    assert!(service.verify_qr_code(&asset_id.to_string()).is_ok());
-
-    // Test verification with invalid data
-    assert!(matches!(
-        service.verify_qr_code("invalid-uuid"),
-        Err(CoreError::ValidationError(_))
-    ));
-}
-
-#[tokio::test]
-async fn test_qr_error_handling() {
-    let service = QRCodeService::new(
-        "http://localhost:3000".to_string(),
-        "TEST-QR-001".to_string(),
-    );
-
-    // Test with empty data
-    let result = service.scan(&[]).await;
-    assert!(matches!(result, Err(ScanError::InvalidData(_))));
-
-    // Test with invalid URL data
-    let invalid_data = b"not a valid url";
-    let result = service.scan(invalid_data).await;
-    assert!(matches!(result, Err(ScanError::InvalidData(_))));
-}
-
-#[tokio::test]
-async fn test_qr_svg_generation() {
-    let service = QRCodeService::new(
-        "http://localhost:3000".to_string(),
-        "TEST-QR-001".to_string(),
-    );
-
-    let asset_id = Uuid::new_v4();
+    assert_eq!(png_response.property_id, property_id);
+    assert!(png_response.qr_code.len() > 0);
+    assert!(matches!(png_response.format, QRFormat::PNG));
     
     // Test SVG generation
-    let svg = service.generate_svg(asset_id).unwrap();
-    assert!(!svg.is_empty());
-    assert!(svg.starts_with("<?xml"));
-    assert!(svg.contains("svg"));
-    assert!(svg.contains(&asset_id.to_string()));
+    let svg_response = service.generate_qr(
+        property_id,
+        QRFormat::SVG,
+        &context
+    ).await.unwrap();
+    
+    assert_eq!(svg_response.property_id, property_id);
+    assert!(svg_response.qr_code.contains("svg"));
+    assert!(matches!(svg_response.format, QRFormat::SVG));
+}
 
-    // Verify SVG contains required elements
-    assert!(svg.contains("rect"));  // Should have background
-    assert!(svg.contains("path"));  // Should have QR code paths
+#[tokio::test]
+async fn test_qr_validation() {
+    let (service, _) = create_test_service();
+    let context = SecurityContext::default();
+    
+    // Generate valid QR code
+    let property_id = Uuid::new_v4();
+    let qr_response = service.generate_qr(
+        property_id,
+        QRFormat::PNG,
+        &context
+    ).await.unwrap();
+    
+    // Validate QR code
+    let verify_request = VerifyQRRequest {
+        qr_data: qr_response.qr_code,
+        scanned_at: Utc::now(),
+        scanner_id: "TEST_SCANNER".to_string(),
+        location: None,
+    };
+    
+    let validated = service.validate_qr(verify_request, &context).await.unwrap();
+    assert_eq!(validated.property_id, property_id);
+}
+
+#[tokio::test]
+async fn test_expired_qr_code() {
+    let (service, signing_key) = create_test_service();
+    let context = SecurityContext::default();
+    
+    let property_id = Uuid::new_v4();
+    let timestamp = Utc::now() - chrono::Duration::hours(25); // Expired
+    
+    // Create signed but expired QR data
+    let msg = format!("{}:{}", property_id, timestamp.timestamp());
+    let signature = signing_key.sign(msg.as_bytes());
+    
+    let qr_data = QRData {
+        property_id,
+        timestamp,
+        signature: BASE64.encode(signature.to_bytes()),
+    };
+    
+    let verify_request = VerifyQRRequest {
+        qr_data: serde_json::to_string(&qr_data).unwrap(),
+        scanned_at: Utc::now(),
+        scanner_id: "TEST_SCANNER".to_string(),
+        location: None,
+    };
+    
+    let result = service.validate_qr(verify_request, &context).await;
+    assert!(matches!(result, Err(CoreError::Security(_))));
+}
+
+#[tokio::test]
+async fn test_invalid_signature() {
+    let (service, _) = create_test_service();
+    let context = SecurityContext::default();
+    
+    // Create QR data with invalid signature
+    let qr_data = QRData {
+        property_id: Uuid::new_v4(),
+        timestamp: Utc::now(),
+        signature: "invalid_signature".to_string(),
+    };
+    
+    let verify_request = VerifyQRRequest {
+        qr_data: serde_json::to_string(&qr_data).unwrap(),
+        scanned_at: Utc::now(),
+        scanner_id: "TEST_SCANNER".to_string(),
+        location: None,
+    };
+    
+    let result = service.validate_qr(verify_request, &context).await;
+    assert!(matches!(result, Err(CoreError::Security(_))));
+}
+
+#[tokio::test]
+async fn test_qr_format_handling() {
+    let (service, _) = create_test_service();
+    let context = SecurityContext::default();
+    let property_id = Uuid::new_v4();
+    
+    // Test PNG format
+    let png_result = service.generate_qr(
+        property_id,
+        QRFormat::PNG,
+        &context
+    ).await.unwrap();
+    
+    assert!(matches!(png_result.format, QRFormat::PNG));
+    assert!(!png_result.qr_code.contains("svg"));
+    
+    // Test SVG format
+    let svg_result = service.generate_qr(
+        property_id,
+        QRFormat::SVG,
+        &context
+    ).await.unwrap();
+    
+    assert!(matches!(svg_result.format, QRFormat::SVG));
+    assert!(svg_result.qr_code.contains("svg"));
+}
+
+#[tokio::test]
+async fn test_qr_data_serialization() {
+    let property_id = Uuid::new_v4();
+    let timestamp = Utc::now();
+    let signature = "test_signature".to_string();
+    
+    let qr_data = QRData {
+        property_id,
+        timestamp,
+        signature,
+    };
+    
+    // Test serialization
+    let serialized = serde_json::to_string(&qr_data).unwrap();
+    assert!(serialized.contains(&property_id.to_string()));
+    
+    // Test deserialization
+    let deserialized: QRData = serde_json::from_str(&serialized).unwrap();
+    assert_eq!(deserialized.property_id, property_id);
+    assert_eq!(deserialized.timestamp, timestamp);
+    assert_eq!(deserialized.signature, "test_signature");
 }

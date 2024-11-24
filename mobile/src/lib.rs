@@ -1,15 +1,17 @@
-use backend::mesh::error::MeshError;
+mod error;
+mod offline;
+mod scanner;
+mod service;
+mod sync;
 
-pub mod scanner;
-pub mod sync;
-pub mod offline;
-pub mod service;
-
-// Re-exports for convenience
-pub use scanner::{qr::QRScanner, rfid::RFIDScanner};
+pub use error::{MobileError, Result};
+pub use scanner::qr::QRScanner;
+pub use service::{MobileService, MobileServiceConfig, ServiceStatus};
 pub use sync::{handler::SyncHandler, queue::MobileSyncQueue};
-pub use offline::storage::MobileStorage;
-pub use service::MobileService;
 
-// Common types used across mobile modules
-pub type Result<T> = std::result::Result<T, MeshError>;
+// Re-export core types
+pub use crate::offline::storage::{
+    MobileStorage,
+    MobileData,
+    MobileSyncStatus,
+};

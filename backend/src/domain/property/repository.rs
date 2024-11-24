@@ -18,6 +18,15 @@ pub enum RepositoryError {
     Storage(String),
 }
 
+/// Geographical bounds for location-based queries
+#[derive(Debug)]
+pub struct GeoBounds {
+    pub min_latitude: f64,
+    pub max_latitude: f64,
+    pub min_longitude: f64,
+    pub max_longitude: f64,
+}
+
 /// Defines the criteria for searching property
 #[derive(Debug, Default)]
 pub struct PropertySearchCriteria {
@@ -30,6 +39,7 @@ pub struct PropertySearchCriteria {
     pub hand_receipt_number: Option<String>,
     pub command_id: Option<String>,
     pub verified_after: Option<DateTime<Utc>>,
+    pub location_bounds: Option<GeoBounds>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -81,6 +91,12 @@ pub trait PropertyRepository: Send + Sync {
     async fn get_by_hand_receipt(
         &self,
         receipt_number: &str
+    ) -> Result<Vec<Property>, RepositoryError>;
+
+    /// Retrieves property within geographical bounds
+    async fn get_by_location(
+        &self,
+        bounds: GeoBounds
     ) -> Result<Vec<Property>, RepositoryError>;
     
     /// Retrieves property needing verification
@@ -246,6 +262,10 @@ pub mod mock {
                 .filter(|p| p.hand_receipt_number() == Some(&receipt_number.to_string()))
                 .cloned()
                 .collect())
+        }
+
+        async fn get_by_location(&self, _bounds: GeoBounds) -> Result<Vec<Property>, RepositoryError> {
+            Ok(Vec::new()) // Simplified mock implementation
         }
 
         async fn get_pending_verification(

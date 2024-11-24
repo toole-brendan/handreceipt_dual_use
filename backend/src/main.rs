@@ -2,16 +2,18 @@
 
 mod api;
 mod core;
-mod models;
+mod domain;
 mod services;
-mod middleware;
+mod application;
+mod infrastructure;
+mod error;
+mod types;
+mod utils;
 mod app_builder;
-mod handlers;
-mod actors;
 
 use dotenv::dotenv;
 use crate::app_builder::AppBuilder;
-use crate::services::database::config::DatabaseConfig;
+use crate::infrastructure::persistence::postgres::PostgresConnection;
 use env_logger::{Builder, Env};
 
 fn init_logging() {

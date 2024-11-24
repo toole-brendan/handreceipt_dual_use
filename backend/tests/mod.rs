@@ -1,4 +1,15 @@
-//! Integration and unit tests for core functionality
+pub mod common;
 
-pub mod integration;
-pub mod unit;
+#[cfg(test)]
+mod integration;
+#[cfg(test)]
+mod unit;
+
+/// Test configuration
+pub fn setup() {
+    // Initialize test logging
+    let _ = env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .is_test(true)
+        .try_init();
+}

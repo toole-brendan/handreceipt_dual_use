@@ -1,10 +1,11 @@
-mod postgres;
-
-// Re-export the concrete implementations
-pub use postgres::property_repository::PostgresPropertyRepository;
+pub mod postgres;
 
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
+
+pub use postgres::PostgresConnection;
+pub use postgres::property_repository::PostgresPropertyRepository;
+pub use postgres::transfer_repository::PostgresTransferRepository;
 
 /// Configuration for database connections
 #[derive(Debug, Clone)]
@@ -60,7 +61,8 @@ pub fn create_repositories(
     pool: Arc<sqlx::PgPool>,
 ) -> Repositories {
     Repositories {
-        property: Arc::new(PostgresPropertyRepository::new(pool)),
+        property: Arc::new(PostgresPropertyRepository::new(pool.clone())),
+        transfer: Arc::new(PostgresTransferRepository::new(pool)),
     }
 }
 
@@ -68,6 +70,7 @@ pub fn create_repositories(
 #[derive(Clone)]
 pub struct Repositories {
     pub property: Arc<PostgresPropertyRepository>,
+    pub transfer: Arc<PostgresTransferRepository>,
 }
 
 #[cfg(test)]
@@ -101,8 +104,11 @@ pub mod test_utils {
 
     /// Tears down the test database
     pub async fn teardown_test_db(pool: Arc<sqlx::PgPool>) -> Result<(), sqlx::Error> {
-        let db_name = pool.connection_string();
+        let db_url = pool.connect_options().get_database()
+            .map(|db| format!("postgres://postgres:postgres@localhost:5432/{}", db))
+            .unwrap_or_else(|| "postgres://postgres:postgres@localhost:5432/postgres".to_string());
+            
         drop(pool);
-        sqlx::Postgres::drop_database(&db_name).await
+        sqlx::Postgres::drop_database(&db_url).await
     }
 }

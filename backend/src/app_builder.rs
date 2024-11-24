@@ -3,9 +3,15 @@ use actix_web::web;
 use deadpool_postgres::Pool;
 
 use crate::{
-    services::{
-        property::PropertyService,
-        transfer::TransferService,
+    domain::{
+        property::{
+            repository::PropertyRepository,
+            service::{PropertyService, PropertyServiceImpl},
+        },
+        transfer::{
+            repository::TransferRepository,
+            service::{TransferService, TransferServiceImpl},
+        },
     },
     security::SecurityModule,
     types::{
@@ -13,10 +19,6 @@ use crate::{
         security::{SecurityContext, SecurityClassification, SecurityLevel, SecurityZone},
     },
     error::CoreError,
-    domain::{
-        property::repository::PropertyRepository,
-        transfer::repository::TransferRepository,
-    },
 };
 
 pub struct AppBuilder {
@@ -53,12 +55,12 @@ impl AppBuilder {
         let security = Arc::new(SecurityModule::new_default());
 
         // Create repositories
-        let property_repo = Box::new(PropertyRepository::new(db_pool.clone()));
-        let transfer_repo = Box::new(TransferRepository::new(db_pool.clone()));
+        let property_repo = Arc::new(PropertyRepository::new(db_pool.clone()));
+        let transfer_repo = Arc::new(TransferRepository::new(db_pool.clone()));
 
-        // Create services
-        let property_service = Arc::new(PropertyService::new(property_repo));
-        let transfer_service = Arc::new(TransferService::new(transfer_repo));
+        // Create services using domain implementations
+        let property_service: Arc<dyn PropertyService> = Arc::new(PropertyServiceImpl::new(property_repo));
+        let transfer_service: Arc<dyn TransferService> = Arc::new(TransferServiceImpl::new(transfer_repo));
 
         Ok(web::Data::new(AppState {
             config,

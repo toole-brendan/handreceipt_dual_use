@@ -1,4 +1,4 @@
-# This is the middleware test configuration file.
+# Middleware test configuration
 
 [test]
 host = "127.0.0.1"
@@ -10,52 +10,31 @@ debug = true
 [requests]
 # Test requests configuration
 [[requests.endpoints]]
-method = "GET"
-path = "/api/v1/assets"
+method = "POST"
+path = "/api/v1/mobile/scan"
 expected_status = 200
 headers = { "Authorization" = "Bearer test_token", "Content-Type" = "application/json" }
 
 [[requests.endpoints]]
-method = "POST"
-path = "/api/v1/assets"
-body = """
-{
-    "name": "Test Asset",
-    "description": "Test Description",
-    "classification": "UNCLASSIFIED"
-}
-"""
-expected_status = 201
+method = "GET"
+path = "/api/v1/property/{id}"
+expected_status = 200
 headers = { "Authorization" = "Bearer test_token", "Content-Type" = "application/json" }
 
 [middleware]
-# Middleware-specific test configuration
+# Core middleware configuration
 error_handler_enabled = true
 error_handler_log_level = "debug"
-
-rate_limit_enabled = true
-rate_limit_requests = 100
-rate_limit_window = 60  # seconds
 
 validation_enabled = true
 validation_strict_mode = true
 
-versioning_enabled = true
-api_version = "v1"
-
 [security]
 # Security middleware settings
 auth_enabled = true
-mfa_required = false
-classification_check = true
-audit_logging = true
+jwt_validation = true
+role_based_access = true
 
 [logging]
 level = "debug"
-file = "middleware_test.log"
 format = "json"
-
-[metrics]
-enabled = true
-endpoint = "/metrics"
-collection_interval = 15  # seconds 

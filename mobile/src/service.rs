@@ -1,64 +1,160 @@
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use crate::mesh::error::MeshError;
-use crate::Result;
-use crate::scanner::{QRScanner, RFIDScanner};
-use crate::sync::{SyncHandler, MobileSyncQueue};
-use crate::offline::storage::MobileStorage;
+use serde::{Serialize, Deserialize};
+use chrono::Utc;
 
+use crate::{
+    Result,
+    scanner::QRScanner,
+    sync::{SyncHandler, MobileSyncQueue},
+    offline::storage::MobileStorage,
+    error::MobileError,
+};
+
+/// Mobile service configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MobileServiceConfig {
+    pub max_queue_size: usize,
+    pub sync_interval: u64,  // In seconds
+    pub storage_path: String,
+}
+
+/// Mobile service status
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceStatus {
+    pub scanner_active: bool,
+    pub pending_syncs: usize,
+    pub last_sync: Option<chrono::DateTime<Utc>>,
+}
+
+/// Main mobile service handling scanning and sync
 pub struct MobileService {
     qr_scanner: Arc<QRScanner>,
-    rfid_scanner: Arc<RFIDScanner>,
-    storage: Arc<MobileStorage>,
-    sync_queue: Arc<MobileSyncQueue>,
     sync_handler: Arc<SyncHandler>,
+    sync_queue: Arc<MobileSyncQueue>,
+    storage: Arc<MobileStorage>,
 }
 
 impl MobileService {
-    pub fn new(
-        max_storage_size: usize,
+    pub async fn new(
+        storage: Arc<MobileStorage>,
         max_queue_size: usize,
-        rfid_config: RFIDReaderConfig,
+        verification_key: ed25519_dalek::VerifyingKey,
     ) -> Self {
-        let storage = Arc::new(MobileStorage::new(max_storage_size));
-        let sync_queue = Arc::new(MobileSyncQueue::new(3, max_queue_size));
-        let sync_handler = Arc::new(SyncHandler::new(storage.clone(), sync_queue.clone()));
-        
-        let qr_scanner = Arc::new(QRScanner::new(storage.clone()));
-        let rfid_scanner = Arc::new(RFIDScanner::new(storage.clone(), rfid_config));
+        let qr_scanner = Arc::new(QRScanner::new(storage.clone(), verification_key));
+        let sync_queue = Arc::new(MobileSyncQueue::new(max_queue_size));
+        let sync_handler = Arc::new(SyncHandler::new(
+            storage.clone(),
+            sync_queue.clone(),
+        ));
 
         Self {
             qr_scanner,
-            rfid_scanner,
-            storage,
-            sync_queue,
             sync_handler,
+            sync_queue,
+            storage,
         }
     }
 
-    pub async fn start(&self) -> Result<(), MeshError> {
+    /// Starts the mobile service
+    pub async fn start(&self) -> Result<()> {
+        // Start QR scanner
+        self.qr_scanner.start().await?;
+        
         // Start sync handler
-        self.sync_handler.start_sync_processor().await?;
-
-        // Start scanners
-        self.qr_scanner.start_scanning().await?;
-        self.rfid_scanner.start_scanning().await?;
-
+        self.sync_handler.start().await?;
+        
         Ok(())
     }
 
-    pub async fn get_scan_status(&self) -> ScanStatus {
-        ScanStatus {
-            qr_active: true, // Implement actual status checking
-            rfid_active: true,
+    /// Stops the mobile service
+    pub async fn stop(&self) -> Result<()> {
+        // Stop QR scanner
+        self.qr_scanner.stop().await?;
+        
+        // Stop sync handler
+        self.sync_handler.stop().await?;
+        
+        Ok(())
+    }
+
+    /// Gets current service status
+    pub async fn get_status(&self) -> Result<ServiceStatus> {
+        Ok(ServiceStatus {
+            scanner_active: true, // Implement actual status checking
             pending_syncs: self.sync_queue.get_queue_status().await.total_items,
-        }
+            last_sync: self.sync_handler.last_sync_time().await,
+        })
+    }
+
+    /// Forces immediate sync
+    pub async fn force_sync(&self) -> Result<()> {
+        self.sync_handler.sync_now().await
+    }
+
+    /// Clears local storage
+    pub async fn clear_storage(&self) -> Result<()> {
+        self.storage.clear().await.map_err(|e| {
+            MobileError::StorageError(format!("Failed to clear storage: {}", e))
+        })
+    }
+
+    /// Gets scanner instance
+    pub fn scanner(&self) -> Arc<QRScanner> {
+        self.qr_scanner.clone()
+    }
+
+    /// Gets sync queue instance
+    pub fn sync_queue(&self) -> Arc<MobileSyncQueue> {
+        self.sync_queue.clone()
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ScanStatus {
-    pub qr_active: bool,
-    pub rfid_active: bool,
-    pub pending_syncs: usize,
-} 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+    use ed25519_dalek::SigningKey;
+
+    async fn create_test_service() -> (MobileService, TempDir) {
+        let temp_dir = TempDir::new().unwrap();
+        let storage = Arc::new(MobileStorage::new(temp_dir.path()).await.unwrap());
+        
+        let verification_key = SigningKey::generate(&mut rand::thread_rng())
+            .verifying_key();
+        
+        let service = MobileService::new(
+            storage,
+            100,
+            verification_key,
+        ).await;
+        
+        (service, temp_dir)
+    }
+
+    #[tokio::test]
+    async fn test_service_lifecycle() {
+        let (service, _temp_dir) = create_test_service().await;
+        
+        // Test start
+        assert!(service.start().await.is_ok());
+        
+        // Test status
+        let status = service.get_status().await.unwrap();
+        assert!(status.scanner_active);
+        assert_eq!(status.pending_syncs, 0);
+        
+        // Test stop
+        assert!(service.stop().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_storage_operations() {
+        let (service, _temp_dir) = create_test_service().await;
+        
+        // Test clear storage
+        assert!(service.clear_storage().await.is_ok());
+        
+        // Test force sync
+        assert!(service.force_sync().await.is_ok());
+    }
+}

@@ -12,7 +12,7 @@ impl<B: MessageBody + 'static> ResponseExt for ServiceResponse<B> {
 
 // Add debug logging utilities
 pub mod debug {
-    use log::{debug, error, warn};
+    use tracing::{debug, error, warn};
     use std::fmt::Debug;
 
     pub fn log_request<T: Debug>(prefix: &str, request: &T) {
