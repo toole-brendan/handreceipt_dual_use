@@ -1,17 +1,9 @@
 pub mod property;
 pub mod transfer;
 
-// Re-export commonly used property types
 pub use property::{
-    PropertyCommands,
+    PropertyCommandService,
+    RegisterPropertyCommand,
+    PropertyRegistrationResult,
     PropertyQueries,
-    PropertyQRService,
-    PropertyBookSummary,
-};
-
-// Re-export commonly used transfer types
-pub use transfer::{
-    TransferCommands,
-    TransferValidation,
-    TransferValidationError,
 };

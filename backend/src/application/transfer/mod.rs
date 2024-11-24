@@ -1,9 +1,5 @@
-mod commands;
-mod validation;
+pub mod commands;
+pub mod validation;
 
-pub use commands::{TransferCommands, TransferCommandsImpl};
-pub use validation::{
-    TransferValidation,
-    TransferValidationImpl,
-    TransferValidationError,
-};
+pub use commands::TransferCommandService;
+pub use validation::TransferValidationService;

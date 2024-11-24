@@ -4,15 +4,15 @@ use serde::{Serialize, Deserialize};
 use std::sync::Arc;
 
 use crate::{
-    domain::{
-        models::{
-            transfer::{AssetTransfer, TransferStatus, VerificationMethod},
-            qr::QRData,
-        },
-        property::service::PropertyService,
+    domain::models::{
+        transfer::{PropertyTransferRecord, TransferStatus, VerificationMethod},
+        qr::QRData,
+    },
+    types::{
+        app::PropertyService,
+        security::SecurityContext,
     },
     error::CoreError,
-    types::security::SecurityContext,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -93,7 +93,7 @@ impl TransferValidationService {
 
         // Validate current custodian
         if let Some(current_custodian) = property.custodian() {
-            if current_custodian == context.new_custodian {
+            if current_custodian.as_str() == context.new_custodian {
                 validation_errors.push("Cannot transfer to current custodian".to_string());
             }
         }
@@ -116,7 +116,7 @@ impl TransferValidationService {
     /// Validates transfer approval
     pub async fn validate_approval(
         &self,
-        transfer: &AssetTransfer,
+        transfer: &PropertyTransferRecord,
         security_context: &SecurityContext,
     ) -> Result<TransferValidationResult, CoreError> {
         let mut validation_errors = Vec::new();
@@ -136,7 +136,7 @@ impl TransferValidationService {
 
         // Get property
         let property = match self.property_service
-            .get_property(transfer.asset_id, security_context)
+            .get_property(transfer.property_id, security_context)
             .await?
         {
             Some(p) => p,
@@ -167,7 +167,7 @@ impl TransferValidationService {
     /// Validates blockchain verification
     pub async fn validate_blockchain_verification(
         &self,
-        transfer: &AssetTransfer,
+        transfer: &PropertyTransferRecord,
         verification: &str,
         security_context: &SecurityContext,
     ) -> Result<TransferValidationResult, CoreError> {
@@ -206,19 +206,25 @@ impl TransferValidationService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::property::repository::mock::MockPropertyRepository;
+    use crate::domain::property::{
+        repository::mock::MockPropertyRepository,
+        service::PropertyServiceImpl,
+        service_wrapper::PropertyServiceWrapper,
+    };
 
     #[tokio::test]
     async fn test_transfer_validation() {
         let property_repository = Arc::new(MockPropertyRepository::new());
-        let property_service = Arc::new(PropertyServiceImpl::new(property_repository));
+        let property_service_impl = PropertyServiceImpl::new(property_repository);
+        let property_service = Arc::new(PropertyServiceWrapper::new(property_service_impl));
         let validation_service = TransferValidationService::new(property_service);
 
         let context = TransferValidationContext {
             qr_data: QRData {
+                id: Uuid::new_v4(),
                 property_id: Uuid::new_v4(),
+                metadata: serde_json::json!({}),
                 timestamp: Utc::now(),
-                signature: "test_signature".to_string(),
             },
             scanned_at: Utc::now(),
             scanner_location: None,

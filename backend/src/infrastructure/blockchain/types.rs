@@ -40,17 +40,17 @@ pub struct Transaction {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum TransactionType {
-    AssetTransfer,
-    AssetCreation,
-    AssetUpdate,
-    AssetDeletion,
+    PropertyTransfer,
+    PropertyCreation,
+    PropertyUpdate,
+    PropertyDeletion,
     NetworkSync,
     PeerDiscovery,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransactionData {
-    pub asset_id: String,
+    pub property_id: String,
     pub metadata: serde_json::Value,
     pub operation: String,
 }

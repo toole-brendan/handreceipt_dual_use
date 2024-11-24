@@ -16,7 +16,7 @@ use super::logger::AuditEvent;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CustodyTransfer {
     pub id: Uuid,
-    pub asset_id: Uuid,
+    pub property_id: Uuid,
     pub from_id: Uuid,
     pub to_id: Uuid,
     pub timestamp: DateTime<Utc>,
@@ -50,14 +50,14 @@ impl ChainOfCustody {
         client.execute(
             "CREATE TABLE IF NOT EXISTS custody_transfers (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                asset_id UUID NOT NULL,
+                property_id UUID NOT NULL,
                 from_id UUID NOT NULL,
                 to_id UUID NOT NULL,
                 timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 signature BYTEA NOT NULL,
                 classification_level INT NOT NULL,
                 metadata JSONB,
-                FOREIGN KEY (asset_id) REFERENCES assets(id),
+                FOREIGN KEY (property_id) REFERENCES property(id),
                 FOREIGN KEY (from_id) REFERENCES users(id),
                 FOREIGN KEY (to_id) REFERENCES users(id)
             )", &[]
@@ -79,8 +79,8 @@ impl ChainOfCustody {
 
         // Create indexes
         client.execute(
-            "CREATE INDEX IF NOT EXISTS custody_transfers_asset_idx 
-             ON custody_transfers (asset_id, timestamp DESC)",
+            "CREATE INDEX IF NOT EXISTS custody_transfers_property_idx 
+             ON custody_transfers (property_id, timestamp DESC)",
             &[],
         ).await?;
 
@@ -101,13 +101,13 @@ impl ChainOfCustody {
 
         let row = client.query_one(
             "INSERT INTO custody_transfers (
-                id, asset_id, from_id, to_id, timestamp, 
+                id, property_id, from_id, to_id, timestamp, 
                 signature, classification_level, metadata
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id",
             &[
                 &transfer.id,
-                &transfer.asset_id,
+                &transfer.property_id,
                 &transfer.from_id,
                 &transfer.to_id,
                 &transfer.timestamp,
@@ -142,24 +142,24 @@ impl ChainOfCustody {
         Ok(())
     }
 
-    pub async fn get_asset_chain(
+    pub async fn get_property_chain(
         &self,
-        asset_id: Uuid,
+        property_id: Uuid,
     ) -> Result<Vec<CustodyTransfer>, Box<dyn std::error::Error>> {
         let client = self.pool.get().await?;
 
         let rows = client.query(
-            "SELECT id, asset_id, from_id, to_id, timestamp, 
+            "SELECT id, property_id, from_id, to_id, timestamp, 
                     signature, classification_level, metadata
              FROM custody_transfers
-             WHERE asset_id = $1
+             WHERE property_id = $1
              ORDER BY timestamp ASC",
-            &[&asset_id],
+            &[&property_id],
         ).await?;
 
         let transfers = rows.iter().map(|row| CustodyTransfer {
             id: row.get("id"),
-            asset_id: row.get("asset_id"),
+            property_id: row.get("property_id"),
             from_id: row.get("from_id"),
             to_id: row.get("to_id"),
             timestamp: row.get("timestamp"),
@@ -175,9 +175,9 @@ impl ChainOfCustody {
 
     pub async fn validate_chain(
         &self,
-        asset_id: Uuid,
+        property_id: Uuid,
     ) -> Result<bool, Box<dyn std::error::Error>> {
-        let transfers = self.get_asset_chain(asset_id).await?;
+        let transfers = self.get_property_chain(property_id).await?;
         
         // Check chain continuity
         for window in transfers.windows(2) {

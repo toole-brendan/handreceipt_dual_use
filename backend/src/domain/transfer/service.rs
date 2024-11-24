@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 use crate::{
     error::CoreError,
@@ -8,9 +9,11 @@ use crate::{
 };
 
 use super::{
-    entity::{Transfer, TransferStatus},
+    entity::Transfer,
     repository::{TransferRepository, TransferError},
 };
+
+use crate::domain::models::transfer::TransferStatus;
 
 /// Domain service for transfer operations
 #[async_trait]
@@ -64,6 +67,12 @@ pub trait TransferService: Send + Sync {
         &self,
         context: &SecurityContext,
     ) -> Result<Vec<Transfer>, CoreError>;
+
+    /// Gets pending transfers that require approval
+    async fn get_pending_transfers(
+        &self,
+        context: &SecurityContext,
+    ) -> Result<Vec<Transfer>, CoreError>;
 }
 
 pub struct TransferServiceImpl<R: TransferRepository> {
@@ -84,17 +93,16 @@ impl<R: TransferRepository> TransferService for TransferServiceImpl<R> {
         new_custodian: String,
         context: &SecurityContext,
     ) -> Result<Transfer, CoreError> {
-        // Create new transfer
         let transfer = Transfer::new(
             property_id,
-            None, // Current custodian will be set from property
+            None,
             new_custodian,
-            true, // Requires approval by default
             None,
             None,
+            context.is_officer(),
+            context.user_id.to_string(),
         );
 
-        // Save to repository
         self.repository
             .create(transfer)
             .await
@@ -106,17 +114,16 @@ impl<R: TransferRepository> TransferService for TransferServiceImpl<R> {
         transfer_id: Uuid,
         context: &SecurityContext,
     ) -> Result<Transfer, CoreError> {
-        // Get transfer
         let mut transfer = self.repository
             .get_by_id(transfer_id)
             .await
             .map_err(|e| CoreError::Transfer(format!("Failed to get transfer: {}", e)))?;
 
-        // Approve
-        transfer.approve()
-            .map_err(|e| CoreError::Transfer(e))?;
+        transfer.approve(
+            context.user_id.to_string(),
+            Some("Approved by officer".to_string()),
+        ).map_err(|e| CoreError::Transfer(e))?;
 
-        // Update repository
         self.repository
             .update(transfer)
             .await
@@ -128,17 +135,16 @@ impl<R: TransferRepository> TransferService for TransferServiceImpl<R> {
         transfer_id: Uuid,
         context: &SecurityContext,
     ) -> Result<Transfer, CoreError> {
-        // Get transfer
         let mut transfer = self.repository
             .get_by_id(transfer_id)
             .await
             .map_err(|e| CoreError::Transfer(format!("Failed to get transfer: {}", e)))?;
 
-        // Reject
-        transfer.reject()
-            .map_err(|e| CoreError::Transfer(e))?;
+        transfer.reject(
+            context.user_id.to_string(),
+            Some("Rejected by officer".to_string()),
+        ).map_err(|e| CoreError::Transfer(e))?;
 
-        // Update repository
         self.repository
             .update(transfer)
             .await
@@ -151,17 +157,16 @@ impl<R: TransferRepository> TransferService for TransferServiceImpl<R> {
         blockchain_verification: String,
         context: &SecurityContext,
     ) -> Result<Transfer, CoreError> {
-        // Get transfer
         let mut transfer = self.repository
             .get_by_id(transfer_id)
             .await
             .map_err(|e| CoreError::Transfer(format!("Failed to get transfer: {}", e)))?;
 
-        // Complete with blockchain verification
-        transfer.complete(blockchain_verification)
-            .map_err(|e| CoreError::Transfer(e))?;
+        transfer.complete(
+            blockchain_verification,
+            None,
+        ).map_err(|e| CoreError::Transfer(e))?;
 
-        // Update repository
         self.repository
             .update(transfer)
             .await
@@ -209,5 +214,15 @@ impl<R: TransferRepository> TransferService for TransferServiceImpl<R> {
             .get_pending_approvals(&context.user_id.to_string())
             .await
             .map_err(|e| CoreError::Transfer(format!("Failed to get pending approvals: {}", e)))
+    }
+
+    async fn get_pending_transfers(
+        &self,
+        context: &SecurityContext,
+    ) -> Result<Vec<Transfer>, CoreError> {
+        self.repository
+            .get_pending_transfers(&context.user_id.to_string())
+            .await
+            .map_err(|e| CoreError::Transfer(format!("Failed to get pending transfers: {}", e)))
     }
 }

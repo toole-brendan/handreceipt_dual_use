@@ -1,5 +1,3 @@
-//! Error types and handling
-
 pub mod api;
 pub mod audit;
 pub mod blockchain;
@@ -8,7 +6,7 @@ pub mod database;
 pub mod security;
 pub mod validation;
 
-pub use {
+pub use self::{
     api::ApiError,
     audit::AuditError,
     blockchain::BlockchainError,
@@ -17,8 +15,3 @@ pub use {
     security::SecurityError,
     validation::ValidationError,
 };
-
-pub type Result<T> = std::result::Result<T, CoreError>;
-
-// Re-export common error types
-pub use core::CoreError as Error;

@@ -22,10 +22,10 @@ pub fn validate_uuid(id: &str) -> Result<Uuid, Error> {
 
 pub fn check_permission(
     security_context: &SecurityContext,
-    resource: &str,
-    action: &str,
+    resource_type: ResourceType,
+    action: Action,
 ) -> Result<(), Error> {
-    if !security_context.has_permission(resource, action) {
+    if !security_context.has_permission(resource_type, action) {
         return Err(actix_web::error::ErrorForbidden("Insufficient permissions"));
     }
     Ok(())

@@ -2,18 +2,9 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 
-use crate::domain::models::location::Location;
-
-/// Status of a property transfer
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TransferStatus {
-    Pending,           // Transfer initiated
-    PendingApproval,   // Awaiting officer approval
-    Approved,          // Officer approved
-    Rejected,          // Officer rejected
-    Completed,         // Transfer completed
-    Cancelled,         // Transfer cancelled
-}
+use crate::domain::property::entity::Location;
+use crate::domain::models::transfer::PropertyTransferRecord;
+use crate::domain::models::transfer::TransferStatus;
 
 /// Information about the scanning device
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,10 +62,10 @@ impl Transfer {
         property_id: Uuid,
         from_custodian: Option<String>,
         to_custodian: String,
-        requires_approval: bool,
-        initiating_scan: Option<QRScan>,
-        location: Option<Location>,
         notes: Option<String>,
+        location: Option<Location>,
+        requires_approval: bool,
+        initiated_by: String,
     ) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -90,7 +81,7 @@ impl Transfer {
             location,
             notes,
             blockchain_verification: None,
-            initiating_scan,
+            initiating_scan: None,
             completing_scan: None,
             officer_id: None,
             officer_notes: None,
@@ -196,6 +187,27 @@ impl Transfer {
     }
 }
 
+impl From<Transfer> for PropertyTransferRecord {
+    fn from(transfer: Transfer) -> Self {
+        PropertyTransferRecord {
+            id: transfer.id,
+            property_id: transfer.property_id,
+            from_node: Uuid::new_v4(),
+            to_node: Uuid::new_v4(),
+            status: transfer.status.clone(),
+            timestamp: transfer.created_at,
+            metadata: serde_json::json!({
+                "hand_receipt": transfer.hand_receipt_number,
+                "notes": transfer.notes,
+                "from_custodian": transfer.from_custodian,
+                "to_custodian": transfer.to_custodian,
+            }),
+            verification_method: None,
+            signatures: Vec::new(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,10 +217,15 @@ mod tests {
             scanned_by: "TEST_USER".to_string(),
             scanned_at: Utc::now(),
             location: Some(Location {
-                building: "HQ".to_string(),
+                latitude: 34.0522,
+                longitude: -118.2437,
+                altitude: Some(100.0),
+                accuracy: Some(10.0),
+                timestamp: Utc::now(),
+                building: Some("HQ".to_string()),
                 room: Some("Armory".to_string()),
-                notes: None,
                 grid_coordinates: None,
+                notes: None,
             }),
             device_info: Some(DeviceInfo {
                 device_type: "iPhone".to_string(),
@@ -226,10 +243,10 @@ mod tests {
             Uuid::new_v4(),
             Some("OLD_CUSTODIAN".to_string()),
             "NEW_CUSTODIAN".to_string(),
+            None,
+            None,
             true,
-            Some(create_test_scan()),
-            None,
-            None,
+            "INITIATED_BY".to_string(),
         );
 
         // Initial state
@@ -261,10 +278,10 @@ mod tests {
             Uuid::new_v4(),
             Some("OLD_CUSTODIAN".to_string()),
             "NEW_CUSTODIAN".to_string(),
+            None,
+            None,
             true,
-            Some(create_test_scan()),
-            None,
-            None,
+            "INITIATED_BY".to_string(),
         );
 
         // Reject
@@ -287,10 +304,10 @@ mod tests {
             Uuid::new_v4(),
             Some("OLD_CUSTODIAN".to_string()),
             "NEW_CUSTODIAN".to_string(),
+            None,
+            None,
             true,
-            Some(create_test_scan()),
-            None,
-            None,
+            "INITIATED_BY".to_string(),
         );
 
         transfer.set_hand_receipt(

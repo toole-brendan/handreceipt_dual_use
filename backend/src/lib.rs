@@ -11,16 +11,14 @@ pub mod utils;
 // Re-export commonly used types
 pub use {
     domain::{
-        property::{
-            entity::Property,
-            repository::PropertyRepository,
-            service::{PropertyService, PropertyServiceImpl},
-        },
-        transfer::{
-            entity::Transfer,
-            repository::TransferRepository,
-            service::{TransferService, TransferServiceImpl},
-        },
+        property::entity::Property,
+        transfer::entity::Transfer,
     },
-    error::{CoreError, Result},
+    types::{
+        PropertyService,
+        TransferService,
+        SecurityService,
+        app::AppState,
+    },
+    error::CoreError,
 };

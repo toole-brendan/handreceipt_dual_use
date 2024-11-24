@@ -9,7 +9,7 @@ use crate::{
         commands::{TransferCommandService, ScanQRTransferCommand, ApproveTransferCommand},
         validation::TransferValidationService,
     },
-    domain::models::transfer::{AssetTransfer, TransferStatus},
+    domain::models::transfer::{PropertyTransferRecord, TransferStatus},
     infrastructure::blockchain::verification::TransferVerification,
     types::security::SecurityContext,
 };
@@ -38,17 +38,18 @@ pub struct TransferResponse {
     pub requires_approval: bool,
 }
 
-impl From<AssetTransfer> for TransferResponse {
-    fn from(transfer: AssetTransfer) -> Self {
+impl From<PropertyTransferRecord> for TransferResponse {
+    fn from(transfer: PropertyTransferRecord) -> Self {
+        let status = transfer.status.clone();
         Self {
             id: transfer.id,
-            property_id: transfer.asset_id,
+            property_id: transfer.property_id,
             from_custodian: Some(transfer.from_node.to_string()),
             to_custodian: transfer.to_node.to_string(),
             status: transfer.status,
             timestamp: transfer.timestamp,
-            blockchain_hash: None, // Set when verified
-            requires_approval: transfer.status == TransferStatus::Pending,
+            blockchain_hash: None,
+            requires_approval: status == TransferStatus::Pending,
         }
     }
 }
@@ -60,7 +61,9 @@ pub async fn scan_qr_transfer(
     user_id: web::ReqData<String>,
     request: web::Json<ScanQRRequest>,
 ) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(user_id.into_inner());
+    let user_uuid = Uuid::parse_str(&user_id.into_inner())
+        .map_err(actix_web::error::ErrorBadRequest)?;
+    let context = SecurityContext::new(user_uuid);
 
     // Create scan command
     let command = ScanQRTransferCommand {
@@ -78,7 +81,7 @@ pub async fn scan_qr_transfer(
 
     Ok(HttpResponse::Ok().json(TransferResponse {
         id: result.transfer.id,
-        property_id: result.transfer.asset_id,
+        property_id: result.transfer.property_id,
         from_custodian: Some(result.transfer.from_node.to_string()),
         to_custodian: result.transfer.to_node.to_string(),
         status: result.status,
@@ -96,7 +99,9 @@ pub async fn approve_transfer(
     user_id: web::ReqData<String>,
     request: web::Json<ApproveTransferRequest>,
 ) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(user_id.into_inner());
+    let user_uuid = Uuid::parse_str(&user_id.into_inner())
+        .map_err(actix_web::error::ErrorBadRequest)?;
+    let context = SecurityContext::new(user_uuid);
 
     // Approve transfer
     let command = ApproveTransferCommand {
@@ -117,7 +122,7 @@ pub async fn approve_transfer(
 
     Ok(HttpResponse::Ok().json(TransferResponse {
         id: result.transfer.id,
-        property_id: result.transfer.asset_id,
+        property_id: result.transfer.property_id,
         from_custodian: Some(result.transfer.from_node.to_string()),
         to_custodian: result.transfer.to_node.to_string(),
         status: result.status,
@@ -132,7 +137,9 @@ pub async fn get_pending_transfers(
     command_service: web::Data<Arc<TransferCommandService>>,
     user_id: web::ReqData<String>,
 ) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(user_id.into_inner());
+    let user_uuid = Uuid::parse_str(&user_id.into_inner())
+        .map_err(actix_web::error::ErrorBadRequest)?;
+    let context = SecurityContext::new(user_uuid);
 
     let transfers = command_service
         .get_pending_transfers(&context)
@@ -153,7 +160,9 @@ pub async fn get_property_transfers(
     property_id: web::Path<Uuid>,
     user_id: web::ReqData<String>,
 ) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(user_id.into_inner());
+    let user_uuid = Uuid::parse_str(&user_id.into_inner())
+        .map_err(actix_web::error::ErrorBadRequest)?;
+    let context = SecurityContext::new(user_uuid);
 
     let transfers = command_service
         .get_property_transfers(property_id.into_inner(), &context)
@@ -174,7 +183,9 @@ pub async fn get_transfer_status(
     id: web::Path<Uuid>,
     user_id: web::ReqData<String>,
 ) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(user_id.into_inner());
+    let user_uuid = Uuid::parse_str(&user_id.into_inner())
+        .map_err(actix_web::error::ErrorBadRequest)?;
+    let context = SecurityContext::new(user_uuid);
 
     let status = blockchain_service
         .get_transfer_status(id.into_inner(), &context)

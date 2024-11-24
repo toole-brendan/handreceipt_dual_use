@@ -7,13 +7,15 @@ use crate::{
     domain::{
         models::{
             qr::{QRCodeService, VerifyQRRequest},
-            transfer::{AssetTransfer, TransferStatus, VerificationMethod},
+            transfer::{PropertyTransferRecord, TransferStatus, VerificationMethod},
         },
         transfer::service::TransferService,
-        property::service::PropertyService,
+    },
+    types::{
+        app::PropertyService,
+        security::{SecurityContext, SecurityClassification},
     },
     error::CoreError,
-    types::security::{SecurityContext, SecurityClassification},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -40,7 +42,7 @@ pub struct ApproveTransferCommand {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransferResult {
-    pub transfer: AssetTransfer,
+    pub transfer: PropertyTransferRecord,
     pub status: TransferStatus,
     pub requires_approval: bool,
     pub verification_method: VerificationMethod,
@@ -74,9 +76,10 @@ impl TransferCommandService {
         // Validate QR code
         let verify_request = VerifyQRRequest {
             qr_data: command.qr_data,
-            scanned_at: command.timestamp,
+            signature: None,
+            timestamp: command.timestamp,
             scanner_id: command.scanner_id,
-            location: command.location.map(|l| l.parse().unwrap()),
+            location: command.location,
         };
 
         let qr_data = self.qr_service.validate_qr(verify_request, context).await?;
@@ -102,7 +105,7 @@ impl TransferCommandService {
             .await?;
 
         Ok(TransferResult {
-            transfer,
+            transfer: transfer.into(),
             status: TransferStatus::InProgress,
             requires_approval: property.is_sensitive(),
             verification_method: VerificationMethod::QRCode,
@@ -126,11 +129,36 @@ impl TransferCommandService {
             .await?;
 
         Ok(TransferResult {
-            transfer,
+            transfer: transfer.into(),
             status: TransferStatus::Completed,
             requires_approval: false,
             verification_method: VerificationMethod::QRCode,
         })
+    }
+
+    /// Gets pending transfers that require approval
+    pub async fn get_pending_transfers(
+        &self,
+        context: &SecurityContext,
+    ) -> Result<Vec<PropertyTransferRecord>, CoreError> {
+        self.transfer_service
+            .get_pending_transfers(context)
+            .await
+            .map(|transfers| transfers.into_iter().map(Into::into).collect())
+            .map_err(|e| CoreError::Transfer(e.to_string()))
+    }
+
+    /// Gets transfer history for a property
+    pub async fn get_property_transfers(
+        &self,
+        property_id: Uuid,
+        context: &SecurityContext,
+    ) -> Result<Vec<PropertyTransferRecord>, CoreError> {
+        self.transfer_service
+            .get_property_transfers(property_id, context)
+            .await
+            .map(|transfers| transfers.into_iter().map(Into::into).collect())
+            .map_err(|e| CoreError::Transfer(e.to_string()))
     }
 
     /// Completes a transfer with blockchain verification
@@ -145,7 +173,7 @@ impl TransferCommandService {
             .await?;
 
         Ok(TransferResult {
-            transfer,
+            transfer: transfer.into(),
             status: TransferStatus::Confirmed,
             requires_approval: false,
             verification_method: VerificationMethod::Blockchain,
@@ -157,8 +185,15 @@ impl TransferCommandService {
 mod tests {
     use super::*;
     use crate::domain::{
-        property::repository::mock::MockPropertyRepository,
-        transfer::repository::mock::MockTransferRepository,
+        property::{
+            repository::mock::MockPropertyRepository,
+            service::PropertyServiceImpl,
+            service_wrapper::PropertyServiceWrapper,
+        },
+        transfer::{
+            repository::mock::MockTransferRepository,
+            service::TransferServiceImpl,
+        },
         models::qr::QRCodeServiceImpl,
     };
     use ed25519_dalek::SigningKey;
@@ -166,7 +201,8 @@ mod tests {
 
     fn create_test_services() -> TransferCommandService {
         let property_repository = Arc::new(MockPropertyRepository::new());
-        let property_service = Arc::new(PropertyServiceImpl::new(property_repository));
+        let property_service_impl = PropertyServiceImpl::new(property_repository);
+        let property_service = Arc::new(PropertyServiceWrapper::new(property_service_impl));
 
         let transfer_repository = Arc::new(MockTransferRepository::new());
         let transfer_service = Arc::new(TransferServiceImpl::new(transfer_repository));
@@ -184,7 +220,7 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_workflow() {
         let service = create_test_services();
-        let context = SecurityContext::default(); // Mock context for testing
+        let context = SecurityContext::default(); // Mock context
 
         // Create test property and QR code
         let property_id = Uuid::new_v4();

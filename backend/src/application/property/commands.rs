@@ -3,15 +3,19 @@ use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
 
-use crate::domain::{
-    models::qr::{QRCodeService, QRFormat, QRResponse},
-    property::{
-        entity::{Property, PropertyStatus, PropertyCondition, Location},
-        service::PropertyService,
+use crate::{
+    domain::{
+        models::qr::{QRCodeService, QRFormat, QRResponse, QRData},
+        property::{
+            entity::{Property, PropertyStatus, PropertyCondition, Location, PropertyCategory},
+        },
     },
+    types::{
+        app::PropertyService,
+        security::SecurityContext,
+    },
+    error::CoreError,
 };
-use crate::error::CoreError;
-use crate::types::security::SecurityContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterPropertyCommand {
@@ -55,30 +59,42 @@ impl PropertyCommandService {
         context: &SecurityContext,
     ) -> Result<PropertyRegistrationResult, CoreError> {
         // Create property
+        let category = PropertyCategory::from_nsn(command.nsn.as_deref())?;
         let property = Property::new(
             command.name,
             command.description,
-            command.nsn,
+            category,
             command.is_sensitive,
             command.quantity,
             command.unit_of_measure,
         )?;
 
         // Set additional fields
-        let mut property = property
+        let property = property
             .with_serial_number(command.serial_number)
             .with_location(command.location)
-            .with_condition(command.condition);
+            .with_condition(command.condition)
+            .with_custodian(context.user_id);
 
         // Save property
-        let property = self.property_service.create_property(property, context).await?;
+        let property = self.property_service
+            .create_property(property, context)
+            .await?;
 
         // Generate QR code
-        let qr_code = self.qr_service.generate_qr(
-            property.id(),
-            QRFormat::PNG,
-            context,
-        ).await?;
+        let qr_data = QRData {
+            id: Uuid::new_v4(),
+            property_id: property.id(),
+            metadata: serde_json::json!({
+                "name": property.name(),
+                "serial": property.serial_number(),
+            }),
+            timestamp: Utc::now(),
+        };
+
+        let qr_code = self.qr_service
+            .generate_qr(&qr_data, QRFormat::PNG, context)
+            .await?;
 
         Ok(PropertyRegistrationResult {
             property,
@@ -101,19 +117,11 @@ impl PropertyCommandService {
             .ok_or_else(|| CoreError::NotFound("Property not found".into()))?;
 
         // Update status
-        property.update_status(new_status, Utc::now());
-
-        // Add history entry if notes provided
-        if let Some(notes) = notes {
-            property.add_history_entry(
-                context.user_id,
-                format!("Status updated to {:?}: {}", new_status, notes),
-                Utc::now(),
-            );
-        }
+        property.update_status(new_status, Some(context.user_id.to_string()), notes);
 
         // Save changes
-        self.property_service.update_property(&property, context).await?;
+        let property_clone = property.clone();
+        self.property_service.update_property(&property_clone, context).await?;
 
         Ok(property)
     }
@@ -133,19 +141,11 @@ impl PropertyCommandService {
             .ok_or_else(|| CoreError::NotFound("Property not found".into()))?;
 
         // Update condition
-        property.update_condition(new_condition, Utc::now());
-
-        // Add history entry if notes provided
-        if let Some(notes) = notes {
-            property.add_history_entry(
-                context.user_id,
-                format!("Condition updated to {:?}: {}", new_condition, notes),
-                Utc::now(),
-            );
-        }
+        property.update_condition(new_condition, Some(context.user_id.to_string()), notes);
 
         // Save changes
-        self.property_service.update_property(&property, context).await?;
+        let property_clone = property.clone();
+        self.property_service.update_property(&property_clone, context).await?;
 
         Ok(property)
     }
@@ -155,7 +155,6 @@ impl PropertyCommandService {
         &self,
         property_id: Uuid,
         new_location: Location,
-        notes: Option<String>,
         context: &SecurityContext,
     ) -> Result<Property, CoreError> {
         // Get existing property
@@ -165,19 +164,19 @@ impl PropertyCommandService {
             .ok_or_else(|| CoreError::NotFound("Property not found".into()))?;
 
         // Update location
-        property.update_location(new_location.clone(), Utc::now());
+        property.update_location(new_location)?;
 
-        // Add history entry if notes provided
-        if let Some(notes) = notes {
-            property.add_history_entry(
-                context.user_id,
-                format!("Location updated to {:?}: {}", new_location, notes),
-                Utc::now(),
-            );
-        }
+        // Add history entry
+        property.add_history_entry(
+            "LOCATION_UPDATE",
+            "Location updated",
+            Some(context.user_id.to_string()),
+            property.current_location().cloned(),
+        );
 
         // Save changes
-        self.property_service.update_property(&property, context).await?;
+        let property_clone = property.clone();
+        self.property_service.update_property(&property_clone, context).await?;
 
         Ok(property)
     }
@@ -187,7 +186,11 @@ impl PropertyCommandService {
 mod tests {
     use super::*;
     use crate::domain::{
-        property::repository::mock::MockPropertyRepository,
+        property::{
+            repository::mock::MockPropertyRepository,
+            service::PropertyServiceImpl,
+            service_wrapper::PropertyServiceWrapper,
+        },
         models::qr::QRCodeServiceImpl,
     };
     use ed25519_dalek::SigningKey;
@@ -195,7 +198,8 @@ mod tests {
 
     fn create_test_services() -> PropertyCommandService {
         let repository = Arc::new(MockPropertyRepository::new());
-        let property_service = Arc::new(PropertyServiceImpl::new(repository));
+        let domain_service = PropertyServiceImpl::new(repository);
+        let property_service = Arc::new(PropertyServiceWrapper::new(domain_service));
         
         let signing_key = SigningKey::generate(&mut OsRng);
         let qr_service = Arc::new(QRCodeServiceImpl::new(signing_key));
@@ -225,6 +229,6 @@ mod tests {
 
         let registration = result.unwrap();
         assert_eq!(registration.property.name(), "Test Item");
-        assert!(registration.qr_code.qr_code.len() > 0);
+        assert!(registration.qr_code.data.len() > 0);
     }
 }

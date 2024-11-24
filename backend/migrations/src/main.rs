@@ -1,4 +1,6 @@
 use sqlx::postgres::PgPoolOptions;
+use sqlx::Executor;
+use futures::TryStreamExt;
 use std::fs;
 use std::path::Path;
 
@@ -30,9 +32,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .execute(&pool)
     .await?;
 
-    // Get migration files
-    let migration_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("migrations");
+    // Get migration files directly from CARGO_MANIFEST_DIR
+    let migration_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
 
     let mut migration_files: Vec<_> = fs::read_dir(&migration_dir)?
         .filter_map(|entry| entry.ok())
@@ -68,13 +69,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Applying migration: {}", filename);
 
         let sql = fs::read_to_string(&path)?;
-        let mut tx = pool.begin().await?;
-
-        // Split SQL into individual statements and execute each one
-        for statement in sql.split(';').filter(|s| !s.trim().is_empty()) {
-            sqlx::query(statement)
-                .execute(&mut *tx)
-                .await?;
+        
+        // Execute the migration using raw connection to support multiple statements
+        let mut conn = pool.acquire().await?;
+        let mut stream = conn.execute_many(sql.as_str());
+        
+        while let Some(result) = stream.try_next().await? {
+            println!("Executed statement: {} rows affected", result.rows_affected());
         }
 
         // Record migration
@@ -82,10 +83,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "INSERT INTO schema_migrations (version, applied_at) VALUES ($1, NOW())"
         )
         .bind(filename.to_string())
-        .execute(&mut *tx)
+        .execute(&pool)
         .await?;
 
-        tx.commit().await?;
         println!("Successfully applied migration: {}", filename);
     }
 

@@ -1,40 +1,34 @@
 use std::sync::Arc;
+use async_trait::async_trait;
 
 use crate::{
     error::CoreError,
-    infrastructure::{
-        DatabaseService,
-        blockchain::types::{BlockchainService, ConsensusService},
-    },
-    types::app::{
-        AppConfig,
-        SecurityService,
-        AuditLogger,
-    },
+    types::app::{AppConfig, AppStatus},
+    infrastructure::persistence::DatabaseConfig,
 };
 
+#[async_trait]
+pub trait CoreService: Send + Sync {
+    async fn initialize(&self) -> Result<(), CoreError>;
+    async fn shutdown(&self) -> Result<(), CoreError>;
+    async fn health_check(&self) -> Result<bool, CoreError>;
+    async fn get_status(&self) -> Result<AppStatus, CoreError>;
+}
+
 pub struct Core {
-    pub config: AppConfig,
-    pub database: Arc<dyn DatabaseService>,
-    pub security: Arc<dyn SecurityService>,
-    pub blockchain: Arc<dyn BlockchainService>,
-    pub consensus: Arc<dyn ConsensusService>,
-    pub audit: Arc<dyn AuditLogger>,
+    config: AppConfig,
 }
 
 impl Core {
-    pub fn new(config: AppConfig) -> Result<Self, CoreError> {
-        // Initialize services...
-        todo!()
+    pub fn new(config: AppConfig) -> Self {
+        Self { config }
     }
 
     pub async fn initialize(&self) -> Result<(), CoreError> {
-        // Initialize all services
         Ok(())
     }
 
     pub async fn shutdown(&self) -> Result<(), CoreError> {
-        // Shutdown all services
         Ok(())
     }
 }

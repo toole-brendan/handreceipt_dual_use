@@ -9,6 +9,12 @@ pub enum CoreError {
     #[error("Database error: {0}")]
     Database(String),
 
+    #[error("Repository error: {0}")]
+    Repository(String),
+
+    #[error("Blockchain error: {0}")]
+    Blockchain(#[from] crate::error::blockchain::BlockchainError),
+
     #[error("Validation error: {0}")]
     Validation(String),
 
@@ -27,9 +33,6 @@ pub enum CoreError {
     #[error("Configuration error: {0}")]
     Configuration(String),
 
-    #[error("Blockchain error: {0}")]
-    Blockchain(#[from] crate::error::blockchain::BlockchainError),
-
     #[error("Audit error: {0}")]
     Audit(#[from] crate::error::audit::AuditError),
 
@@ -38,6 +41,12 @@ pub enum CoreError {
 
     #[error("Transfer error: {0}")]
     Transfer(String),
+
+    #[error("QR code error: {0}")]
+    QRCode(String),
+
+    #[error("Image processing error: {0}")]
+    Image(String),
 }
 
 impl From<String> for CoreError {
@@ -64,8 +73,26 @@ impl From<serde_json::Error> for CoreError {
     }
 }
 
+impl From<sqlx::Error> for CoreError {
+    fn from(err: sqlx::Error) -> Self {
+        CoreError::Database(err.to_string())
+    }
+}
+
 impl From<crate::error::security::SecurityError> for CoreError {
     fn from(err: crate::error::security::SecurityError) -> Self {
         CoreError::SecurityError(err.to_string())
+    }
+}
+
+impl From<image::ImageError> for CoreError {
+    fn from(err: image::ImageError) -> Self {
+        CoreError::Image(err.to_string())
+    }
+}
+
+impl From<qrcode::types::QrError> for CoreError {
+    fn from(err: qrcode::types::QrError) -> Self {
+        CoreError::QRCode(err.to_string())
     }
 }

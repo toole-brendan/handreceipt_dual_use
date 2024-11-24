@@ -1,101 +1,77 @@
-// backend/src/services/database/mod.rs
-
 use std::sync::Arc;
-use deadpool_postgres::Pool;
-use tokio_postgres::Row;
 use uuid::Uuid;
+use deadpool_postgres::Pool;
 
-use crate::types::{
-    app::DatabaseService,
-    error::CoreError,
-    security::SecurityContext,
-    asset::Asset,
+use crate::{
+    domain::property::entity::Property,
+    error::DatabaseError,
+    types::security::SecurityContext,
 };
 
-use super::storage::{
+use super::{
     connection::PostgresConnection,
-    repositories::{Repository, asset::AssetRepository},
+    repositories::{Repository, property::PropertyRepository},
 };
 
-pub struct DatabaseModule {
+pub struct Database {
     pool: Pool,
-    asset_repo: Arc<dyn Repository<Item = Asset, Id = Uuid> + Send + Sync>,
+    property_repo: Arc<dyn Repository<Item = Property, Id = Uuid> + Send + Sync>,
 }
 
-impl DatabaseModule {
+impl Database {
     pub fn new(pool: Pool) -> Self {
         Self {
             pool,
-            asset_repo: Arc::new(AssetRepository::default()),
+            property_repo: Arc::new(PropertyRepository::default()),
         }
     }
 
-    pub async fn get_connection(&self) -> Result<PostgresConnection, CoreError> {
+    pub async fn get_connection(&self) -> Result<PostgresConnection, DatabaseError> {
         let client = self.pool
             .get()
             .await
-            .map_err(|e| CoreError::Database(e.to_string()))?;
-        
-        let client = client.into_inner();
+            .map_err(|e| DatabaseError::ConnectionError(e.to_string()))?;
+
         Ok(PostgresConnection::new(client))
     }
-}
 
-#[async_trait::async_trait]
-impl DatabaseService for DatabaseModule {
-    async fn execute_query(
-        &self,
-        query: &str,
-        params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-        _security_context: &SecurityContext,
-    ) -> Result<Vec<Row>, CoreError> {
-        let mut conn = self.get_connection().await?;
-        conn.query(query, params).await
-    }
-
-    async fn get_asset(
+    pub async fn get_property(
         &self,
         id: Uuid,
         security_context: &SecurityContext,
-    ) -> Result<Option<Asset>, CoreError> {
+    ) -> Result<Property, DatabaseError> {
         let mut conn = self.get_connection().await?;
-        self.asset_repo.get_by_id(&conn, id, security_context).await
+        self.property_repo.get_by_id(&conn, id, security_context).await
     }
 
-    async fn update_asset(
+    pub async fn update_property(
         &self,
-        asset: &Asset,
+        property: &Property,
         security_context: &SecurityContext,
-    ) -> Result<(), CoreError> {
+    ) -> Result<Property, DatabaseError> {
         let mut conn = self.get_connection().await?;
-        self.asset_repo.update(&conn, asset, security_context).await
+        self.property_repo.update(&conn, property, security_context).await
     }
 
-    async fn list_assets(
+    pub async fn list_properties(
         &self,
         security_context: &SecurityContext,
-    ) -> Result<Vec<Asset>, CoreError> {
+    ) -> Result<Vec<Property>, DatabaseError> {
         let mut conn = self.get_connection().await?;
-        self.asset_repo.list(&conn, security_context).await
+        self.property_repo.list(&conn, security_context).await
     }
-}
 
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-    use deadpool_postgres::Config;
+    pub async fn begin_transaction(&self) -> Result<PostgresConnection, DatabaseError> {
+        let mut conn = self.get_connection().await?;
+        conn.begin_transaction().await?;
+        Ok(conn)
+    }
 
-    pub async fn create_test_db() -> Result<DatabaseModule, CoreError> {
-        let mut cfg = Config::new();
-        cfg.host = Some("localhost".to_string());
-        cfg.port = Some(5432);
-        cfg.dbname = Some("test_db".to_string());
-        cfg.user = Some("test_user".to_string());
-        cfg.password = Some("test_pass".to_string());
+    pub async fn commit_transaction(&self, conn: &mut PostgresConnection) -> Result<(), DatabaseError> {
+        conn.commit_transaction().await
+    }
 
-        let pool = cfg.create_pool(None, tokio_postgres::NoTls)
-            .map_err(|e| CoreError::Database(e.to_string()))?;
-
-        Ok(DatabaseModule::new(pool))
+    pub async fn rollback_transaction(&self, conn: &mut PostgresConnection) -> Result<(), DatabaseError> {
+        conn.rollback_transaction().await
     }
 }

@@ -1,104 +1,67 @@
-use serde::{Deserialize, Serialize};
-use std::fmt;
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use crate::types::security::SecurityClassification;
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Permission {
-    pub id: Uuid,
-    pub resource_type: ResourceType,
-    pub action: Action,
-    pub granted_at: DateTime<Utc>,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub granted_by: String,
-    pub classification: SecurityClassification,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResourceType {
-    Asset,
+    Property,
+    Transfer,
     User,
-    Group,
-    Role,
-    Policy,
-    Key,
-    Certificate,
-    Audit,
-    System,
+    Command,
+    Report,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action {
     Create,
     Read,
     Update,
     Delete,
-    List,
-    Execute,
-    Grant,
-    Revoke,
+    ViewAll,
+    ViewUnit,
+    ViewOwn,
+    Approve,
+    Transfer,
+    Generate,
+    HandleSensitive,
+    ViewCommand,
+    UpdateCommand,
+    UpdateAll,
+    ApproveCommand,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Permission {
+    pub resource_type: ResourceType,
+    pub action: Action,
+    pub constraints: HashMap<String, String>,
 }
 
 impl Permission {
-    pub fn new(
-        resource_type: ResourceType,
-        action: Action,
-        granted_by: String,
-        classification: SecurityClassification,
-    ) -> Self {
+    pub fn new(resource_type: ResourceType, action: Action, constraints: HashMap<String, String>) -> Self {
         Self {
-            id: Uuid::new_v4(),
             resource_type,
             action,
-            granted_at: Utc::now(),
-            expires_at: None,
-            granted_by,
-            classification,
+            constraints,
         }
     }
 
-    pub fn with_expiry(mut self, expires_at: DateTime<Utc>) -> Self {
-        self.expires_at = Some(expires_at);
+    pub fn with_constraint(mut self, key: &str, value: &str) -> Self {
+        self.constraints.insert(key.to_string(), value.to_string());
         self
     }
-
-    pub fn is_expired(&self) -> bool {
-        self.expires_at.map_or(false, |exp| exp < Utc::now())
-    }
-
-    pub fn to_string(&self) -> String {
-        format!("{}:{}", self.resource_type, self.action)
-    }
 }
 
-impl fmt::Display for ResourceType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Asset => write!(f, "asset"),
-            Self::User => write!(f, "user"),
-            Self::Group => write!(f, "group"),
-            Self::Role => write!(f, "role"),
-            Self::Policy => write!(f, "policy"),
-            Self::Key => write!(f, "key"),
-            Self::Certificate => write!(f, "certificate"),
-            Self::Audit => write!(f, "audit"),
-            Self::System => write!(f, "system"),
-        }
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-impl fmt::Display for Action {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Create => write!(f, "create"),
-            Self::Read => write!(f, "read"),
-            Self::Update => write!(f, "update"),
-            Self::Delete => write!(f, "delete"),
-            Self::List => write!(f, "list"),
-            Self::Execute => write!(f, "execute"),
-            Self::Grant => write!(f, "grant"),
-            Self::Revoke => write!(f, "revoke"),
-        }
+    #[test]
+    fn test_permission_creation() {
+        let permission = Permission::new(ResourceType::Property, Action::ViewAll, HashMap::new())
+            .with_constraint("unit", "1-1-IN");
+
+        assert_eq!(permission.resource_type, ResourceType::Property);
+        assert_eq!(permission.action, Action::ViewAll);
+        assert_eq!(permission.constraints.get("unit").unwrap(), "1-1-IN");
     }
 }

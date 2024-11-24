@@ -1,11 +1,11 @@
 pub mod postgres;
 
+use sqlx::postgres::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 
 pub use postgres::PostgresConnection;
 pub use postgres::property_repository::PostgresPropertyRepository;
-pub use postgres::transfer_repository::PostgresTransferRepository;
 
 /// Configuration for database connections
 #[derive(Debug, Clone)]
@@ -47,22 +47,21 @@ impl DatabaseConfig {
 }
 
 /// Creates a new database connection pool
-pub async fn create_pool(config: &DatabaseConfig) -> Result<Arc<sqlx::PgPool>, sqlx::Error> {
-    let pool = PgPoolOptions::new()
+pub async fn create_pool(config: &DatabaseConfig) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new()
         .max_connections(config.max_connections)
         .connect(&config.connection_string())
-        .await?;
-
-    Ok(Arc::new(pool))
+        .await
 }
 
 /// Creates repositories with the provided connection pool
 pub fn create_repositories(
-    pool: Arc<sqlx::PgPool>,
+    pool: PgPool,
 ) -> Repositories {
     Repositories {
-        property: Arc::new(PostgresPropertyRepository::new(pool.clone())),
-        transfer: Arc::new(PostgresTransferRepository::new(pool)),
+        property: Arc::new(PostgresPropertyRepository::new(pool)),
+        // TODO: Implement transfer repository
+        // transfer: Arc::new(PostgresTransferRepository::new(pool)),
     }
 }
 
@@ -70,7 +69,8 @@ pub fn create_repositories(
 #[derive(Clone)]
 pub struct Repositories {
     pub property: Arc<PostgresPropertyRepository>,
-    pub transfer: Arc<PostgresTransferRepository>,
+    // TODO: Add transfer repository after implementation
+    // pub transfer: Arc<PostgresTransferRepository>,
 }
 
 #[cfg(test)]
@@ -79,7 +79,7 @@ pub mod test_utils {
     use sqlx::migrate::MigrateDatabase;
 
     /// Creates a test database and runs migrations
-    pub async fn setup_test_db() -> Result<Arc<sqlx::PgPool>, sqlx::Error> {
+    pub async fn setup_test_db() -> Result<PgPool, sqlx::Error> {
         let config = DatabaseConfig {
             host: "localhost".to_string(),
             port: 5432,
@@ -96,19 +96,19 @@ pub mod test_utils {
         let pool = create_pool(&config).await?;
         
         sqlx::migrate!("./migrations")
-            .run(&*pool)
+            .run(&pool)
             .await?;
 
         Ok(pool)
     }
 
     /// Tears down the test database
-    pub async fn teardown_test_db(pool: Arc<sqlx::PgPool>) -> Result<(), sqlx::Error> {
-        let db_url = pool.connect_options().get_database()
+    pub async fn teardown_test_db(pool: PgPool) -> Result<(), sqlx::Error> {
+        let db_name = pool.connect_options().get_database()
             .map(|db| format!("postgres://postgres:postgres@localhost:5432/{}", db))
             .unwrap_or_else(|| "postgres://postgres:postgres@localhost:5432/postgres".to_string());
             
         drop(pool);
-        sqlx::Postgres::drop_database(&db_url).await
+        sqlx::Postgres::drop_database(&db_name).await
     }
 }

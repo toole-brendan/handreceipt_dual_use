@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use thiserror::Error;
 
 use super::entity::{Property, PropertyCategory, PropertyStatus};
+use crate::domain::models::transfer::PropertyTransfer;
 
 /// Custom error type for repository operations
 #[derive(Debug, Error)]
@@ -19,7 +20,7 @@ pub enum RepositoryError {
 }
 
 /// Geographical bounds for location-based queries
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GeoBounds {
     pub min_latitude: f64,
     pub max_latitude: f64,
@@ -36,12 +37,10 @@ pub struct PropertySearchCriteria {
     pub custodian: Option<String>,
     pub nsn: Option<String>,
     pub serial_number: Option<String>,
-    pub hand_receipt_number: Option<String>,
     pub command_id: Option<String>,
-    pub verified_after: Option<DateTime<Utc>>,
-    pub location_bounds: Option<GeoBounds>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
+    pub location: Option<GeoBounds>,
+    pub created_after: Option<DateTime<Utc>>,
+    pub created_before: Option<DateTime<Utc>>,
 }
 
 /// Repository interface for Property entity
@@ -106,6 +105,12 @@ pub trait PropertyRepository: Send + Sync {
         category: Option<PropertyCategory>
     ) -> Result<Vec<Property>, RepositoryError>;
     
+    /// Gets the latest transfer record for a property
+    async fn get_latest_transfer(
+        &self,
+        property_id: Uuid
+    ) -> Result<Option<PropertyTransfer>, RepositoryError>;
+    
     /// Begins a new transaction
     async fn begin_transaction(&self) -> Result<Box<dyn PropertyTransaction>, RepositoryError>;
 }
@@ -139,12 +144,14 @@ pub mod mock {
     /// A mock implementation of PropertyRepository for testing
     pub struct MockPropertyRepository {
         properties: Mutex<HashMap<Uuid, Property>>,
+        transfers: Mutex<HashMap<Uuid, Vec<PropertyTransfer>>>,
     }
 
     impl MockPropertyRepository {
         pub fn new() -> Self {
             Self {
                 properties: Mutex::new(HashMap::new()),
+                transfers: Mutex::new(HashMap::new()),
             }
         }
     }
@@ -211,7 +218,9 @@ pub mod mock {
         async fn get_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError> {
             let properties = self.properties.lock().unwrap();
             Ok(properties.values()
-                .filter(|p| p.custodian() == Some(custodian))
+                .filter(|p| p.custodian()
+                    .map(|c| c.as_str() == custodian)
+                    .unwrap_or(false))
                 .cloned()
                 .collect())
         }
@@ -219,7 +228,9 @@ pub mod mock {
         async fn get_by_command(&self, command_id: &str) -> Result<Vec<Property>, RepositoryError> {
             let properties = self.properties.lock().unwrap();
             Ok(properties.values()
-                .filter(|p| p.command_id() == Some(command_id))
+                .filter(|p| p.command_id()
+                    .map(|c| c.as_str() == command_id)
+                    .unwrap_or(false))
                 .cloned()
                 .collect())
         }
@@ -276,8 +287,17 @@ pub mod mock {
             Ok(Vec::new()) // Simplified mock implementation
         }
 
+        async fn get_latest_transfer(
+            &self,
+            property_id: Uuid
+        ) -> Result<Option<PropertyTransfer>, RepositoryError> {
+            let transfers = self.transfers.lock().unwrap();
+            Ok(transfers.get(&property_id)
+                .and_then(|transfers| transfers.last().cloned()))
+        }
+
         async fn begin_transaction(&self) -> Result<Box<dyn PropertyTransaction>, RepositoryError> {
-            Ok(Box::new(MockPropertyTransaction::new(self.properties.clone())))
+            Ok(Box::new(MockPropertyTransaction::new(self.properties.get_mut().unwrap().clone())))
         }
     }
 

@@ -1,18 +1,21 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
+use ed25519_dalek::{
+    SigningKey, VerifyingKey, Signature, Signer, Verifier,
+    SIGNATURE_LENGTH,
+};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-use crate::domain::transfer::{Transfer, TransferStatus};
+use crate::domain::models::transfer::TransferStatus;
 
 /// Represents a military authority node
 #[derive(Debug)]
 pub struct AuthorityNode {
     node_id: Uuid,
     unit_code: String,
-    keypair: Keypair,
-    public_key: PublicKey,
+    signing_key: SigningKey,
+    verifying_key: VerifyingKey,
     certificate: MilitaryCertificate,
     is_primary: bool,
     unit_hierarchy: HashMap<String, Vec<String>>, // parent -> children units
@@ -63,16 +66,17 @@ impl AuthorityNode {
     /// Creates a new authority node
     pub fn new(
         unit_code: String,
-        keypair: Keypair,
+        signing_key: SigningKey,
         certificate: MilitaryCertificate,
         is_primary: bool,
         unit_hierarchy: HashMap<String, Vec<String>>,
     ) -> Self {
+        let verifying_key = signing_key.verifying_key();
         Self {
             node_id: Uuid::new_v4(),
             unit_code,
-            public_key: keypair.public,
-            keypair,
+            verifying_key,
+            signing_key,
             certificate,
             is_primary,
             unit_hierarchy,
@@ -109,7 +113,7 @@ impl AuthorityNode {
         let message = serde_json::to_string(&transfer)
             .map_err(|e| format!("Failed to serialize transfer: {}", e))?;
 
-        let signature = self.keypair.sign(message.as_bytes());
+        let signature = self.signing_key.sign(message.as_bytes());
 
         // Add signature to transfer
         transfer.signatures.push(TransferSignature {
@@ -144,11 +148,13 @@ impl AuthorityNode {
 
         for sig in &transfer.signatures {
             // Convert signature bytes back to ed25519 Signature
-            let signature = Signature::from_bytes(&sig.signature[..])
-                .map_err(|e| format!("Invalid signature format: {}", e))?;
+            let signature_bytes: [u8; SIGNATURE_LENGTH] = sig.signature[..]
+                .try_into()
+                .map_err(|_| "Invalid signature length".to_string())?;
+            let signature = Signature::from_bytes(&signature_bytes);
 
             // Verify signature with public key
-            self.public_key
+            self.verifying_key
                 .verify(message.as_bytes(), &signature)
                 .map_err(|e| format!("Invalid signature: {}", e))?;
         }
@@ -245,11 +251,21 @@ impl AuthorityNode {
         // Mock implementation returns a hash
         Ok(format!("TRANSFER_{}", transfer.property_id))
     }
+
+    pub fn verify_signature(&self, msg: &[u8], signature_bytes: &[u8]) -> Result<bool, String> {
+        let signature_array: [u8; SIGNATURE_LENGTH] = signature_bytes
+            .try_into()
+            .map_err(|_| "Invalid signature length".to_string())?;
+        let signature = Signature::from_bytes(&signature_array);
+            
+        Ok(self.verifying_key.verify(msg, &signature).is_ok())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::rngs::OsRng;
 
     fn create_test_hierarchy() -> HashMap<String, Vec<String>> {
         let mut hierarchy = HashMap::new();
@@ -266,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_transfer_validation() {
-        let keypair = Keypair::generate(&mut rand::thread_rng());
+        let signing_key = SigningKey::generate(&mut OsRng);
         let certificate = MilitaryCertificate {
             issuer: "DOD-CA".to_string(),
             subject: "1-1 IN S4".to_string(),
@@ -277,7 +293,7 @@ mod tests {
 
         let node = AuthorityNode::new(
             "1-1-IN".to_string(),
-            keypair,
+            signing_key,
             certificate,
             true,
             create_test_hierarchy(),
@@ -303,7 +319,7 @@ mod tests {
 
     #[test]
     fn test_command_authority() {
-        let keypair = Keypair::generate(&mut rand::thread_rng());
+        let signing_key = SigningKey::generate(&mut OsRng);
         let certificate = MilitaryCertificate {
             issuer: "DOD-CA".to_string(),
             subject: "1-1 IN S4".to_string(),
@@ -315,7 +331,7 @@ mod tests {
         let hierarchy = create_test_hierarchy();
         let node = AuthorityNode::new(
             "1-1-IN".to_string(),
-            keypair,
+            signing_key,
             certificate,
             true,
             hierarchy,

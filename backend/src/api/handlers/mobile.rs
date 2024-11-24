@@ -139,10 +139,15 @@ pub async fn get_property_summary(
     let qr_code = if property.requires_qr {
         Some(
             qr_service
-                .generate_qr(property.id, QRFormat::PNG, &context)
+                .generate_qr(&QRData {
+                    id: Uuid::new_v4(),
+                    property_id: property.id,
+                    metadata: serde_json::json!({}),
+                    timestamp: Utc::now(),
+                }, QRFormat::PNG, &context)
                 .await
                 .map_err(actix_web::error::ErrorInternalServerError)?
-                .qr_code,
+                .data
         )
     } else {
         None

@@ -111,20 +111,6 @@ CREATE TABLE property_verifications (
     CONSTRAINT property_verifications_verifier_not_empty CHECK (length(trim(verifier)) > 0)
 );
 
--- Create property transfers table
-CREATE TABLE property_transfers (
-    id BIGSERIAL PRIMARY KEY,
-    property_id UUID NOT NULL REFERENCES property(id) ON DELETE CASCADE,
-    from_custodian VARCHAR(255),
-    to_custodian VARCHAR(255) NOT NULL,
-    verifier VARCHAR(255) NOT NULL,
-    transfer_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    reason TEXT,
-    hand_receipt_number VARCHAR(255),
-    location GEOGRAPHY(POINT),
-    notes TEXT
-);
-
 -- Create hand receipts table
 CREATE TABLE hand_receipts (
     id BIGSERIAL PRIMARY KEY,
@@ -152,7 +138,6 @@ CREATE INDEX idx_property_hand_receipt_number ON property(hand_receipt_number);
 CREATE INDEX idx_property_locations_timestamp ON property_locations(timestamp);
 CREATE INDEX idx_property_location_history_timestamp ON property_location_history(timestamp);
 CREATE INDEX idx_property_verifications_timestamp ON property_verifications(timestamp);
-CREATE INDEX idx_property_transfers_transfer_date ON property_transfers(transfer_date);
 CREATE INDEX idx_hand_receipts_receipt_number ON hand_receipts(receipt_number);
 CREATE INDEX idx_hand_receipts_custodian ON hand_receipts(custodian);
 
@@ -160,7 +145,6 @@ CREATE INDEX idx_hand_receipts_custodian ON hand_receipts(custodian);
 CREATE INDEX idx_property_locations_location ON property_locations USING GIST(location);
 CREATE INDEX idx_property_location_history_location ON property_location_history USING GIST(location);
 CREATE INDEX idx_property_verifications_location ON property_verifications USING GIST(location);
-CREATE INDEX idx_property_transfers_location ON property_transfers USING GIST(location);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

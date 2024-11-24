@@ -6,14 +6,25 @@ use serde::{Serialize, Deserialize};
 /// Categories of military property
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PropertyCategory {
-    Equipment,      // Durable items like vehicles
-    Supplies,       // Consumable items
-    Electronics,    // Electronic devices
-    Communications, // Comms equipment
-    Weapons,        // Weapons and weapon systems
-    Ammunition,     // Ammo and explosives
-    Tools,         // Tools and tool kits
-    Clothing,      // Uniforms and gear
+    Weapon,
+    Ammunition,
+    Equipment,
+    Supply,
+    Vehicle,
+    Other,
+}
+
+impl PropertyCategory {
+    pub fn from_nsn(nsn: Option<&str>) -> Result<Self, String> {
+        match nsn {
+            Some(nsn) if nsn.starts_with("1005") => Ok(Self::Weapon),
+            Some(nsn) if nsn.starts_with("1305") => Ok(Self::Ammunition),
+            Some(nsn) if nsn.starts_with("23") => Ok(Self::Vehicle),
+            Some(nsn) if nsn.starts_with("8465") => Ok(Self::Equipment),
+            Some(nsn) if nsn.starts_with("8470") => Ok(Self::Supply),
+            _ => Ok(Self::Other),
+        }
+    }
 }
 
 /// Property status in the system
@@ -46,6 +57,19 @@ pub struct Location {
     pub timestamp: DateTime<Utc>,
     pub building: Option<String>,
     pub room: Option<String>,
+    pub grid_coordinates: Option<String>,
+    pub notes: Option<String>,
+}
+
+/// History entry for tracking property changes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HistoryEntry {
+    pub timestamp: DateTime<Utc>,
+    pub event_type: String,
+    pub description: String,
+    pub user_id: Option<String>,
+    pub location: Option<Location>,
+    pub metadata: HashMap<String, String>,
 }
 
 /// Verification record
@@ -67,7 +91,6 @@ pub enum VerificationMethod {
     BlockchainVerification,
 }
 
-/// Core domain entity representing military property
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {
     id: Uuid,
@@ -78,7 +101,7 @@ pub struct Property {
     condition: PropertyCondition,
     is_sensitive: bool,
     quantity: i32,
-    unit_of_issue: String,
+    unit_of_measure: String,
     value: Option<f64>,
     
     // Identification
@@ -98,6 +121,7 @@ pub struct Property {
     
     // Tracking
     verifications: Vec<Verification>,
+    history: Vec<HistoryEntry>,
     metadata: HashMap<String, String>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -112,7 +136,7 @@ impl Property {
         category: PropertyCategory,
         is_sensitive: bool,
         quantity: i32,
-        unit_of_issue: String,
+        unit_of_measure: String,
     ) -> Result<Self, String> {
         // Validate inputs
         if name.trim().is_empty() {
@@ -124,8 +148,8 @@ impl Property {
         if quantity <= 0 {
             return Err("Quantity must be positive".to_string());
         }
-        if unit_of_issue.trim().is_empty() {
-            return Err("Unit of issue cannot be empty".to_string());
+        if unit_of_measure.trim().is_empty() {
+            return Err("Unit of measure cannot be empty".to_string());
         }
 
         Ok(Self {
@@ -137,7 +161,7 @@ impl Property {
             condition: PropertyCondition::Serviceable,
             is_sensitive,
             quantity,
-            unit_of_issue,
+            unit_of_measure,
             value: None,
             nsn: None,
             serial_number: None,
@@ -149,6 +173,7 @@ impl Property {
             current_location: None,
             location_history: Vec::new(),
             verifications: Vec::new(),
+            history: Vec::new(),
             metadata: HashMap::new(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -165,7 +190,7 @@ impl Property {
     pub fn condition(&self) -> &PropertyCondition { &self.condition }
     pub fn is_sensitive(&self) -> bool { self.is_sensitive }
     pub fn quantity(&self) -> i32 { self.quantity }
-    pub fn unit_of_issue(&self) -> &str { &self.unit_of_issue }
+    pub fn unit_of_measure(&self) -> &str { &self.unit_of_measure }
     pub fn value(&self) -> Option<f64> { self.value }
     pub fn nsn(&self) -> Option<&String> { self.nsn.as_ref() }
     pub fn serial_number(&self) -> Option<&String> { self.serial_number.as_ref() }
@@ -184,35 +209,77 @@ impl Property {
         self.updated_at = Utc::now();
     }
 
-    /// Sets the serial number
-    pub fn set_serial_number(&mut self, serial: String) {
-        self.serial_number = Some(serial);
-        self.updated_at = Utc::now();
+    /// Builder method to set serial number
+    pub fn with_serial_number(mut self, serial: Option<String>) -> Self {
+        self.serial_number = serial;
+        self
     }
 
-    /// Sets the model number
-    pub fn set_model_number(&mut self, model: String) {
+    /// Builder method to set model number
+    pub fn with_model_number(mut self, model: String) -> Self {
         self.model_number = Some(model);
-        self.updated_at = Utc::now();
+        self
     }
 
-    /// Sets the QR code
-    pub fn set_qr_code(&mut self, qr_code: String) {
-        self.qr_code = Some(qr_code);
-        self.updated_at = Utc::now();
+    /// Builder method to set NSN
+    pub fn with_nsn(mut self, nsn: String) -> Self {
+        self.nsn = Some(nsn);
+        self
     }
 
-    /// Updates property metadata
-    pub fn update_metadata(&mut self, key: String, value: String) -> Result<(), String> {
-        if key.trim().is_empty() {
-            return Err("Metadata key cannot be empty".to_string());
+    /// Builder method to set location
+    pub fn with_location(mut self, location: Option<Location>) -> Self {
+        if let Some(loc) = location {
+            let loc_clone = loc.clone();
+            self.current_location = Some(loc);
+            self.location_history.push(loc_clone);
         }
-        self.metadata.insert(key, value);
-        self.updated_at = Utc::now();
-        Ok(())
+        self
     }
 
-    /// Updates property location
+    /// Updates property status with history tracking
+    pub fn update_status(&mut self, new_status: PropertyStatus, user_id: Option<String>, notes: Option<String>) {
+        let old_status = self.status.clone();
+        self.status = new_status.clone();
+        
+        let description = if let Some(notes) = notes {
+            format!("Status changed from {:?} to {:?}: {}", old_status, new_status, notes)
+        } else {
+            format!("Status changed from {:?} to {:?}", old_status, new_status)
+        };
+
+        self.add_history_entry(
+            "STATUS_CHANGE",
+            &description,
+            user_id,
+            None,
+        );
+        
+        self.updated_at = Utc::now();
+    }
+
+    /// Updates property condition with history tracking
+    pub fn update_condition(&mut self, new_condition: PropertyCondition, user_id: Option<String>, notes: Option<String>) {
+        let old_condition = self.condition.clone();
+        self.condition = new_condition.clone();
+        
+        let description = if let Some(notes) = notes {
+            format!("Condition changed from {:?} to {:?}: {}", old_condition, new_condition, notes)
+        } else {
+            format!("Condition changed from {:?} to {:?}", old_condition, new_condition)
+        };
+
+        self.add_history_entry(
+            "CONDITION_CHANGE",
+            &description,
+            user_id,
+            None,
+        );
+        
+        self.updated_at = Utc::now();
+    }
+
+    /// Updates property location and maintains history
     pub fn update_location(&mut self, location: Location) -> Result<(), String> {
         // Validate location data
         if !(-90.0..=90.0).contains(&location.latitude) {
@@ -232,44 +299,6 @@ impl Property {
         Ok(())
     }
 
-    /// Records a verification
-    pub fn verify(&mut self, verification: Verification) -> Result<(), String> {
-        if verification.verifier.trim().is_empty() {
-            return Err("Verifier cannot be empty".to_string());
-        }
-
-        // Update last inventoried time for manual checks
-        if verification.method == VerificationMethod::ManualCheck {
-            self.last_inventoried = Some(verification.timestamp);
-        }
-
-        self.verifications.push(verification);
-        self.updated_at = Utc::now();
-        Ok(())
-    }
-
-    /// Changes property status
-    pub fn change_status(&mut self, new_status: PropertyStatus) {
-        self.status = new_status;
-        self.updated_at = Utc::now();
-    }
-
-    /// Updates property condition
-    pub fn update_condition(&mut self, condition: PropertyCondition) {
-        self.condition = condition;
-        self.updated_at = Utc::now();
-    }
-
-    /// Updates quantity
-    pub fn update_quantity(&mut self, new_quantity: i32) -> Result<(), String> {
-        if new_quantity <= 0 {
-            return Err("Quantity must be positive".to_string());
-        }
-        self.quantity = new_quantity;
-        self.updated_at = Utc::now();
-        Ok(())
-    }
-
     /// Transfers custody with optional hand receipt
     pub fn transfer_custody(
         &mut self,
@@ -281,6 +310,23 @@ impl Property {
             return Err("Custodian cannot be empty".to_string());
         }
 
+        // Record old custodian in history
+        if let Some(old_custodian) = self.custodian.as_ref() {
+            self.add_history_entry(
+                "CUSTODY_TRANSFER",
+                &format!("Custody transferred from {} to {}", old_custodian, new_custodian),
+                None,
+                None,
+            );
+        } else {
+            self.add_history_entry(
+                "CUSTODY_ASSIGNED",
+                &format!("Initial custody assigned to {}", new_custodian),
+                None,
+                None,
+            );
+        }
+
         self.custodian = Some(new_custodian);
         self.hand_receipt_number = hand_receipt_number;
         self.sub_hand_receipt_number = sub_hand_receipt_number;
@@ -289,9 +335,54 @@ impl Property {
         Ok(())
     }
 
+    /// Adds a history entry
+    pub fn add_history_entry(
+        &mut self,
+        event_type: &str,
+        description: &str,
+        user_id: Option<String>,
+        location: Option<Location>,
+    ) {
+        let entry = HistoryEntry {
+            timestamp: Utc::now(),
+            event_type: event_type.to_string(),
+            description: description.to_string(),
+            user_id,
+            location,
+            metadata: HashMap::new(),
+        };
+        
+        self.history.push(entry);
+        self.updated_at = Utc::now();
+    }
+
+    /// Gets property history
+    pub fn history(&self) -> &[HistoryEntry] {
+        &self.history
+    }
+
+    /// Gets location history
+    pub fn location_history(&self) -> &[Location] {
+        &self.location_history
+    }
+
     /// Checks if property is available for transfer
     pub fn is_available_for_transfer(&self) -> bool {
         matches!(self.status, PropertyStatus::Available | PropertyStatus::Assigned)
+    }
+
+    pub fn with_condition(mut self, condition: PropertyCondition) -> Self {
+        self.condition = condition;
+        self
+    }
+
+    pub fn command_id(&self) -> Option<String> {
+        self.metadata.get("command_id").cloned()
+    }
+
+    pub fn with_custodian(mut self, custodian_id: Uuid) -> Self {
+        self.custodian = Some(custodian_id.to_string());
+        self
     }
 }
 
@@ -304,7 +395,7 @@ mod tests {
         let property = Property::new(
             "M4 Carbine".to_string(),
             "5.56mm Rifle".to_string(),
-            PropertyCategory::Weapons,
+            PropertyCategory::Weapon,
             true,
             1,
             "Each".to_string(),
@@ -322,7 +413,7 @@ mod tests {
         let mut property = Property::new(
             "M4 Carbine".to_string(),
             "5.56mm Rifle".to_string(),
-            PropertyCategory::Weapons,
+            PropertyCategory::Weapon,
             true,
             1,
             "Each".to_string(),
@@ -345,7 +436,7 @@ mod tests {
         let mut property = Property::new(
             "M4 Carbine".to_string(),
             "5.56mm Rifle".to_string(),
-            PropertyCategory::Weapons,
+            PropertyCategory::Weapon,
             true,
             1,
             "Each".to_string(),
@@ -359,11 +450,13 @@ mod tests {
             timestamp: Utc::now(),
             building: Some("HQ".to_string()),
             room: Some("Armory".to_string()),
+            grid_coordinates: None,
+            notes: None,
         };
 
         property.update_location(location).unwrap();
         assert!(property.current_location().is_some());
-        assert_eq!(property.location_history.len(), 0);
+        assert_eq!(property.location_history().len(), 0);
 
         // Update location again to test history
         let new_location = Location {
@@ -374,10 +467,12 @@ mod tests {
             timestamp: Utc::now(),
             building: Some("Range".to_string()),
             room: None,
+            grid_coordinates: None,
+            notes: None,
         };
 
         property.update_location(new_location).unwrap();
         assert!(property.current_location().is_some());
-        assert_eq!(property.location_history.len(), 1);
+        assert_eq!(property.location_history().len(), 1);
     }
 }

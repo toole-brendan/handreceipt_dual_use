@@ -57,6 +57,9 @@ pub trait TransferRepository: Send + Sync {
 
     /// Begins a new transaction
     async fn begin_transaction(&self) -> Result<Box<dyn TransferTransaction>, TransferError>;
+
+    /// Gets pending transfers for a user
+    async fn get_pending_transfers(&self, user_id: &str) -> Result<Vec<Transfer>, TransferError>;
 }
 
 /// Transaction interface for transfers
