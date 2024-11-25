@@ -61,7 +61,7 @@ mod tests {
     fn test_empty_tree() {
         let tree = MerkleTree::new();
         assert!(tree.is_empty());
-        assert_eq!(tree.root_hash(), vec![]);
+        assert_eq!(tree.root_hash(), Vec::<u8>::new());
     }
 
     #[test]

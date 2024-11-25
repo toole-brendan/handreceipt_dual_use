@@ -10,7 +10,9 @@ pub mod access_control;
 pub mod audit;
 pub mod encryption;
 pub mod merkle;
+pub mod security;
 
-pub use access_control::AccessControl;
-pub use audit::AuditChain;
-pub use encryption::Encryption;
+pub use access_control::AccessControlImpl;
+pub use audit::AuditServiceImpl;
+pub use encryption::EncryptionServiceImpl;
+pub use security::SecurityServiceImpl;

@@ -1,5 +1,6 @@
 use qrcode::QrCode;
-use image::{DynamicImage, ImageBuffer, Luma};
+use qrcode::render::svg;
+use image::{Luma, ImageBuffer};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
@@ -10,6 +11,9 @@ use crate::{
     error::CoreError,
     types::security::SecurityContext,
 };
+
+#[cfg(test)]
+use ed25519_dalek::SigningKey;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum QRFormat {
@@ -23,6 +27,17 @@ pub struct QRData {
     pub property_id: Uuid,
     pub metadata: serde_json::Value,
     pub timestamp: DateTime<Utc>,
+}
+
+impl QRData {
+    pub fn new(property_id: Uuid) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            property_id,
+            metadata: serde_json::Value::Null,
+            timestamp: Utc::now(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,6 +80,11 @@ impl QRCodeServiceImpl {
         Self
     }
 
+    #[cfg(test)]
+    pub fn new_with_key(_signing_key: SigningKey) -> Self {
+        Self
+    }
+
     async fn verify_signature(
         &self,
         data: &QRData,
@@ -104,26 +124,35 @@ impl QRCodeService for QRCodeServiceImpl {
         match format {
             QRFormat::PNG => {
                 let code = QrCode::new(data_str.as_bytes())?;
+                
+                // Get the QR code as a boolean matrix
                 let image = code.render::<char>()
-                    .dark_color('1')
-                    .light_color('0')
                     .quiet_zone(false)
-                    .module_dimensions(4, 4)
+                    .module_dimensions(8, 8)
                     .build();
+                
+                // Convert to image buffer - each module is 8x8 pixels
+                let module_count = code.width() as u32;  // width() returns module count
+                let size = module_count * 8;  // 8 pixels per module
+                let mut img_buf = ImageBuffer::new(size, size);
 
-                // Convert ASCII art to PNG
-                let width = image.chars().position(|c| c == '\n').unwrap_or(0) as u32;
-                let height = (image.chars().filter(|&c| c == '\n').count() + 1) as u32;
-                let pixels: Vec<u8> = image.chars()
-                    .filter(|&c| c != '\n')
-                    .map(|c| if c == '1' { 0 } else { 255 })
-                    .collect();
-
-                let img = image::GrayImage::from_raw(width, height, pixels)
-                    .ok_or_else(|| CoreError::Image("Failed to create image".into()))?;
+                // Fill image buffer
+                let image_vec: Vec<char> = image.chars().filter(|c| *c != '\n').collect();
+                
+                for (x, y, pixel) in img_buf.enumerate_pixels_mut() {
+                    let qr_x = (x / 8) as usize;
+                    let qr_y = (y / 8) as usize;
+                    let index = qr_y * module_count as usize + qr_x;
+                    
+                    *pixel = if index < image_vec.len() && image_vec[index] == '1' {
+                        Luma([0u8])    // Black
+                    } else {
+                        Luma([255u8])  // White
+                    };
+                }
 
                 let mut buffer = Vec::new();
-                img.write_to(&mut Cursor::new(&mut buffer), image::ImageFormat::Png)?;
+                img_buf.write_to(&mut Cursor::new(&mut buffer), image::ImageFormat::Png)?;
 
                 Ok(QRResponse {
                     format: QRFormat::PNG,
@@ -132,12 +161,16 @@ impl QRCodeService for QRCodeServiceImpl {
             }
             QRFormat::SVG => {
                 let code = QrCode::new(data_str.as_bytes())?;
-                let svg = code.render::<qrcode::render::svg::Color>()
-                    .build();
+                let svg_xml = code.render()
+                    .min_dimensions(200, 200)
+                    .dark_color(svg::Color("#000000"))
+                    .light_color(svg::Color("#ffffff"))
+                    .build()
+                    .to_string();
 
                 Ok(QRResponse {
                     format: QRFormat::SVG,
-                    data: svg.into_bytes(),
+                    data: svg_xml.into_bytes(),
                 })
             }
         }

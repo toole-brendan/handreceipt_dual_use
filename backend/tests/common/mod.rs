@@ -1,154 +1,96 @@
+#[cfg(test)]
 pub mod test_utils {
-    use chrono::{DateTime, Utc};
+    use actix_web::{App, web::Data, body::BoxBody};
     use uuid::Uuid;
-    use actix_web::{web, App};
-    use ed25519_dalek::{SigningKey, VerifyingKey};
-    use std::sync::Arc;
-    use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-
+    use chrono::Utc;
+    use std::collections::HashMap;
     use handreceipt::{
-        api::routes,
         domain::{
-            models::{
-                qr::{QRData, QRResponse, QRFormat},
-                transfer::TransferStatus,
-            },
-            property::{Property, PropertyStatus},
+            property::entity::{Property, PropertyCategory},
+            models::qr::QRData,
         },
-        types::security::SecurityContext,
+        types::security::{SecurityContext, Role, SecurityClassification},
     };
 
-    /// Test user data
+    pub struct TestContext {
+        pub user: TestUser,
+        pub property: Property,
+        pub qr_code: QRData,
+    }
+
     pub struct TestUser {
-        pub id: String,
-        pub role: String,
+        pub id: Uuid,
         pub token: String,
     }
 
-    /// Creates a test application
-    pub async fn create_test_app() -> App<
+    pub fn create_test_app() -> App<
         impl actix_web::dev::ServiceFactory<
             actix_web::dev::ServiceRequest,
             Config = (),
+            Response = actix_web::dev::ServiceResponse<BoxBody>,
             Error = actix_web::Error,
             InitError = (),
         >,
     > {
-        // Initialize test services
-        let property_service = Arc::new(create_test_property_service());
-        let transfer_service = Arc::new(create_test_transfer_service());
-        let qr_service = Arc::new(create_test_qr_service());
-
-        // Create app with test configuration
+        let mut security_context = SecurityContext::new(Uuid::new_v4());
+        security_context.roles = vec![Role::Officer];
+        security_context.unit_code = "test_unit".to_string();
+        security_context.metadata = HashMap::new();
+        security_context.permissions = vec![];
+        security_context.classification = SecurityClassification::Unclassified;
+        let security_context = Data::new(security_context);
+        
         App::new()
-            .app_data(web::Data::new(property_service))
-            .app_data(web::Data::new(transfer_service))
-            .app_data(web::Data::new(qr_service))
-            .configure(routes::configure)
+            .app_data(security_context)
     }
 
-    /// Creates a test user with role
-    pub async fn create_test_user(id: &str, role: &str) -> TestUser {
-        // Create JWT token
-        let token = format!("test_token_{}_{}", id, role);
-
+    pub async fn create_test_user(role: &str, rank: &str) -> TestUser {
         TestUser {
-            id: id.to_string(),
-            role: role.to_string(),
-            token,
+            id: Uuid::new_v4(),
+            token: format!("test_token_{}_{}", role, rank),
         }
     }
 
-    /// Creates a test property
     pub async fn create_test_property(name: &str, is_sensitive: bool) -> Property {
         Property::new(
             name.to_string(),
-            "Test Description".to_string(),
-            None, // NSN
+            format!("Description for {}", name),
+            PropertyCategory::Equipment,
             is_sensitive,
-            1,    // Quantity
+            1,
             "Each".to_string(),
-        ).unwrap()
+        ).expect("Failed to create test property")
     }
 
-    /// Creates a test QR code
-    pub async fn create_test_qr_code(property_id: Uuid) -> QRResponse {
-        create_test_qr_code_with_timestamp(property_id, Utc::now()).await
-    }
-
-    /// Creates a test QR code with specific timestamp
-    pub async fn create_test_qr_code_with_timestamp(
-        property_id: Uuid,
-        timestamp: DateTime<Utc>,
-    ) -> QRResponse {
-        // Create signing key for tests
-        let signing_key = SigningKey::generate(&mut rand::thread_rng());
-        
-        // Create message to sign
-        let msg = format!("{}:{}", property_id, timestamp.timestamp());
-        let signature = signing_key.sign(msg.as_bytes());
-
-        // Create QR data
-        let qr_data = QRData {
+    pub async fn create_test_qr_code(property_id: Uuid) -> QRData {
+        QRData {
+            id: Uuid::new_v4(),
             property_id,
-            timestamp,
-            signature: BASE64.encode(signature.to_bytes()),
-        };
-
-        // Convert to QR code
-        let qr_json = serde_json::to_string(&qr_data).unwrap();
-
-        QRResponse {
-            qr_code: qr_json,
-            property_id,
-            generated_at: timestamp,
-            format: QRFormat::PNG,
+            timestamp: Utc::now(),
+            metadata: serde_json::json!({
+                "qr_code": format!("QR_{}", Uuid::new_v4())
+            }),
         }
     }
 
-    /// Creates test property service
-    fn create_test_property_service() -> impl handreceipt::domain::property::PropertyService {
-        // Implement mock property service for tests
-        unimplemented!("Implement mock property service")
-    }
-
-    /// Creates test transfer service
-    fn create_test_transfer_service() -> impl handreceipt::domain::transfer::TransferService {
-        // Implement mock transfer service for tests
-        unimplemented!("Implement mock transfer service")
-    }
-
-    /// Creates test QR service
-    fn create_test_qr_service() -> impl handreceipt::domain::models::qr::QRCodeService {
-        // Implement mock QR service for tests
-        unimplemented!("Implement mock QR service")
-    }
-
-    /// Test context builder
-    pub struct TestContext {
-        pub user: TestUser,
-        pub property: Property,
-        pub qr_code: QRResponse,
+    pub async fn create_test_qr_code_with_timestamp(
+        property_id: Uuid,
+        timestamp: chrono::DateTime<Utc>,
+    ) -> QRData {
+        QRData {
+            id: Uuid::new_v4(),
+            property_id,
+            timestamp,
+            metadata: serde_json::json!({
+                "qr_code": format!("QR_{}", Uuid::new_v4())
+            }),
+        }
     }
 
     impl TestContext {
-        /// Creates a new test context
-        pub async fn new(user_role: &str) -> Self {
-            let user = create_test_user("TEST_USER", user_role).await;
-            let property = create_test_property("Test Item", false).await;
-            let qr_code = create_test_qr_code(property.id()).await;
-
-            Self {
-                user,
-                property,
-                qr_code,
-            }
-        }
-
-        /// Creates a test context for sensitive items
-        pub async fn new_sensitive() -> Self {
-            let user = create_test_user("TEST_USER", "OFFICER").await;
-            let property = create_test_property("Sensitive Item", true).await;
+        pub async fn new(role: &str) -> Self {
+            let user = create_test_user(role, "TEST_RANK").await;
+            let property = create_test_property("test_property", false).await;
             let qr_code = create_test_qr_code(property.id()).await;
 
             Self {

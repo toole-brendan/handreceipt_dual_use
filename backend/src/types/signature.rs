@@ -43,13 +43,12 @@ pub struct SignatureMetadata {
     pub algorithm: SignatureAlgorithm,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignatureType {
-    Message,
-    Transaction,
-    Block,
-    Certificate,
+    User,
     System,
+    Audit,
+    Transfer,
 }
 
 impl SignatureChain {

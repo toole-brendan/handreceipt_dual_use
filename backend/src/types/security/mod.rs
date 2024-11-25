@@ -13,10 +13,11 @@ pub enum Role {
     Soldier,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum SecurityClassification {
     Unclassified,
     Sensitive,
+    Confidential,
     Classified,
 }
 
@@ -24,8 +25,8 @@ pub enum SecurityClassification {
 pub struct SecurityContext {
     pub user_id: Uuid,
     pub classification: SecurityClassification,
-    pub permissions: Vec<Permission>,
     pub roles: Vec<Role>,
+    pub permissions: Vec<Permission>,
     pub unit_code: String,
     pub metadata: HashMap<String, String>,
 }
@@ -35,8 +36,8 @@ impl SecurityContext {
         Self {
             user_id,
             classification: SecurityClassification::Unclassified,
-            permissions: Vec::new(),
             roles: Vec::new(),
+            permissions: Vec::new(),
             unit_code: String::new(),
             metadata: HashMap::new(),
         }
@@ -125,8 +126,8 @@ impl Default for SecurityContext {
         Self {
             user_id: Uuid::new_v4(),
             classification: SecurityClassification::Unclassified,
-            permissions: Vec::new(),
             roles: Vec::new(),
+            permissions: Vec::new(),
             unit_code: String::new(),
             metadata: HashMap::new(),
         }

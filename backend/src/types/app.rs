@@ -62,6 +62,22 @@ pub trait TransferService: Send + Sync {
 }
 
 #[async_trait]
+pub trait AccessControl: Send + Sync {
+    async fn check_permission(
+        &self,
+        context: &SecurityContext,
+        resource: &str,
+        action: &str,
+    ) -> Result<bool, CoreError>;
+}
+
+#[async_trait]
+pub trait EncryptionService: Send + Sync {
+    async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, CoreError>;
+    async fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, CoreError>;
+}
+
+#[async_trait]
 pub trait AuditLogger: Send + Sync {
     async fn log_event(&self, event: AuditEvent, context: &SecurityContext) -> Result<(), CoreError>;
     async fn initialize(&self) -> Result<(), CoreError>;

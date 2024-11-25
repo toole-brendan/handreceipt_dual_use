@@ -208,16 +208,16 @@ mod tests {
     use super::*;
     use crate::domain::property::{
         repository::mock::MockPropertyRepository,
-        service::PropertyServiceImpl,
+        service_impl::PropertyServiceImpl,
         service_wrapper::PropertyServiceWrapper,
     };
 
     #[tokio::test]
     async fn test_transfer_validation() {
-        let property_repository = Arc::new(MockPropertyRepository::new());
-        let property_service_impl = PropertyServiceImpl::new(property_repository);
-        let property_service = Arc::new(PropertyServiceWrapper::new(property_service_impl));
-        let validation_service = TransferValidationService::new(property_service);
+        let repository = MockPropertyRepository::new();
+        let property_service = PropertyServiceImpl::new(repository);
+        let wrapped_service = Arc::new(PropertyServiceWrapper::new(property_service));
+        let validation_service = TransferValidationService::new(wrapped_service);
 
         let context = TransferValidationContext {
             qr_data: QRData {

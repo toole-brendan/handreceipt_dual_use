@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use thiserror::Error;
+use std::sync::Arc;
 
 use super::entity::{Property, PropertyCategory, PropertyStatus};
 use crate::domain::models::transfer::PropertyTransfer;
@@ -297,7 +298,8 @@ pub mod mock {
         }
 
         async fn begin_transaction(&self) -> Result<Box<dyn PropertyTransaction>, RepositoryError> {
-            Ok(Box::new(MockPropertyTransaction::new(self.properties.get_mut().unwrap().clone())))
+            let properties = self.properties.lock().unwrap().clone();
+            Ok(Box::new(MockPropertyTransaction::new(properties)))
         }
     }
 
@@ -307,8 +309,10 @@ pub mod mock {
     }
 
     impl MockPropertyTransaction {
-        fn new(properties: Mutex<HashMap<Uuid, Property>>) -> Self {
-            Self { properties }
+        fn new(properties: HashMap<Uuid, Property>) -> Self {
+            Self {
+                properties: Mutex::new(properties)
+            }
         }
     }
 
@@ -347,6 +351,79 @@ pub mod mock {
             } else {
                 Err(RepositoryError::NotFound)
             }
+        }
+    }
+
+    #[cfg(test)]
+    #[async_trait]
+    impl PropertyRepository for Arc<MockPropertyRepository> {
+        async fn create(&self, property: Property) -> Result<Property, RepositoryError> {
+            self.as_ref().create(property).await
+        }
+
+        async fn get_by_id(&self, id: Uuid) -> Result<Property, RepositoryError> {
+            self.as_ref().get_by_id(id).await
+        }
+
+        async fn update(&self, property: Property) -> Result<Property, RepositoryError> {
+            self.as_ref().update(property).await
+        }
+
+        async fn delete(&self, id: Uuid) -> Result<(), RepositoryError> {
+            self.as_ref().delete(id).await
+        }
+
+        async fn search(&self, criteria: PropertySearchCriteria) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().search(criteria).await
+        }
+
+        async fn get_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_custodian(custodian).await
+        }
+
+        async fn get_by_command(&self, command_id: &str) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_command(command_id).await
+        }
+
+        async fn get_by_status(&self, status: PropertyStatus) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_status(status).await
+        }
+
+        async fn get_by_category(&self, category: PropertyCategory) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_category(category).await
+        }
+
+        async fn get_by_nsn(&self, nsn: &str) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_nsn(nsn).await
+        }
+
+        async fn get_by_serial_number(&self, serial: &str) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_serial_number(serial).await
+        }
+
+        async fn get_by_hand_receipt(&self, receipt_number: &str) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_hand_receipt(receipt_number).await
+        }
+
+        async fn get_by_location(&self, bounds: GeoBounds) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_by_location(bounds).await
+        }
+
+        async fn get_pending_verification(
+            &self,
+            threshold: chrono::Duration,
+            category: Option<PropertyCategory>
+        ) -> Result<Vec<Property>, RepositoryError> {
+            self.as_ref().get_pending_verification(threshold, category).await
+        }
+
+        async fn get_latest_transfer(&self, property_id: Uuid) -> Result<Option<PropertyTransfer>, RepositoryError> {
+            self.as_ref().get_latest_transfer(property_id).await
+        }
+
+        async fn begin_transaction(&self) -> Result<Box<dyn PropertyTransaction>, RepositoryError> {
+            let properties = self.properties.lock().unwrap().clone();
+            Ok(Box::new(MockPropertyTransaction::new(properties)))
         }
     }
 }

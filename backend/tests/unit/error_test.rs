@@ -1,108 +1,72 @@
-use backend::error::CoreError;
+use handreceipt::error::CoreError;
+use serde::ser::Error as SerdeError;
 use std::error::Error;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[test]
+fn test_core_error_creation_and_display() {
+    // Test System error
+    let system_err = CoreError::System("System failure".to_string());
+    assert_eq!(system_err.to_string(), "System error: System failure");
 
-    #[test]
-    fn test_error_creation_and_display() {
-        // Test ValidationError
-        let validation_err = CoreError::ValidationError("Invalid input".to_string());
-        assert_eq!(
-            validation_err.to_string(),
-            "Validation error: Invalid input"
-        );
+    // Test Database error
+    let db_err = CoreError::Database("Connection failed".to_string());
+    assert_eq!(db_err.to_string(), "Database error: Connection failed");
 
-        // Test AuthenticationError
-        let auth_err = CoreError::AuthenticationError("Invalid credentials".to_string());
-        assert_eq!(
-            auth_err.to_string(),
-            "Authentication error: Invalid credentials"
-        );
+    // Test Repository error
+    let repo_err = CoreError::Repository("Data retrieval error".to_string());
+    assert_eq!(repo_err.to_string(), "Repository error: Data retrieval error");
 
-        // Test AuthorizationError
-        let authz_err = CoreError::AuthorizationError("Insufficient permissions".to_string());
-        assert_eq!(
-            authz_err.to_string(),
-            "Authorization error: Insufficient permissions"
-        );
-    }
+    // Test Validation error
+    let validation_err = CoreError::Validation("Invalid input".to_string());
+    assert_eq!(validation_err.to_string(), "Validation error: Invalid input");
 
-    #[test]
-    fn test_error_trait_implementation() {
-        let err = CoreError::DatabaseError("Connection failed".to_string());
-        
-        // Test that our error implements std::error::Error
-        let _err_ref: &dyn Error = &err;
-        
-        // Test error source (should be None in this case)
-        assert!(err.source().is_none());
-    }
+    // Test Security error
+    let security_err = CoreError::SecurityError("Access denied".to_string());
+    assert_eq!(security_err.to_string(), "Security error: Access denied");
+}
 
-    #[test]
-    fn test_specific_error_variants() {
-        // Test NetworkError
-        let network_err = CoreError::NetworkError("Connection timeout".to_string());
-        assert_eq!(
-            network_err.to_string(),
-            "Network error: Connection timeout"
-        );
+#[test]
+fn test_error_trait_implementation() {
+    let err = CoreError::Database("Connection failed".to_string());
+    
+    // Test that our error implements std::error::Error
+    let _err_ref: &dyn Error = &err;
+    
+    // Test error source (should be None in this case)
+    assert!(err.source().is_none());
+}
 
-        // Test BlockchainError
-        let blockchain_err = CoreError::BlockchainError("Invalid block".to_string());
-        assert_eq!(
-            blockchain_err.to_string(),
-            "Blockchain error: Invalid block"
-        );
+#[test]
+fn test_error_conversion() {
+    // Test converting from serde_json::Error
+    let json_error = serde_json::Error::custom("JSON parsing failed");
+    let core_error: CoreError = json_error.into();
+    assert!(matches!(core_error, CoreError::System(_)));
+    assert_eq!(core_error.to_string(), "System error: JSON parsing failed");
+}
 
-        // Test SyncError
-        let sync_err = CoreError::SyncError("Sync failed".to_string());
-        assert_eq!(
-            sync_err.to_string(),
-            "Sync error: Sync failed"
-        );
-    }
+#[test]
+fn test_specific_error_variants() {
+    // Test Authentication error
+    let auth_err = CoreError::Authentication("Invalid credentials".to_string());
+    assert_eq!(auth_err.to_string(), "Authentication error: Invalid credentials");
 
-    #[test]
-    fn test_security_related_errors() {
-        // Test EncryptionError
-        let encryption_err = CoreError::EncryptionError("Key generation failed".to_string());
-        assert_eq!(
-            encryption_err.to_string(),
-            "Encryption error: Key generation failed"
-        );
+    // Test Authorization error
+    let authz_err = CoreError::Authorization("Insufficient permissions".to_string());
+    assert_eq!(authz_err.to_string(), "Authorization error: Insufficient permissions");
 
-        // Test SignatureError
-        let signature_err = CoreError::SignatureError("Invalid signature".to_string());
-        assert_eq!(
-            signature_err.to_string(),
-            "Signature error: Invalid signature"
-        );
-    }
+    // Test Not Found error
+    let not_found_err = CoreError::NotFound("Resource not found".to_string());
+    assert_eq!(not_found_err.to_string(), "Not found: Resource not found");
+}
 
-    #[test]
-    fn test_device_related_errors() {
-        // Test QRCodeError
-        let qr_err = CoreError::QRCodeError("Invalid QR format".to_string());
-        assert_eq!(
-            qr_err.to_string(),
-            "QR code error: Invalid QR format"
-        );
+#[test]
+fn test_specialized_errors() {
+    // Test QR Code error
+    let qr_err = CoreError::QRCode("Invalid QR format".to_string());
+    assert_eq!(qr_err.to_string(), "QR code error: Invalid QR format");
 
-        // Test RFIDError
-        let rfid_err = CoreError::RFIDError("Tag read failed".to_string());
-        assert_eq!(
-            rfid_err.to_string(),
-            "RFID error: Tag read failed"
-        );
-    }
-
-    #[test]
-    fn test_error_conversion() {
-        // Test converting from std::io::Error
-        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
-        let core_error = CoreError::SystemError(io_error.to_string());
-        assert_eq!(core_error.to_string(), "System error: file not found");
-    }
-} 
+    // Test Image processing error
+    let image_err = CoreError::Image("Image processing failed".to_string());
+    assert_eq!(image_err.to_string(), "Image processing error: Image processing failed");
+}

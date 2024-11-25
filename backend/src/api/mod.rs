@@ -1,6 +1,7 @@
 pub mod routes;
 pub mod types;
 pub mod handlers;
+pub mod auth;
 
 // Re-export route modules directly for convenience
 pub use routes::*;
@@ -17,3 +18,6 @@ pub use handlers::{
     not_found_response,
     forbidden_response,
 };
+
+// Re-export auth module
+pub use auth::*;

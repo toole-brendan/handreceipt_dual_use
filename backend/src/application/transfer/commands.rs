@@ -184,54 +184,81 @@ impl TransferCommandService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{
-        property::{
-            repository::mock::MockPropertyRepository,
-            service::PropertyServiceImpl,
-            service_wrapper::PropertyServiceWrapper,
+    use std::collections::HashMap;
+    use crate::{
+        domain::{
+            property::{
+                repository::mock::MockPropertyRepository,
+                service_impl::PropertyServiceImpl,
+                service_wrapper::PropertyServiceWrapper,
+            },
+            transfer::{
+                repository::mock::MockTransferRepository,
+                service::TransferServiceImpl,
+            },
+            models::qr::{QRCodeServiceImpl, QRData, QRFormat},
         },
-        transfer::{
-            repository::mock::MockTransferRepository,
-            service::TransferServiceImpl,
+        types::{
+            permissions::{Permission, ResourceType, Action},
+            security::{Role, SecurityClassification},
         },
-        models::qr::QRCodeServiceImpl,
     };
     use ed25519_dalek::SigningKey;
     use rand::rngs::OsRng;
 
     fn create_test_services() -> TransferCommandService {
-        let property_repository = Arc::new(MockPropertyRepository::new());
-        let property_service_impl = PropertyServiceImpl::new(property_repository);
-        let property_service = Arc::new(PropertyServiceWrapper::new(property_service_impl));
-
+        let repository = MockPropertyRepository::new();
+        let property_service = PropertyServiceImpl::new(repository);
+        let wrapped_service = Arc::new(PropertyServiceWrapper::new(property_service));
+        
         let transfer_repository = Arc::new(MockTransferRepository::new());
         let transfer_service = Arc::new(TransferServiceImpl::new(transfer_repository));
-
+        
         let signing_key = SigningKey::generate(&mut OsRng);
-        let qr_service = Arc::new(QRCodeServiceImpl::new(signing_key));
-
+        let qr_service = Arc::new(QRCodeServiceImpl::new_with_key(signing_key));
+        
         TransferCommandService::new(
             transfer_service,
-            property_service,
+            wrapped_service,
             qr_service,
         )
+    }
+
+    fn create_test_context() -> SecurityContext {
+        let mut context = SecurityContext::new(Uuid::new_v4());
+        context.roles = vec![Role::Officer];
+        context.unit_code = "TEST_UNIT".to_string();
+        context.classification = SecurityClassification::Unclassified;
+        context.permissions = vec![
+            Permission::new(ResourceType::Property, Action::Read, HashMap::new()),
+            Permission::new(ResourceType::Property, Action::Create, HashMap::new()),
+            Permission::new(ResourceType::Transfer, Action::Create, HashMap::new()),
+            Permission::new(ResourceType::Transfer, Action::ApproveCommand, HashMap::new()),
+        ];
+        context.metadata = HashMap::new();
+        context
     }
 
     #[tokio::test]
     async fn test_transfer_workflow() {
         let service = create_test_services();
-        let context = SecurityContext::default(); // Mock context
+        let context = create_test_context();
 
-        // Create test property and QR code
         let property_id = Uuid::new_v4();
         let qr_response = service.qr_service
-            .generate_qr(property_id, QRFormat::PNG, &context)
+            .generate_qr(
+                &QRData::new(property_id), 
+                QRFormat::PNG, 
+                &context
+            )
             .await
             .unwrap();
 
-        // Scan QR code
+        // Convert binary data to base64 string for the QR data
+        let qr_data = base64::encode(&qr_response.data);
+
         let scan_command = ScanQRTransferCommand {
-            qr_data: qr_response.qr_code,
+            qr_data,  // Now it's a String
             scanner_id: "TEST_SCANNER".to_string(),
             location: None,
             timestamp: Utc::now(),

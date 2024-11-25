@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use std::sync::Arc;
 
 use crate::domain::property::{
     entity::{Property, PropertyCategory, PropertyStatus, PropertyCondition, Location},
@@ -47,7 +48,7 @@ impl PostgresPropertyRepository {
 }
 
 #[async_trait]
-impl PropertyRepository for PostgresPropertyRepository {
+impl PropertyRepository for Arc<PostgresPropertyRepository> {
     async fn create(&self, property: Property) -> Result<Property, RepositoryError> {
         let mut tx = self.pool
             .begin()

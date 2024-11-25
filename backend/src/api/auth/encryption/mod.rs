@@ -5,7 +5,10 @@ use aes_gcm::{
 use ring::rand::SystemRandom;
 use std::error::Error;
 use async_trait::async_trait;
-use crate::error::CoreError;
+use crate::{
+    error::CoreError,
+    types::app::EncryptionService,
+};
 
 pub struct EncryptionServiceImpl {
     cipher: Aes256Gcm,
@@ -60,7 +63,7 @@ impl Default for EncryptionServiceImpl {
 }
 
 #[async_trait]
-impl crate::security::EncryptionService for EncryptionServiceImpl {
+impl EncryptionService for EncryptionServiceImpl {
     async fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>, CoreError> {
         self.encrypt_sync(data)
             .map_err(|e| CoreError::SecurityError(format!("Encryption failed: {}", e)))

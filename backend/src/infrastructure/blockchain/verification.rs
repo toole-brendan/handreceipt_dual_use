@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
 use std::collections::HashMap;
+use futures::TryFutureExt;
 
 use crate::{
     domain::models::transfer::{PropertyTransferRecord, TransferStatus},
@@ -24,6 +25,8 @@ use super::{
         PropertyTransfer,
         SignerRole,
         TransferSignature,
+        AuthorityService,
+        MilitaryCertificate,
     },
     merkle::{MerkleTree, MerkleProof},
 };
@@ -207,11 +210,13 @@ impl TransferVerification for BlockchainVerification {
         let role = self.get_signer_role(context);
         self.authority_node
             .sign_transfer(&mut blockchain_transfer, role.clone())
+            .await
             .map_err(|e| BlockchainError::ValidationError(e.to_string()))?;
 
         // Validate transfer
         self.authority_node
             .validate_transfer(&blockchain_transfer)
+            .await
             .map_err(|e| BlockchainError::ValidationError(e.to_string()))?;
 
         // Add to current batch or create new batch
@@ -284,6 +289,7 @@ impl TransferVerification for BlockchainVerification {
         
         self.authority_node
             .sign_transfer(&mut blockchain_transfer, role.clone())
+            .await
             .map_err(|e| BlockchainError::ValidationError(e.to_string()))?;
 
         // Add to current batch
@@ -316,6 +322,7 @@ impl TransferVerification for BlockchainVerification {
             let mut blockchain_transfer = self.to_blockchain_transfer(transfer);
             self.authority_node
                 .sign_transfer(&mut blockchain_transfer, role.clone())
+                .await
                 .map_err(|e| BlockchainError::ValidationError(e.to_string()))?;
             blockchain_transfers.push(blockchain_transfer);
         }
@@ -342,12 +349,13 @@ mod tests {
 
     fn create_test_authority() -> Arc<AuthorityNode> {
         let signing_key = SigningKey::generate(&mut OsRng);
-        let certificate = super::authority::MilitaryCertificate {
+        let certificate = MilitaryCertificate {
             issuer: "DOD-CA".to_string(),
             subject: "1-1 IN S4".to_string(),
             valid_from: Utc::now(),
-            valid_until: Utc::now() + chrono::Duration::days(365),
-            certificate_id: "TEST123".to_string(),
+            valid_until: Some(Utc::now() + chrono::Duration::days(365)),
+            roles: vec!["COMMANDER".to_string()],
+            unit_id: "1-1-IN".to_string(),
         };
 
         let mut hierarchy = HashMap::new();

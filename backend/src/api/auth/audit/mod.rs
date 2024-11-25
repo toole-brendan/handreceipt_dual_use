@@ -33,7 +33,7 @@ impl SecurityAudit {
         let context = AuditContext::new(
             action,
             severity,
-            self.context.classification,
+            self.context.classification.clone(),
             Some(self.context.user_id.to_string()),
         );
 
@@ -46,7 +46,7 @@ impl SecurityAudit {
                 uuid::Uuid::new_v4(),
                 vec![],
                 uuid::Uuid::new_v4(),
-                self.context.classification,
+                self.context.classification.clone(),
                 crate::types::signature::SignatureType::Audit,
                 crate::types::signature::SignatureAlgorithm::Ed25519,
             ),
@@ -76,6 +76,21 @@ impl AuditLogger for AuditServiceImpl {
         println!("Audit event: {:?}", event);
         
         Ok(())
+    }
+
+    async fn initialize(&self) -> Result<(), CoreError> {
+        // Initialize audit service
+        Ok(())
+    }
+
+    async fn shutdown(&self) -> Result<(), CoreError> {
+        // Cleanup audit service
+        Ok(())
+    }
+
+    async fn health_check(&self) -> Result<bool, CoreError> {
+        // Check if audit service is healthy
+        Ok(true)
     }
 }
 

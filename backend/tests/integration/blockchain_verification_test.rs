@@ -1,8 +1,10 @@
 use std::sync::Arc;
 use chrono::Utc;
 use uuid::Uuid;
+use std::collections::HashMap;
 
 use handreceipt::{
+    api::auth::merkle::MerkleTree,
     domain::models::transfer::{AssetTransfer, TransferStatus},
     infrastructure::blockchain::{
         AuthorityNode,
@@ -10,7 +12,10 @@ use handreceipt::{
         MilitaryCertificate,
         TransferVerification,
     },
-    types::security::SecurityContext,
+    types::{
+        security::{SecurityContext, SecurityClassification, Role},
+        permissions::{Permission, ResourceType, Action},
+    },
 };
 
 /// Creates a test authority node
@@ -20,8 +25,9 @@ fn create_test_authority() -> Arc<AuthorityNode> {
         issuer: "DOD-CA".to_string(),
         subject: "1-1 IN S4".to_string(),
         valid_from: Utc::now(),
-        valid_until: Utc::now() + chrono::Duration::days(365),
-        certificate_id: "TEST123".to_string(),
+        valid_until: Some(Utc::now() + chrono::Duration::days(365)),
+        roles: vec!["COMMANDER".to_string()],
+        unit_id: "1-1-IN".to_string(),
     };
 
     let mut hierarchy = std::collections::HashMap::new();
@@ -49,11 +55,15 @@ fn create_test_context(is_officer: bool) -> SecurityContext {
         user_id: Uuid::new_v4(),
         unit_code: "1-1-IN".to_string(),
         roles: if is_officer {
-            vec!["OFFICER".to_string()]
+            vec![Role::Officer]
         } else {
-            vec!["SOLDIER".to_string()]
+            vec![Role::Soldier]
         },
         classification: crate::types::security::SecurityClassification::Unclassified,
+        permissions: vec![
+            Permission::new(ResourceType::Transfer, Action::ApproveCommand, HashMap::new()),
+        ],
+        metadata: HashMap::new(),
     }
 }
 
@@ -70,6 +80,25 @@ fn create_test_transfer() -> AssetTransfer {
         verification_method: None,
         signatures: Vec::new(),
     }
+}
+
+/// Helper functions
+fn create_test_transfer(officer_context: &SecurityContext, soldier_context: &SecurityContext) -> Vec<u8> {
+    // Create a dummy transfer record for testing
+    let transfer_data = format!(
+        "Transfer from {} to {} at {}",
+        soldier_context.user_id,
+        officer_context.user_id,
+        Utc::now()
+    );
+    transfer_data.as_bytes().to_vec()
+}
+
+fn create_merkle_proof(transfer_data: &[u8], public_key: &[u8]) -> Vec<u8> {
+    // Create a dummy Merkle proof for testing
+    let mut proof = transfer_data.to_vec();
+    proof.extend_from_slice(public_key);
+    proof
 }
 
 #[tokio::test]
@@ -106,7 +135,7 @@ async fn test_batch_transfer_verification() {
     ];
 
     // Record batch
-    let result = verification.record_batch(transfers.clone(), &context).await;
+    let result = verification.record_batch(&transfers, &context).await;
     assert!(result.is_ok());
 
     let hashes = result.unwrap();
@@ -202,7 +231,7 @@ async fn test_large_batch_processing() {
     let transfers: Vec<_> = (0..100).map(|_| create_test_transfer()).collect();
 
     // Record batch
-    let result = verification.record_batch(transfers.clone(), &context).await;
+    let result = verification.record_batch(&transfers, &context).await;
     assert!(result.is_ok());
 
     let hashes = result.unwrap();
@@ -213,4 +242,78 @@ async fn test_large_batch_processing() {
     let status = verification.get_transfer_status(random_transfer.id, &context).await;
     assert!(status.is_ok());
     assert_eq!(status.unwrap(), TransferStatus::Confirmed);
+}
+
+#[tokio::test]
+async fn test_blockchain_verification() {
+    let keypair = ed25519_dalek::Keypair::generate(&mut rand::thread_rng());
+    let public_key = keypair.public.to_bytes();
+
+    // Create test contexts
+    let mut officer_context = SecurityContext {
+        user_id: Uuid::new_v4(),
+        classification: SecurityClassification::Unclassified,
+        roles: vec![Role::Officer],
+        permissions: vec![
+            Permission::new(ResourceType::Transfer, Action::ApproveCommand, HashMap::new()),
+        ],
+        unit_code: "1-1-IN".to_string(),
+        metadata: HashMap::new(),
+    };
+
+    let mut soldier_context = SecurityContext {
+        user_id: Uuid::new_v4(),
+        classification: SecurityClassification::Unclassified,
+        roles: vec![Role::Soldier],
+        permissions: vec![
+            Permission::new(ResourceType::Transfer, Action::Create, HashMap::new()),
+        ],
+        unit_code: "1-1-IN".to_string(),
+        metadata: HashMap::new(),
+    };
+
+    // Test verification with valid signatures
+    let transfer = create_test_transfer(&officer_context, &soldier_context);
+    let proof = create_merkle_proof(&transfer, &public_key);
+    
+    assert!(MerkleTree::verify_proof(&proof).unwrap());
+}
+
+#[tokio::test]
+async fn test_multiple_verifications() {
+    let keypair = ed25519_dalek::Keypair::generate(&mut rand::thread_rng());
+    let public_key = keypair.public.to_bytes();
+
+    // Create test contexts
+    let mut officer_context = SecurityContext {
+        user_id: Uuid::new_v4(),
+        classification: SecurityClassification::Unclassified,
+        roles: vec![Role::Officer],
+        permissions: vec![
+            Permission::new(ResourceType::Transfer, Action::ApproveCommand, HashMap::new()),
+        ],
+        unit_code: "1-1-IN".to_string(),
+        metadata: HashMap::new(),
+    };
+
+    let mut soldier_context = SecurityContext {
+        user_id: Uuid::new_v4(),
+        classification: SecurityClassification::Unclassified,
+        roles: vec![Role::Soldier],
+        permissions: vec![
+            Permission::new(ResourceType::Transfer, Action::Create, HashMap::new()),
+        ],
+        unit_code: "1-1-IN".to_string(),
+        metadata: HashMap::new(),
+    };
+
+    // Create multiple transfers and verify
+    let transfer1 = create_test_transfer(&officer_context, &soldier_context);
+    let transfer2 = create_test_transfer(&officer_context, &soldier_context);
+
+    let proof1 = create_merkle_proof(&transfer1, &public_key);
+    let proof2 = create_merkle_proof(&transfer2, &public_key);
+
+    assert!(MerkleTree::verify_proof(&proof1).unwrap());
+    assert!(MerkleTree::verify_proof(&proof2).unwrap());
 }

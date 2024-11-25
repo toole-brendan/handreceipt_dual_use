@@ -8,6 +8,7 @@ use crate::{
         models::qr::{QRCodeService, QRFormat, QRResponse, QRData},
         property::{
             entity::{Property, PropertyStatus, PropertyCondition, Location, PropertyCategory},
+            service_impl::PropertyServiceImpl,
         },
     },
     types::{
@@ -188,7 +189,7 @@ mod tests {
     use crate::domain::{
         property::{
             repository::mock::MockPropertyRepository,
-            service::PropertyServiceImpl,
+            service_impl::PropertyServiceImpl,
             service_wrapper::PropertyServiceWrapper,
         },
         models::qr::QRCodeServiceImpl,
@@ -197,14 +198,14 @@ mod tests {
     use rand::rngs::OsRng;
 
     fn create_test_services() -> PropertyCommandService {
-        let repository = Arc::new(MockPropertyRepository::new());
-        let domain_service = PropertyServiceImpl::new(repository);
-        let property_service = Arc::new(PropertyServiceWrapper::new(domain_service));
+        let repository = MockPropertyRepository::new();
+        let property_service = PropertyServiceImpl::new(repository);
+        let wrapped_service = Arc::new(PropertyServiceWrapper::new(property_service));
         
         let signing_key = SigningKey::generate(&mut OsRng);
-        let qr_service = Arc::new(QRCodeServiceImpl::new(signing_key));
+        let qr_service = Arc::new(QRCodeServiceImpl::new_with_key(signing_key));
         
-        PropertyCommandService::new(property_service, qr_service)
+        PropertyCommandService::new(wrapped_service, qr_service)
     }
 
     #[tokio::test]

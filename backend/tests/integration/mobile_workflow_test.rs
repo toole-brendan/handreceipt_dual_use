@@ -9,6 +9,7 @@ use crate::common::test_utils::{
     create_test_user,
     create_test_property,
     create_test_qr_code,
+    create_test_qr_code_with_timestamp,
 };
 
 use handreceipt::{
@@ -16,10 +17,8 @@ use handreceipt::{
         handlers::mobile::{ScanRequest, ScanResponse},
         routes,
     },
-    application::{
-        property::queries::PropertyQueryService,
-        transfer::commands::TransferCommandService,
-    },
+    types::app::PropertyService,
+    application::transfer::commands::TransferCommandService,
     domain::models::{
         qr::QRCodeService,
         transfer::TransferStatus,
@@ -29,7 +28,7 @@ use handreceipt::{
 #[actix_web::test]
 async fn test_mobile_qr_scan_workflow() {
     // Create test app
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test user
@@ -43,7 +42,7 @@ async fn test_mobile_qr_scan_workflow() {
 
     // Test QR scan
     let scan_request = ScanRequest {
-        qr_data: qr_code.qr_code,
+        qr_data: qr_code.metadata["qr_code"].as_str().unwrap().to_string(),
         device_id: "TEST_DEVICE".to_string(),
         location: Some("TEST_LOCATION".to_string()),
         offline_id: Some("TEST_OFFLINE_1".to_string()),
@@ -86,7 +85,7 @@ async fn test_mobile_qr_scan_workflow() {
 #[actix_web::test]
 async fn test_mobile_offline_sync() {
     // Create test app
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test user
@@ -95,14 +94,14 @@ async fn test_mobile_offline_sync() {
     // Create multiple offline scans
     let offline_scans = vec![
         ScanRequest {
-            qr_data: create_test_qr_code(Uuid::new_v4()).await.qr_code,
+            qr_data: create_test_qr_code(Uuid::new_v4()).await.metadata["qr_code"].as_str().unwrap().to_string(),
             device_id: "TEST_DEVICE".to_string(),
             location: Some("LOCATION_1".to_string()),
             offline_id: Some("OFFLINE_1".to_string()),
             scanned_at: Utc::now(),
         },
         ScanRequest {
-            qr_data: create_test_qr_code(Uuid::new_v4()).await.qr_code,
+            qr_data: create_test_qr_code(Uuid::new_v4()).await.metadata["qr_code"].as_str().unwrap().to_string(),
             device_id: "TEST_DEVICE".to_string(),
             location: Some("LOCATION_2".to_string()),
             offline_id: Some("OFFLINE_2".to_string()),
@@ -135,7 +134,7 @@ async fn test_mobile_offline_sync() {
 #[actix_web::test]
 async fn test_mobile_error_handling() {
     // Create test app
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test user
@@ -166,7 +165,7 @@ async fn test_mobile_error_handling() {
     ).await;
 
     let scan_request = ScanRequest {
-        qr_data: expired_qr.qr_code,
+        qr_data: expired_qr.metadata["qr_code"].as_str().unwrap().to_string(),
         device_id: "TEST_DEVICE".to_string(),
         location: None,
         offline_id: None,
@@ -195,7 +194,7 @@ async fn test_mobile_error_handling() {
 #[actix_web::test]
 async fn test_mobile_sensitive_items() {
     // Create test app
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test users
@@ -208,7 +207,7 @@ async fn test_mobile_sensitive_items() {
 
     // Test soldier scanning sensitive item
     let scan_request = ScanRequest {
-        qr_data: qr_code.qr_code.clone(),
+        qr_data: qr_code.metadata["qr_code"].as_str().unwrap().to_string(),
         device_id: "TEST_DEVICE".to_string(),
         location: None,
         offline_id: None,

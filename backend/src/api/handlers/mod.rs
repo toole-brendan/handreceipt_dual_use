@@ -1,6 +1,13 @@
 pub mod property;
 pub mod transfer;
+pub mod mobile;
 pub mod user;
+
+// Re-export common types
+pub use property::*;
+pub use transfer::*;
+pub use mobile::*;
+pub use user::*;
 
 use serde::{Deserialize, Serialize};
 use actix_web::{Error, HttpResponse};

@@ -12,19 +12,14 @@ pub enum ResourceType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action {
-    Create,
     Read,
+    Create,
     Update,
     Delete,
-    ViewAll,
-    ViewUnit,
-    ViewOwn,
-    Approve,
-    Transfer,
-    Generate,
     HandleSensitive,
     ViewCommand,
     UpdateCommand,
+    ViewAll,
     UpdateAll,
     ApproveCommand,
 }

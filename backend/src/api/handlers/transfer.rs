@@ -21,7 +21,7 @@ pub struct ScanQRRequest {
     pub location: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApproveTransferRequest {
     pub notes: Option<String>,
 }

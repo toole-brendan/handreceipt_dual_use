@@ -1,27 +1,30 @@
+use std::collections::HashMap;
 use std::sync::Arc;
-use uuid::Uuid;
 use chrono::Utc;
 
-use crate::{
-    services::{
-        core::{
-            security::SecurityModule,
-            audit::AuditService,
-        },
-        infrastructure::database::DatabaseService,
+use handreceipt::{
+    api::auth::{
+        AccessControlImpl,
+        AuditServiceImpl,
+        EncryptionServiceImpl,
+        SecurityServiceImpl,
     },
     types::{
-        security::{SecurityContext, SecurityClassification, SecurityContext, KeyType},
-        permissions::{Permission, ResourceType, Action, Constraint},
-        audit::{AuditEvent, AuditStatus, AuditEventType, AuditSeverity},
-        error::{CoreError, SecurityError},
+        app::{SecurityService, AuditLogger},
+        security::{SecurityContext, SecurityClassification, Role},
+        permissions::{Permission, ResourceType, Action},
+        audit::{AuditEvent, AuditEventType, AuditSeverity, AuditContext},
+        signature::{SignatureMetadata, SignatureType, SignatureAlgorithm},
     },
 };
 
-async fn setup_test_environment() -> (Arc<SecurityModule>, Arc<AuditService>) {
-    let db = Arc::new(DatabaseService::new().await);
-    let security = Arc::new(SecurityModule::new(db.clone()));
-    let audit = Arc::new(AuditService::new(db.clone(), security.clone()));
+async fn setup_test_environment() -> (Arc<SecurityServiceImpl>, Arc<AuditServiceImpl>) {
+    let encryption = Arc::new(EncryptionServiceImpl::new(&[0u8; 32]));
+    let mut context = SecurityContext::new(uuid::Uuid::new_v4());
+    context.metadata = HashMap::new();
+    context.permissions = vec![];
+    let audit = Arc::new(AuditServiceImpl::new(context));
+    let security = Arc::new(SecurityServiceImpl::new(encryption, audit.clone()));
     
     (security, audit)
 }
@@ -31,184 +34,128 @@ async fn test_security_context_validation() {
     let (security, _) = setup_test_environment().await;
 
     // Test valid context
-    let valid_context = SecurityContext::new(
-        SecurityClassification::Confidential,
-        Uuid::new_v4(),
-        "valid-token".to_string(),
-        vec![
-            Permission::new(ResourceType::Asset, Action::Read),
-            Permission::new(ResourceType::Asset, Action::Create),
-        ],
-    );
+    let mut valid_context = SecurityContext::new(uuid::Uuid::new_v4());
+    valid_context.classification = SecurityClassification::Unclassified;
+    valid_context.roles = vec![Role::Officer];
+    valid_context.permissions = vec![
+        Permission::new(ResourceType::Property, Action::Read, HashMap::new()),
+        Permission::new(ResourceType::Property, Action::Create, HashMap::new()),
+    ];
+    valid_context.unit_code = "1-1-IN".to_string();
+    valid_context.metadata = HashMap::new();
 
-    assert!(security.validate_context(&valid_context).await.is_ok());
+    assert!(security.validate_context(&valid_context).await.unwrap());
 
-    // Test expired token
-    let expired_context = SecurityContext::new(
-        SecurityClassification::Confidential,
-        Uuid::new_v4(),
-        "expired-token".to_string(),
-        vec![Permission::new(ResourceType::Asset, Action::Read)],
-    );
-
-    assert!(matches!(
-        security.validate_context(&expired_context).await,
-        Err(SecurityError::TokenExpired(_))
-    ));
-
-    // Test invalid classification level
-    let invalid_context = SecurityContext::new(
-        SecurityClassification::TopSecret,
-        Uuid::new_v4(),
-        "token".to_string(),
-        vec![Permission::new(ResourceType::Asset, Action::Read)],
-    );
-
-    assert!(matches!(
-        security.validate_context(&invalid_context).await,
-        Err(SecurityError::ClassificationError(_))
-    ));
+    // Test officer permissions
+    assert!(valid_context.is_officer());
+    assert!(valid_context.can_handle_sensitive_items());
+    assert!(valid_context.has_permission(ResourceType::Property, Action::Read));
 }
 
 #[tokio::test]
 async fn test_permission_enforcement() {
-    let (security, _) = setup_test_environment().await;
-    let user_id = Uuid::new_v4();
-    let asset_id = Uuid::new_v4();
+    let (security, audit) = setup_test_environment().await;
+    let user_id = uuid::Uuid::new_v4();
 
     // Create context with specific permissions
-    let context = SecurityContext::new(
-        SecurityClassification::Confidential,
-        user_id,
-        "token".to_string(),
-        vec![
-            Permission::new(ResourceType::Asset, Action::Read),
-            Permission::with_conditions(
-                ResourceType::Asset,
-                Action::Update,
-                serde_json::json!({
-                    "max_classification": "CONFIDENTIAL",
-                    "requires_mfa": true
-                }),
-            ),
-        ],
-    );
+    let mut context = SecurityContext::new(user_id);
+    context.classification = SecurityClassification::Unclassified;
+    context.roles = vec![Role::NCO];
+    context.permissions = vec![
+        Permission::new(ResourceType::Property, Action::Read, HashMap::new()),
+        Permission::new(ResourceType::Property, Action::Update, HashMap::new()),
+    ];
+    context.unit_code = "1-1-IN".to_string();
+    context.metadata = HashMap::new();
 
     // Test allowed action
-    assert!(security.check_permission(
-        &context,
-        ResourceType::Asset,
-        Action::Read,
-        None,
-    ).await.unwrap());
+    assert!(security.check_permissions(&context, "property", "read").await.unwrap());
 
     // Test denied action
-    assert!(!security.check_permission(
-        &context,
-        ResourceType::Asset,
-        Action::Delete,
-        None,
-    ).await.unwrap());
+    assert!(!context.has_permission(ResourceType::Property, Action::Delete));
 
-    // Test conditional permission
-    assert!(security.check_permission(
-        &context,
-        ResourceType::Asset,
-        Action::Update,
-        Some(serde_json::json!({
-            "asset_id": asset_id,
-            "mfa_verified": true,
-            "classification": "CONFIDENTIAL"
-        })),
-    ).await.unwrap());
+    // Log security event
+    let audit_event = AuditEvent {
+        id: uuid::Uuid::new_v4(),
+        event_type: AuditEventType::SystemEvent,
+        data: serde_json::json!({
+            "action": "permission_check",
+            "resource": "property",
+            "result": "success"
+        }),
+        context: AuditContext::new(
+            "permission_check".to_string(),
+            AuditSeverity::Low,
+            context.classification,
+            Some(context.user_id.to_string()),
+        ),
+        signature: SignatureMetadata::new(
+            uuid::Uuid::new_v4(),
+            vec![],
+            uuid::Uuid::new_v4(),
+            context.classification,
+            SignatureType::System,
+            SignatureAlgorithm::Ed25519,
+        ),
+        timestamp: Utc::now(),
+    };
+
+    assert!(audit.log_event(audit_event, &context).await.is_ok());
 }
 
 #[tokio::test]
 async fn test_classification_boundaries() {
-    let (security, audit) = setup_test_environment().await;
-    let user_id = Uuid::new_v4();
-    let asset_id = Uuid::new_v4();
+    let (security, _) = setup_test_environment().await;
+    let user_id = uuid::Uuid::new_v4();
 
     // Test access at different classification levels
     let test_cases = vec![
         (SecurityClassification::Unclassified, true),
-        (SecurityClassification::Confidential, true),
-        (SecurityClassification::Secret, false),
-        (SecurityClassification::TopSecret, false),
+        (SecurityClassification::Sensitive, true),
+        (SecurityClassification::Classified, false),
     ];
 
     for (classification, should_allow) in test_cases {
-        let context = SecurityContext::new(
-            classification,
-            user_id,
-            "token".to_string(),
-            vec![Permission::new(ResourceType::Asset, Action::Read)],
-        );
+        let mut context = SecurityContext::new(user_id);
+        context.classification = classification;
+        context.roles = vec![Role::Soldier];
+        context.unit_code = "1-1-IN".to_string();
+        context.metadata = HashMap::new();
+        context.permissions = vec![];
 
-        let result = security.validate_access(
-            &context,
-            ResourceType::Asset,
-            asset_id,
-            SecurityClassification::Confidential,
-        ).await;
-
-        assert_eq!(result.is_ok(), should_allow);
-
-        // Verify audit logging
-        let events = audit.get_events(
-            &context,
-            Some(ResourceType::Asset),
-            Some(asset_id),
-            None,
-            None,
-        ).await.unwrap();
-
-        let latest_event = events.first().unwrap();
-        assert_eq!(latest_event.status, if should_allow {
-            AuditStatus::Success
-        } else {
-            AuditStatus::Failed
-        });
+        let result = security.validate_context(&context).await.unwrap();
+        assert_eq!(result, should_allow);
     }
 }
 
 #[tokio::test]
-async fn test_key_management() {
-    let (security, _) = setup_test_environment().await;
-    let user_id = Uuid::new_v4();
+async fn test_command_hierarchy() {
+    let (_, _) = setup_test_environment().await;
+    let user_id = uuid::Uuid::new_v4();
 
-    let context = SecurityContext::new(
-        SecurityClassification::Secret,
-        user_id,
-        "token".to_string(),
-        vec![
-            Permission::new(ResourceType::Security, Action::Create),
-            Permission::new(ResourceType::Security, Action::Read),
-        ],
-    );
+    // Create officer context
+    let mut officer_context = SecurityContext::new(user_id);
+    officer_context.roles = vec![Role::Officer];
+    officer_context.unit_code = "1-1-IN".to_string();
+    officer_context.permissions = vec![
+        Permission::new(ResourceType::Transfer, Action::ApproveCommand, HashMap::new()),
+    ];
+    officer_context.metadata = HashMap::new();
+    officer_context.classification = SecurityClassification::Unclassified;
 
-    // Generate and store key
-    let key_id = security.generate_key(
-        KeyType::Signing,
-        SecurityClassification::Secret,
-        &context,
-    ).await.unwrap();
+    // Test command approval permissions
+    assert!(officer_context.can_approve_for_command("1-1"));
+    assert!(!officer_context.can_approve_for_command("2-1"));
 
-    // Retrieve key
-    let key = security.get_key(&key_id, &context).await.unwrap();
-    assert_eq!(key.key_type, KeyType::Signing);
-    assert_eq!(key.classification, SecurityClassification::Secret);
+    // Create NCO context
+    let mut nco_context = SecurityContext::new(uuid::Uuid::new_v4());
+    nco_context.roles = vec![Role::NCO];
+    nco_context.unit_code = "1-1-IN".to_string();
+    nco_context.permissions = vec![];
+    nco_context.metadata = HashMap::new();
+    nco_context.classification = SecurityClassification::Unclassified;
 
-    // Test key access with insufficient clearance
-    let low_context = SecurityContext::new(
-        SecurityClassification::Confidential,
-        user_id,
-        "token".to_string(),
-        vec![Permission::new(ResourceType::Security, Action::Read)],
-    );
-
-    assert!(matches!(
-        security.get_key(&key_id, &low_context).await,
-        Err(SecurityError::ClassificationError(_))
-    ));
+    // Test NCO permissions
+    assert!(nco_context.can_handle_sensitive_items());
+    assert!(!nco_context.can_approve_for_command("1-1"));
 }

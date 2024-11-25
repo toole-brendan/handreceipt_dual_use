@@ -24,7 +24,7 @@ use handreceipt::{
 #[actix_web::test]
 async fn test_blockchain_consensus() {
     // Create test app with multiple authority nodes
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test users
@@ -37,7 +37,7 @@ async fn test_blockchain_consensus() {
 
     // Initiate transfer
     let scan_request = ScanRequest {
-        qr_data: qr_code.qr_code,
+        qr_data: qr_code.id.to_string(),
         device_id: "TEST_DEVICE".to_string(),
         location: Some("TEST_LOCATION".to_string()),
         offline_id: None,
@@ -90,7 +90,7 @@ async fn test_blockchain_consensus() {
 /// Tests concurrent transfers of the same property
 #[actix_web::test]
 async fn test_concurrent_transfers() {
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test property
@@ -103,7 +103,7 @@ async fn test_concurrent_transfers() {
     // Attempt concurrent transfers
     let transfer_results = join_all(users.iter().map(|user| {
         let scan_request = ScanRequest {
-            qr_data: qr_code.qr_code.clone(),
+            qr_data: qr_code.id.to_string(),
             device_id: format!("DEVICE_{}", user.id),
             location: Some("TEST_LOCATION".to_string()),
             offline_id: None,
@@ -136,7 +136,7 @@ async fn test_concurrent_transfers() {
 /// Tests handling of large property books
 #[actix_web::test]
 async fn test_large_property_book() {
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     // Create test users
@@ -177,7 +177,7 @@ async fn test_large_property_book() {
 /// Tests edge cases in transfer workflow
 #[actix_web::test]
 async fn test_transfer_edge_cases() {
-    let app = create_test_app().await;
+    let app = create_test_app();
     let app = test::init_service(app).await;
 
     let test_cases = vec![
@@ -190,7 +190,7 @@ async fn test_transfer_edge_cases() {
             ).await;
 
             let scan_request = ScanRequest {
-                qr_data: expired_qr.qr_code,
+                qr_data: expired_qr.id.to_string(),
                 device_id: "TEST_DEVICE".to_string(),
                 location: None,
                 offline_id: None,
@@ -213,7 +213,7 @@ async fn test_transfer_edge_cases() {
             
             // First transfer
             let scan_request = ScanRequest {
-                qr_data: ctx.qr_code.qr_code.clone(),
+                qr_data: ctx.qr_code.id.to_string(),
                 device_id: "TEST_DEVICE".to_string(),
                 location: None,
                 offline_id: None,
@@ -242,7 +242,7 @@ async fn test_transfer_edge_cases() {
         async {
             let ctx = TestContext::new("SOLDIER").await;
             let scan_request = ScanRequest {
-                qr_data: ctx.qr_code.qr_code,
+                qr_data: ctx.qr_code.id.to_string(),
                 device_id: "TEST_DEVICE".to_string(),
                 location: None,
                 offline_id: None,
@@ -269,7 +269,7 @@ async fn test_transfer_edge_cases() {
 
             // Initiate transfer
             let scan_request = ScanRequest {
-                qr_data: qr_code.qr_code,
+                qr_data: qr_code.id.to_string(),
                 device_id: "TEST_DEVICE".to_string(),
                 location: None,
                 offline_id: None,

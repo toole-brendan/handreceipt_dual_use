@@ -4,7 +4,10 @@ use uuid::Uuid;
 
 use crate::{
     error::CoreError,
-    types::security::{SecurityContext, SecurityClassification},
+    types::{
+        security::{SecurityContext, SecurityClassification},
+        app::AccessControl,
+    },
 };
 
 pub struct AccessControlImpl {
@@ -33,7 +36,7 @@ impl Default for AccessControlImpl {
 }
 
 #[async_trait]
-impl super::AccessControl for AccessControlImpl {
+impl AccessControl for AccessControlImpl {
     async fn check_permission(
         &self,
         context: &SecurityContext,
@@ -50,7 +53,7 @@ impl super::AccessControl for AccessControlImpl {
         }
 
         // Check security classification
-        if context.classification < SecurityClassification::Confidential {
+        if context.classification < SecurityClassification::Sensitive {
             return Ok(false);
         }
 
