@@ -1,5 +1,5 @@
 pub mod commands;
-pub mod queries;
+pub mod validation;
 
-pub use commands::{PropertyCommandService, RegisterPropertyCommand, PropertyRegistrationResult};
-pub use queries::PropertyQueries;
+pub use commands::PropertyCommand;
+pub use validation::PropertyValidator;

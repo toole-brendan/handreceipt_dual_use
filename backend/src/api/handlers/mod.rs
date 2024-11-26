@@ -1,38 +1,45 @@
 pub mod property;
 pub mod transfer;
-pub mod mobile;
 pub mod user;
 
 // Re-export common types
 pub use property::*;
 pub use transfer::*;
-pub use mobile::*;
 pub use user::*;
 
 use serde::{Deserialize, Serialize};
-use actix_web::{Error, HttpResponse};
-use uuid::Uuid;
+use actix_web::{web, Error, HttpResponse};
+use std::sync::Arc;
 
 use crate::{
     types::{
         security::SecurityContext,
-        permissions::{ResourceType, Action},
+        permissions::Permission,
     },
     api::types::ApiResponse,
 };
 
 pub type HandlerResult = Result<HttpResponse, Error>;
 
-pub fn validate_uuid(id: &str) -> Result<Uuid, Error> {
-    Uuid::parse_str(id).map_err(|e| actix_web::error::ErrorBadRequest(e.to_string()))
+pub trait Handler<T, R>: Send + Sync + 'static {
+    async fn handle(&self, req: T) -> Result<R, Error>;
+}
+
+impl<F, T, R, Fut> Handler<T, R> for F
+where
+    F: Send + Sync + 'static + Fn(T) -> Fut,
+    Fut: std::future::Future<Output = Result<R, Error>> + Send + 'static,
+{
+    async fn handle(&self, req: T) -> Result<R, Error> {
+        (self)(req).await
+    }
 }
 
 pub fn check_permission(
     security_context: &SecurityContext,
-    resource_type: ResourceType,
-    action: Action,
+    permission: Permission,
 ) -> Result<(), Error> {
-    if !security_context.has_permission(resource_type, action) {
+    if !security_context.has_permission(&permission) {
         return Err(actix_web::error::ErrorForbidden("Insufficient permissions"));
     }
     Ok(())
@@ -56,4 +63,10 @@ pub fn not_found_response(message: &str) -> HttpResponse {
 
 pub fn forbidden_response(message: &str) -> HttpResponse {
     HttpResponse::Forbidden().json(ApiResponse::<()>::error(message.to_string()))
+}
+
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    property::configure_routes(cfg);
+    transfer::configure_routes(cfg);
+    user::configure_routes(cfg);
 }

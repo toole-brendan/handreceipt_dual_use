@@ -1,134 +1,179 @@
 pub mod key_management;
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use crate::types::permissions::{Permission, ResourceType, Action};
+use std::collections::HashSet;
+use std::hash::Hash;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SecurityClassification {
+    Unclassified,
+    Confidential,
+    Secret,
+    TopSecret,
+    Sensitive,
+}
+
+impl std::fmt::Display for SecurityClassification {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SecurityClassification::Unclassified => write!(f, "unclassified"),
+            SecurityClassification::Confidential => write!(f, "confidential"),
+            SecurityClassification::Secret => write!(f, "secret"),
+            SecurityClassification::TopSecret => write!(f, "top_secret"),
+            SecurityClassification::Sensitive => write!(f, "sensitive"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Role {
     Officer,
     NCO,
     Soldier,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum SecurityClassification {
-    Unclassified,
-    Sensitive,
-    Confidential,
-    Classified,
+impl Role {
+    pub fn has_permission(&self, permission: &Permission) -> bool {
+        match self {
+            Role::Officer => true, // Officers have all permissions
+            Role::NCO => match permission {
+                Permission::ViewProperty |
+                Permission::CreateProperty |
+                Permission::UpdateProperty |
+                Permission::ViewTransfer |
+                Permission::CreateTransfer |
+                Permission::GenerateQRCode |
+                Permission::ViewAnalytics => true,
+                _ => false,
+            },
+            Role::Soldier => match permission {
+                Permission::ViewProperty |
+                Permission::ViewTransfer |
+                Permission::CreateTransfer => true,
+                _ => false,
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityContext {
-    pub user_id: Uuid,
-    pub classification: SecurityClassification,
-    pub roles: Vec<Role>,
-    pub permissions: Vec<Permission>,
+    pub user_id: i32,
+    pub name: String,
+    pub role: Role,
+    pub unit: String,
     pub unit_code: String,
+    pub classification: SecurityClassification,
+    pub roles: HashSet<Role>,
+    pub permissions: Vec<Permission>,
     pub metadata: HashMap<String, String>,
 }
 
 impl SecurityContext {
-    pub fn new(user_id: Uuid) -> Self {
+    pub fn new(user_id: i32) -> Self {
         Self {
             user_id,
-            classification: SecurityClassification::Unclassified,
-            roles: Vec::new(),
-            permissions: Vec::new(),
+            name: String::new(),
+            role: Role::Soldier,
+            unit: String::new(),
             unit_code: String::new(),
+            classification: SecurityClassification::Unclassified,
+            roles: HashSet::new(),
+            permissions: Vec::new(),
             metadata: HashMap::new(),
         }
     }
 
-    pub fn is_officer(&self) -> bool {
-        self.roles.contains(&Role::Officer)
+    pub fn has_permission(&self, permission: &Permission) -> bool {
+        self.role.has_permission(permission) || self.permissions.contains(permission)
     }
 
-    pub fn is_nco(&self) -> bool {
-        self.roles.contains(&Role::NCO)
-    }
-
-    pub fn can_handle_sensitive_items(&self) -> bool {
-        self.is_officer() || self.is_nco()
+    pub fn can_access_property(&self, property_id: i32) -> bool {
+        // TODO: Implement property access control
+        true
     }
 
     pub fn can_access_location(&self, location: &str) -> bool {
-        !self.unit_code.is_empty()
+        // TODO: Implement location access control
+        true
     }
 
-    pub fn has_permission(&self, resource_type: ResourceType, action: Action) -> bool {
-        self.permissions.iter().any(|p| 
-            p.resource_type == resource_type && p.action == action
-        )
+    pub fn can_handle_sensitive_items(&self) -> bool {
+        matches!(self.classification, SecurityClassification::Secret | SecurityClassification::TopSecret)
     }
 
-    pub fn has_permission_for_sensitive_items(&self) -> bool {
-        self.can_handle_sensitive_items() && 
-        self.has_permission(ResourceType::Property, Action::HandleSensitive)
+    pub fn is_officer(&self) -> bool {
+        matches!(self.role, Role::Officer)
     }
 
-    pub fn can_view_user_profile(&self, profile_id: Uuid) -> bool {
-        // Users can view their own profile
-        if self.user_id == profile_id {
-            return true;
-        }
-
-        // Officers and NCOs can view profiles in their command
-        if (self.is_officer() || self.is_nco()) && self.has_permission(ResourceType::User, Action::ViewCommand) {
-            return true;
-        }
-
-        // Users with explicit permission
-        self.has_permission(ResourceType::User, Action::ViewAll)
+    pub fn is_nco(&self) -> bool {
+        matches!(self.role, Role::NCO)
     }
 
-    pub fn can_update_user_profile(&self, profile_id: Uuid) -> bool {
-        // Users can update their own profile
-        if self.user_id == profile_id {
-            return true;
-        }
+    pub fn can_approve_transfers(&self) -> bool {
+        self.has_permission(&Permission::ApproveTransfer)
+    }
 
-        // Officers can update profiles in their command
-        if self.is_officer() && self.has_permission(ResourceType::User, Action::UpdateCommand) {
-            return true;
-        }
+    pub fn can_generate_qr(&self) -> bool {
+        self.has_permission(&Permission::GenerateQRCode)
+    }
 
-        // Admin users with explicit permission
-        self.has_permission(ResourceType::User, Action::UpdateAll)
+    pub fn can_view_analytics(&self) -> bool {
+        self.has_permission(&Permission::ViewAnalytics)
+    }
+
+    pub fn can_manage_property(&self) -> bool {
+        self.has_permission(&Permission::CreateProperty) && 
+        self.has_permission(&Permission::UpdateProperty)
+    }
+
+    pub fn can_view_audit_log(&self) -> bool {
+        self.has_permission(&Permission::ViewAuditLog)
+    }
+
+    pub fn can_view_user_profile(&self, target_user_id: i32) -> bool {
+        self.user_id == target_user_id || self.is_officer() || self.is_nco()
+    }
+
+    pub fn can_update_user_profile(&self, target_user_id: i32) -> bool {
+        self.user_id == target_user_id || self.is_officer()
     }
 
     pub fn can_view_command_users(&self) -> bool {
-        (self.is_officer() || self.is_nco()) && 
-        self.has_permission(ResourceType::User, Action::ViewCommand)
+        self.is_officer() || self.is_nco()
     }
 
-    pub fn can_approve_for_command(&self, command_id: &str) -> bool {
-        // Check if user is an officer
-        if !self.is_officer() {
-            return false;
-        }
+    pub fn can_create_property(&self) -> bool {
+        self.has_permission(&Permission::CreateProperty)
+    }
 
-        // Check if user has command approval permission
-        if !self.has_permission(ResourceType::Transfer, Action::ApproveCommand) {
-            return false;
-        }
+    pub fn can_read_property(&self) -> bool {
+        self.has_permission(&Permission::ViewProperty)
+    }
 
-        // Check if user belongs to the same command
-        self.unit_code.starts_with(command_id)
+    pub fn can_update_property(&self) -> bool {
+        self.has_permission(&Permission::UpdateProperty)
+    }
+
+    pub fn can_delete_property(&self) -> bool {
+        self.has_permission(&Permission::DeleteProperty)
     }
 }
 
 impl Default for SecurityContext {
     fn default() -> Self {
         Self {
-            user_id: Uuid::new_v4(),
+            user_id: 0,
             classification: SecurityClassification::Unclassified,
-            roles: Vec::new(),
-            permissions: Vec::new(),
+            role: Role::Soldier,
+            unit: String::new(),
             unit_code: String::new(),
+            name: String::new(),
+            roles: HashSet::new(),
+            permissions: Vec::new(),
             metadata: HashMap::new(),
         }
     }
@@ -137,5 +182,31 @@ impl Default for SecurityContext {
 impl Default for SecurityClassification {
     fn default() -> Self {
         SecurityClassification::Unclassified
+    }
+}
+
+impl PartialOrd for SecurityClassification {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let self_val = match self {
+            SecurityClassification::Unclassified => 0,
+            SecurityClassification::Confidential => 1,
+            SecurityClassification::Sensitive => 2,
+            SecurityClassification::Secret => 3,
+            SecurityClassification::TopSecret => 4,
+        };
+        let other_val = match other {
+            SecurityClassification::Unclassified => 0,
+            SecurityClassification::Confidential => 1,
+            SecurityClassification::Sensitive => 2,
+            SecurityClassification::Secret => 3,
+            SecurityClassification::TopSecret => 4,
+        };
+        self_val.partial_cmp(&other_val)
+    }
+}
+
+impl Ord for SecurityClassification {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }

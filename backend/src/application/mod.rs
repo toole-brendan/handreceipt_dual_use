@@ -1,9 +1,5 @@
 pub mod property;
 pub mod transfer;
 
-pub use property::{
-    PropertyCommandService,
-    RegisterPropertyCommand,
-    PropertyRegistrationResult,
-    PropertyQueries,
-};
+pub use property::{PropertyCommand, PropertyValidator};
+pub use transfer::{TransferCommand, TransferValidator};

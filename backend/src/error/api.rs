@@ -1,35 +1,55 @@
+use actix_web::{HttpResponse, ResponseError};
 use thiserror::Error;
-use crate::error::CoreError;
+use serde_json::json;
 
 #[derive(Debug, Error)]
 pub enum ApiError {
-    #[error("Bad Request: {0}")]
+    #[error("Authentication error: {0}")]
+    AuthenticationError(String),
+
+    #[error("Authorization error: {0}")]
+    AuthorizationError(String),
+
+    #[error("Bad request: {0}")]
     BadRequest(String),
-    
-    #[error("Unauthorized: {0}")]
-    Unauthorized(String),
-    
-    #[error("Forbidden: {0}")]
-    Forbidden(String),
-    
-    #[error("Not Found: {0}")]
+
+    #[error("Not found: {0}")]
     NotFound(String),
-    
-    #[error("Internal Server Error: {0}")]
-    InternalServer(String),
-    
-    #[error("Service Unavailable: {0}")]
-    ServiceUnavailable(String),
+
+    #[error("Internal server error: {0}")]
+    InternalError(String),
+
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }
 
-impl From<CoreError> for ApiError {
-    fn from(err: CoreError) -> Self {
-        match err {
-            CoreError::Validation(_) => ApiError::BadRequest(err.to_string()),
-            CoreError::Authentication(_) => ApiError::Unauthorized(err.to_string()),
-            CoreError::Authorization(_) => ApiError::Forbidden(err.to_string()),
-            CoreError::NotFound(_) => ApiError::NotFound(err.to_string()),
-            _ => ApiError::InternalServer(err.to_string()),
+impl ResponseError for ApiError {
+    fn error_response(&self) -> HttpResponse {
+        match self {
+            ApiError::AuthenticationError(msg) => HttpResponse::Unauthorized().json(json!({
+                "error": "Authentication error",
+                "message": msg
+            })),
+            ApiError::AuthorizationError(msg) => HttpResponse::Forbidden().json(json!({
+                "error": "Authorization error",
+                "message": msg
+            })),
+            ApiError::BadRequest(msg) => HttpResponse::BadRequest().json(json!({
+                "error": "Bad request",
+                "message": msg
+            })),
+            ApiError::NotFound(msg) => HttpResponse::NotFound().json(json!({
+                "error": "Not found",
+                "message": msg
+            })),
+            ApiError::InternalError(msg) => HttpResponse::InternalServerError().json(json!({
+                "error": "Internal server error",
+                "message": msg
+            })),
+            ApiError::ValidationError(msg) => HttpResponse::BadRequest().json(json!({
+                "error": "Validation error",
+                "message": msg
+            })),
         }
     }
 } 

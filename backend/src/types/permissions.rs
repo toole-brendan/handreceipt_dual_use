@@ -1,49 +1,39 @@
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Permission {
+    ViewProperty,
+    CreateProperty,
+    UpdateProperty,
+    DeleteProperty,
+    ViewTransfer,
+    CreateTransfer,
+    ApproveTransfer,
+    ViewAuditLog,
+    GenerateQRCode,
+    ViewAnalytics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ResourceType {
     Property,
     Transfer,
     User,
-    Command,
-    Report,
+    AuditLog,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Action {
-    Read,
+    View,
     Create,
     Update,
     Delete,
-    HandleSensitive,
-    ViewCommand,
-    UpdateCommand,
-    ViewAll,
-    UpdateAll,
+    Approve,
+    Generate,
+    Read,
+    Write,
+    Execute,
     ApproveCommand,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Permission {
-    pub resource_type: ResourceType,
-    pub action: Action,
-    pub constraints: HashMap<String, String>,
-}
-
-impl Permission {
-    pub fn new(resource_type: ResourceType, action: Action, constraints: HashMap<String, String>) -> Self {
-        Self {
-            resource_type,
-            action,
-            constraints,
-        }
-    }
-
-    pub fn with_constraint(mut self, key: &str, value: &str) -> Self {
-        self.constraints.insert(key.to_string(), value.to_string());
-        self
-    }
 }
 
 #[cfg(test)]
@@ -52,11 +42,8 @@ mod tests {
 
     #[test]
     fn test_permission_creation() {
-        let permission = Permission::new(ResourceType::Property, Action::ViewAll, HashMap::new())
-            .with_constraint("unit", "1-1-IN");
+        let permission = Permission::ViewProperty;
 
-        assert_eq!(permission.resource_type, ResourceType::Property);
-        assert_eq!(permission.action, Action::ViewAll);
-        assert_eq!(permission.constraints.get("unit").unwrap(), "1-1-IN");
+        assert_eq!(permission, Permission::ViewProperty);
     }
 }

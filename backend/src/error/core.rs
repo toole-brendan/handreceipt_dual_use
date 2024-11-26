@@ -47,6 +47,9 @@ pub enum CoreError {
 
     #[error("Image processing error: {0}")]
     Image(String),
+
+    #[error("Encryption error: {0}")]
+    Encryption(String),
 }
 
 impl From<String> for CoreError {

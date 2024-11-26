@@ -2,7 +2,7 @@ pub mod api;
 pub mod audit;
 pub mod blockchain;
 pub mod core;
-pub mod database;
+pub mod repository;
 pub mod security;
 pub mod validation;
 
@@ -11,7 +11,7 @@ pub use self::{
     audit::AuditError,
     blockchain::BlockchainError,
     core::CoreError,
-    database::DatabaseError,
+    repository::RepositoryError,
     security::SecurityError,
     validation::ValidationError,
 };

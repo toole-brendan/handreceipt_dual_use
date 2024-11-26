@@ -1,208 +1,171 @@
-use actix_web::{web, HttpResponse, Error};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
+use actix_web::{web, HttpResponse};
+use serde_json::json;
+use crate::{
+    domain::{
+        transfer::{
+            entity::{Transfer, TransferStatus},
+            service::TransferService,
+        },
+        models::location::Location,
+    },
+    types::security::SecurityContext,
+    error::api::ApiError,
+};
 use std::sync::Arc;
 use chrono::{DateTime, Utc};
 
-use crate::{
-    application::transfer::{
-        commands::{TransferCommandService, ScanQRTransferCommand, ApproveTransferCommand},
-        validation::TransferValidationService,
-    },
-    domain::models::transfer::{PropertyTransferRecord, TransferStatus},
-    infrastructure::blockchain::verification::TransferVerification,
-    types::security::SecurityContext,
-};
+pub async fn create_transfer(
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+    req: web::Json<CreateTransferRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let transfer = Transfer::new(
+        req.property_id,
+        req.from_holder_id,
+        req.to_holder_id,
+        req.location.clone(),
+        req.notes.clone(),
+    );
 
-#[derive(Debug, Deserialize)]
-pub struct ScanQRRequest {
-    pub qr_data: String,
-    pub scanner_id: String,
-    pub location: Option<String>,
+    let context = &*context;
+    let created = transfer_service.create_transfer(transfer, context).await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Created().json(json!({
+        "id": created.id,
+        "property_id": created.property_id,
+        "from_holder_id": created.from_holder_id,
+        "to_holder_id": created.to_holder_id,
+        "status": created.status.to_string(),
+        "location": created.location,
+        "created_at": created.created_at.to_rfc3339(),
+        "updated_at": created.updated_at.to_rfc3339(),
+    })))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApproveTransferRequest {
-    pub notes: Option<String>,
-}
+pub async fn get_transfer(
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let context = &*context;
+    let transfer = transfer_service.get_transfer(*id, context).await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
 
-#[derive(Debug, Serialize)]
-pub struct TransferResponse {
-    pub id: Uuid,
-    pub property_id: Uuid,
-    pub from_custodian: Option<String>,
-    pub to_custodian: String,
-    pub status: TransferStatus,
-    pub timestamp: DateTime<Utc>,
-    pub blockchain_hash: Option<String>,
-    pub requires_approval: bool,
-}
-
-impl From<PropertyTransferRecord> for TransferResponse {
-    fn from(transfer: PropertyTransferRecord) -> Self {
-        let status = transfer.status.clone();
-        Self {
-            id: transfer.id,
-            property_id: transfer.property_id,
-            from_custodian: Some(transfer.from_node.to_string()),
-            to_custodian: transfer.to_node.to_string(),
-            status: transfer.status,
-            timestamp: transfer.timestamp,
-            blockchain_hash: None,
-            requires_approval: status == TransferStatus::Pending,
-        }
+    match transfer {
+        Some(t) => Ok(HttpResponse::Ok().json(json!({
+            "id": t.id,
+            "property_id": t.property_id,
+            "from_holder_id": t.from_holder_id,
+            "to_holder_id": t.to_holder_id,
+            "status": t.status.to_string(),
+            "location": t.location,
+            "created_at": t.created_at.to_rfc3339(),
+            "updated_at": t.updated_at.to_rfc3339(),
+            "approved_at": t.approved_at,
+            "approved_by_id": t.approved_by_id,
+            "notes": t.notes,
+        }))),
+        None => Ok(HttpResponse::NotFound().finish()),
     }
 }
 
-/// Initiates a transfer via QR code scan
-pub async fn scan_qr_transfer(
-    command_service: web::Data<Arc<TransferCommandService>>,
-    validation_service: web::Data<Arc<TransferValidationService>>,
-    user_id: web::ReqData<String>,
-    request: web::Json<ScanQRRequest>,
-) -> Result<HttpResponse, Error> {
-    let user_uuid = Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?;
-    let context = SecurityContext::new(user_uuid);
-
-    // Create scan command
-    let command = ScanQRTransferCommand {
-        qr_data: request.qr_data.clone(),
-        scanner_id: request.scanner_id.clone(),
-        location: request.location.clone(),
-        timestamp: Utc::now(),
-    };
-
-    // Initiate transfer
-    let result = command_service
-        .initiate_transfer_with_qr(command, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(TransferResponse {
-        id: result.transfer.id,
-        property_id: result.transfer.property_id,
-        from_custodian: Some(result.transfer.from_node.to_string()),
-        to_custodian: result.transfer.to_node.to_string(),
-        status: result.status,
-        timestamp: result.transfer.timestamp,
-        blockchain_hash: None,
-        requires_approval: result.requires_approval,
-    }))
-}
-
-/// Approves a pending transfer (Officers only)
 pub async fn approve_transfer(
-    command_service: web::Data<Arc<TransferCommandService>>,
-    blockchain_service: web::Data<Arc<dyn TransferVerification>>,
-    id: web::Path<Uuid>,
-    user_id: web::ReqData<String>,
-    request: web::Json<ApproveTransferRequest>,
-) -> Result<HttpResponse, Error> {
-    let user_uuid = Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?;
-    let context = SecurityContext::new(user_uuid);
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let context = &*context;
+    let transfer = transfer_service.approve_transfer(*id, context).await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
 
-    // Approve transfer
-    let command = ApproveTransferCommand {
-        transfer_id: id.into_inner(),
-        notes: request.notes.clone(),
-    };
-
-    let result = command_service
-        .approve_transfer(command, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    // Record on blockchain
-    let verification = blockchain_service
-        .verify_transfer(&result.transfer, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(TransferResponse {
-        id: result.transfer.id,
-        property_id: result.transfer.property_id,
-        from_custodian: Some(result.transfer.from_node.to_string()),
-        to_custodian: result.transfer.to_node.to_string(),
-        status: result.status,
-        timestamp: result.transfer.timestamp,
-        blockchain_hash: verification.blockchain_hash,
-        requires_approval: false,
-    }))
+    Ok(HttpResponse::Ok().json(json!({
+        "id": transfer.id,
+        "status": transfer.status.to_string(),
+        "approved_at": transfer.approved_at,
+        "approved_by_id": transfer.approved_by_id,
+    })))
 }
 
-/// Gets pending transfers for approval
+pub async fn scan_qr_transfer(
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+    req: web::Json<ScanQRRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let transfer = transfer_service.scan_qr_transfer(&req.qr_data, &req.location, &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(transfer))
+}
+
 pub async fn get_pending_transfers(
-    command_service: web::Data<Arc<TransferCommandService>>,
-    user_id: web::ReqData<String>,
-) -> Result<HttpResponse, Error> {
-    let user_uuid = Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?;
-    let context = SecurityContext::new(user_uuid);
-
-    let transfers = command_service
-        .get_pending_transfers(&context)
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+) -> Result<HttpResponse, ApiError> {
+    let transfers = transfer_service.get_pending_transfers(&context)
         .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
 
-    let responses: Vec<TransferResponse> = transfers
-        .into_iter()
-        .map(|t| t.into())
-        .collect();
-
-    Ok(HttpResponse::Ok().json(responses))
+    Ok(HttpResponse::Ok().json(transfers))
 }
 
-/// Gets transfer history for a property
-pub async fn get_property_transfers(
-    command_service: web::Data<Arc<TransferCommandService>>,
-    property_id: web::Path<Uuid>,
-    user_id: web::ReqData<String>,
-) -> Result<HttpResponse, Error> {
-    let user_uuid = Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?;
-    let context = SecurityContext::new(user_uuid);
-
-    let transfers = command_service
-        .get_property_transfers(property_id.into_inner(), &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    let responses: Vec<TransferResponse> = transfers
-        .into_iter()
-        .map(|t| t.into())
-        .collect();
-
-    Ok(HttpResponse::Ok().json(responses))
-}
-
-/// Gets transfer status from blockchain
 pub async fn get_transfer_status(
-    blockchain_service: web::Data<Arc<dyn TransferVerification>>,
-    id: web::Path<Uuid>,
-    user_id: web::ReqData<String>,
-) -> Result<HttpResponse, Error> {
-    let user_uuid = Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?;
-    let context = SecurityContext::new(user_uuid);
-
-    let status = blockchain_service
-        .get_transfer_status(id.into_inner(), &context)
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let transfer = transfer_service.get_transfer(*id, &context)
         .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
 
-    Ok(HttpResponse::Ok().json(status))
+    match transfer {
+        Some(t) => Ok(HttpResponse::Ok().json(json!({
+            "id": t.id,
+            "status": t.status.to_string(),
+            "approved_at": t.approved_at,
+            "approved_by_id": t.approved_by_id,
+        }))),
+        None => Ok(HttpResponse::NotFound().finish()),
+    }
 }
 
-/// Configures transfer routes
-pub fn configure(cfg: &mut web::ServiceConfig) {
+pub async fn get_property_transfers(
+    transfer_service: web::Data<Arc<dyn TransferService>>,
+    context: web::ReqData<SecurityContext>,
+    property_id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let transfers = transfer_service.get_property_transfers(*property_id, &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(transfers))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CreateTransferRequest {
+    pub property_id: i32,
+    pub from_holder_id: i32,
+    pub to_holder_id: i32,
+    pub location: Location,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ScanQRRequest {
+    pub qr_data: String,
+    pub location: Location,
+}
+
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("/transfer")
-            .route("/scan", web::post().to(scan_qr_transfer))
-            .route("/pending", web::get().to(get_pending_transfers))
+        web::scope("/transfers")
+            .route("", web::post().to(create_transfer))
+            .route("/{id}", web::get().to(get_transfer))
             .route("/{id}/approve", web::post().to(approve_transfer))
+            .route("/scan-qr", web::post().to(scan_qr_transfer))
+            .route("/pending", web::get().to(get_pending_transfers))
             .route("/{id}/status", web::get().to(get_transfer_status))
-            .route("/property/{id}", web::get().to(get_property_transfers)),
+            .route("/property/{property_id}", web::get().to(get_property_transfers))
     );
 }

@@ -4,9 +4,6 @@ use sqlx::postgres::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 
-pub use postgres::PostgresConnection;
-pub use postgres::property_repository::PostgresPropertyRepository;
-
 /// Configuration for database connections
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
@@ -47,30 +44,12 @@ impl DatabaseConfig {
 }
 
 /// Creates a new database connection pool
-pub async fn create_pool(config: &DatabaseConfig) -> Result<PgPool, sqlx::Error> {
-    PgPoolOptions::new()
+pub async fn create_pool(config: &DatabaseConfig) -> Result<Arc<PgPool>, sqlx::Error> {
+    let pool = PgPoolOptions::new()
         .max_connections(config.max_connections)
         .connect(&config.connection_string())
-        .await
-}
-
-/// Creates repositories with the provided connection pool
-pub fn create_repositories(
-    pool: PgPool,
-) -> Repositories {
-    Repositories {
-        property: Arc::new(PostgresPropertyRepository::new(pool)),
-        // TODO: Implement transfer repository
-        // transfer: Arc::new(PostgresTransferRepository::new(pool)),
-    }
-}
-
-/// Container for all repositories
-#[derive(Clone)]
-pub struct Repositories {
-    pub property: Arc<PostgresPropertyRepository>,
-    // TODO: Add transfer repository after implementation
-    // pub transfer: Arc<PostgresTransferRepository>,
+        .await?;
+    Ok(Arc::new(pool))
 }
 
 #[cfg(test)]
@@ -79,7 +58,7 @@ pub mod test_utils {
     use sqlx::migrate::MigrateDatabase;
 
     /// Creates a test database and runs migrations
-    pub async fn setup_test_db() -> Result<PgPool, sqlx::Error> {
+    pub async fn setup_test_db() -> Result<Arc<PgPool>, sqlx::Error> {
         let config = DatabaseConfig {
             host: "localhost".to_string(),
             port: 5432,
@@ -96,14 +75,14 @@ pub mod test_utils {
         let pool = create_pool(&config).await?;
         
         sqlx::migrate!("./migrations")
-            .run(&pool)
+            .run(&*pool)
             .await?;
 
         Ok(pool)
     }
 
     /// Tears down the test database
-    pub async fn teardown_test_db(pool: PgPool) -> Result<(), sqlx::Error> {
+    pub async fn teardown_test_db(pool: Arc<PgPool>) -> Result<(), sqlx::Error> {
         let db_name = pool.connect_options().get_database()
             .map(|db| format!("postgres://postgres:postgres@localhost:5432/{}", db))
             .unwrap_or_else(|| "postgres://postgres:postgres@localhost:5432/postgres".to_string());
@@ -112,3 +91,4 @@ pub mod test_utils {
         sqlx::Postgres::drop_database(&db_name).await
     }
 }
+

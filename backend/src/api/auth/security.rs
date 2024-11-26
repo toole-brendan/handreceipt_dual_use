@@ -6,7 +6,7 @@ use crate::{
     types::{
         security::{SecurityContext, SecurityClassification},
         app::{SecurityService, EncryptionService},
-        permissions::{ResourceType, Action},
+        permissions::{ResourceType, Action, Permission},
     },
     api::auth::{
         encryption::EncryptionServiceImpl,
@@ -48,24 +48,22 @@ impl SecurityService for SecurityServiceImpl {
     }
 
     async fn check_permissions(&self, context: &SecurityContext, resource: &str, action: &str) -> Result<bool, CoreError> {
-        // Basic permission check - match on strings instead of trying conversions
-        let resource_type = match resource {
-            "property" => ResourceType::Property,
-            "transfer" => ResourceType::Transfer,
-            "user" => ResourceType::User,
-            _ => return Ok(false),
-        };
-        
-        let action_type = match action {
-            "read" => Action::Read,
-            "create" => Action::Create,
-            "update" => Action::Update,
-            "delete" => Action::Delete,
-            "approve" => Action::ApproveCommand,
+        // Convert string resource and action to enum types
+        let permission = match (resource, action) {
+            ("property", "read") => Permission::ViewProperty,
+            ("property", "create") => Permission::CreateProperty,
+            ("property", "update") => Permission::UpdateProperty,
+            ("property", "delete") => Permission::DeleteProperty,
+            ("transfer", "read") => Permission::ViewTransfer,
+            ("transfer", "create") => Permission::CreateTransfer,
+            ("transfer", "approve") => Permission::ApproveTransfer,
+            ("audit", "read") => Permission::ViewAuditLog,
+            ("qr", "generate") => Permission::GenerateQRCode,
+            ("analytics", "read") => Permission::ViewAnalytics,
             _ => return Ok(false),
         };
 
-        Ok(context.has_permission(resource_type, action_type))
+        Ok(context.has_permission(&permission))
     }
 
     async fn encrypt_data(&self, data: &[u8]) -> Result<Vec<u8>, CoreError> {

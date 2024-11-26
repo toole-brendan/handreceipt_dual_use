@@ -1,300 +1,223 @@
-use actix_web::{web, HttpResponse, Error};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
+use actix_web::{web, HttpResponse};
+use serde_json::json;
+use crate::{
+    domain::property::{
+        entity::{Property, PropertyCategory, PropertyStatus},
+        service::PropertyService,
+    },
+    types::security::SecurityContext,
+    error::api::ApiError,
+};
 use std::sync::Arc;
 
-use crate::{
-    domain::{
-        property::{
-            entity::{Property, PropertyCategory},
-            repository::PropertySearchCriteria,
-        },
-        models::{
-            qr::{QRCodeService, QRFormat, QRData},
-        },
-    },
-    types::{
-        app::PropertyService,
-        security::SecurityContext,
-    },
-};
+pub async fn create_property(
+    property_service: web::Data<Arc<dyn PropertyService>>,
+    context: web::ReqData<SecurityContext>,
+    req: web::Json<CreatePropertyRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let property = Property::new(
+        req.name.clone(),
+        req.description.clone(),
+        req.category.clone(),
+        req.current_holder_id,
+        req.location.clone(),
+    );
 
-/// Request to create new property
-#[derive(Debug, Deserialize)]
+    let created = property_service
+        .create_property(&property, &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Created().json(json!({
+        "id": created.id,
+        "name": created.name,
+        "description": created.description,
+        "category": created.category,
+        "status": created.status,
+        "location": created.location,
+        "current_holder_id": created.current_holder_id,
+        "is_sensitive": created.is_sensitive,
+        "quantity": created.quantity,
+        "notes": created.notes,
+        "serial_number": created.serial_number,
+        "nsn": created.nsn,
+        "hand_receipt_number": created.hand_receipt_number,
+        "requires_approval": created.requires_approval,
+        "created_at": created.created_at,
+        "updated_at": created.updated_at
+    })))
+}
+
+pub async fn get_property(
+    property_service: web::Data<Arc<dyn PropertyService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let property = property_service
+        .get_property(id.into_inner(), &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?
+        .ok_or_else(|| ApiError::NotFound("Property not found".to_string()))?;
+
+    Ok(HttpResponse::Ok().json(json!({
+        "id": property.id,
+        "name": property.name,
+        "description": property.description,
+        "category": property.category,
+        "status": property.status,
+        "location": property.location,
+        "current_holder_id": property.current_holder_id,
+        "is_sensitive": property.is_sensitive,
+        "quantity": property.quantity,
+        "notes": property.notes,
+        "serial_number": property.serial_number,
+        "nsn": property.nsn,
+        "hand_receipt_number": property.hand_receipt_number,
+        "requires_approval": property.requires_approval,
+        "created_at": property.created_at,
+        "updated_at": property.updated_at
+    })))
+}
+
+pub async fn update_property(
+    property_service: web::Data<Arc<dyn PropertyService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+    req: web::Json<UpdatePropertyRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let mut property = property_service
+        .get_property(id.into_inner(), &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?
+        .ok_or_else(|| ApiError::NotFound("Property not found".to_string()))?;
+
+    if let Some(ref name) = req.name {
+        property.name = name.clone();
+    }
+    if let Some(ref description) = req.description {
+        property.description = description.clone();
+    }
+    if let Some(category) = req.category {
+        property.category = category;
+    }
+    if let Some(ref location) = req.location {
+        property.location = location.clone();
+    }
+    if let Some(is_sensitive) = req.is_sensitive {
+        property.is_sensitive = is_sensitive;
+    }
+    if let Some(quantity) = req.quantity {
+        property.quantity = quantity;
+    }
+    if let Some(ref notes) = req.notes {
+        property.notes = Some(notes.clone());
+    }
+    if let Some(ref serial_number) = req.serial_number {
+        property.serial_number = Some(serial_number.clone());
+    }
+    if let Some(ref nsn) = req.nsn {
+        property.nsn = Some(nsn.clone());
+    }
+    if let Some(ref hand_receipt_number) = req.hand_receipt_number {
+        property.hand_receipt_number = Some(hand_receipt_number.clone());
+    }
+    if let Some(requires_approval) = req.requires_approval {
+        property.requires_approval = requires_approval;
+    }
+
+    let updated = property_service
+        .update_property(&property, &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(json!({
+        "id": updated.id,
+        "name": updated.name,
+        "description": updated.description,
+        "category": updated.category,
+        "status": updated.status,
+        "location": updated.location,
+        "current_holder_id": updated.current_holder_id,
+        "is_sensitive": updated.is_sensitive,
+        "quantity": updated.quantity,
+        "notes": updated.notes,
+        "serial_number": updated.serial_number,
+        "nsn": updated.nsn,
+        "hand_receipt_number": updated.hand_receipt_number,
+        "requires_approval": updated.requires_approval,
+        "created_at": updated.created_at,
+        "updated_at": updated.updated_at
+    })))
+}
+
+pub async fn generate_qr(
+    property_service: web::Data<Arc<dyn PropertyService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let qr_data = property_service.generate_qr(*id, &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(json!({
+        "qr_data": qr_data,
+    })))
+}
+
+pub async fn get_sync_status(
+    property_service: web::Data<Arc<dyn PropertyService>>,
+    context: web::ReqData<SecurityContext>,
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
+    let status = property_service.get_sync_status(*id, &context)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(json!({
+        "is_synced": status.is_synced,
+        "last_sync": status.last_sync,
+        "blockchain_hash": status.blockchain_hash,
+    })))
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreatePropertyRequest {
     pub name: String,
     pub description: String,
     pub category: PropertyCategory,
-    pub nsn: Option<String>,
+    pub current_holder_id: i32,
+    pub location: crate::domain::models::location::Location,
+    pub is_sensitive: Option<bool>,
+    pub quantity: Option<i32>,
+    pub notes: Option<String>,
     pub serial_number: Option<String>,
-    pub model_number: Option<String>,
-    pub is_sensitive: bool,
-    pub quantity: i32,
-    pub unit_of_issue: String,
-    pub value: Option<f64>,
-    pub location: Option<String>,
-}
-
-/// Property response with QR code
-#[derive(Debug, Serialize)]
-pub struct PropertyResponse {
-    pub id: Uuid,
-    pub name: String,
-    pub description: String,
     pub nsn: Option<String>,
+    pub hand_receipt_number: Option<String>,
+    pub requires_approval: Option<bool>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct UpdatePropertyRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub category: Option<PropertyCategory>,
+    pub location: Option<crate::domain::models::location::Location>,
+    pub is_sensitive: Option<bool>,
+    pub quantity: Option<i32>,
+    pub notes: Option<String>,
     pub serial_number: Option<String>,
-    pub is_sensitive: bool,
-    pub quantity: i32,
-    pub custodian: Option<String>,
-    pub qr_code: Option<Vec<u8>>,
-    pub status: String,
+    pub nsn: Option<String>,
+    pub hand_receipt_number: Option<String>,
+    pub requires_approval: Option<bool>,
 }
 
-/// Creates a new property item
-pub async fn create_property(
-    property_service: web::Data<Arc<dyn PropertyService>>,
-    qr_service: web::Data<Arc<dyn QRCodeService>>,
-    user_id: web::ReqData<String>,
-    request: web::Json<CreatePropertyRequest>,
-) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?);
-
-    // Create property using builder pattern
-    let mut property = Property::new(
-        request.name.clone(),
-        request.description.clone(),
-        request.category.clone(),
-        request.is_sensitive,
-        request.quantity,
-        request.unit_of_issue.clone(),
-    )
-    .map_err(actix_web::error::ErrorBadRequest)?;
-
-    // Set optional fields using builder methods
-    if let Some(nsn) = &request.nsn {
-        property = property.with_nsn(nsn.clone());
-    }
-    if let Some(serial) = &request.serial_number {
-        property = property.with_serial_number(Some(serial.clone()));
-    }
-    if let Some(model) = &request.model_number {
-        property = property.with_model_number(model.clone());
-    }
-
-    let property = property_service
-        .create_property(property, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    // Generate QR code
-    let qr_data = QRData {
-        id: Uuid::new_v4(),
-        property_id: property.id(),
-        metadata: serde_json::json!({}),
-        timestamp: chrono::Utc::now(),
-    };
-
-    let qr_code = qr_service
-        .generate_qr(&qr_data, QRFormat::PNG, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(PropertyResponse {
-        id: property.id(),
-        name: property.name().to_string(),
-        description: property.description().to_string(),
-        nsn: property.nsn().cloned(),
-        serial_number: property.serial_number().cloned(),
-        is_sensitive: property.is_sensitive(),
-        quantity: property.quantity(),
-        custodian: property.custodian().cloned(),
-        qr_code: Some(qr_code.data),
-        status: format!("{:?}", property.status()),
-    }))
-}
-
-/// Gets property by ID
-pub async fn get_property(
-    property_service: web::Data<Arc<dyn PropertyService>>,
-    qr_service: web::Data<Arc<dyn QRCodeService>>,
-    id: web::Path<Uuid>,
-    user_id: web::ReqData<String>,
-) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?);
-    let property = property_service
-        .get_property(id.into_inner(), &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?
-        .ok_or_else(|| actix_web::error::ErrorNotFound("Property not found"))?;
-
-    let qr_data = QRData {
-        id: Uuid::new_v4(),
-        property_id: property.id(),
-        metadata: serde_json::json!({}),
-        timestamp: chrono::Utc::now(),
-    };
-
-    let qr_code = qr_service
-        .generate_qr(&qr_data, QRFormat::PNG, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(PropertyResponse {
-        id: property.id(),
-        name: property.name().to_string(),
-        description: property.description().to_string(),
-        nsn: property.nsn().cloned(),
-        serial_number: property.serial_number().cloned(),
-        is_sensitive: property.is_sensitive(),
-        quantity: property.quantity(),
-        custodian: property.custodian().cloned(),
-        qr_code: Some(qr_code.data),
-        status: format!("{:?}", property.status()),
-    }))
-}
-
-/// Updates an existing property
-pub async fn update_property(
-    property_service: web::Data<Arc<dyn PropertyService>>,
-    id: web::Path<Uuid>,
-    request: web::Json<CreatePropertyRequest>,
-    user_id: web::ReqData<String>,
-) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?);
-
-    let mut property = property_service
-        .get_property(id.into_inner(), &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?
-        .ok_or_else(|| actix_web::error::ErrorNotFound("Property not found"))?;
-
-    // Update property using builder pattern
-    let mut updated = Property::new(
-        request.name.clone(),
-        request.description.clone(),
-        request.category.clone(),
-        request.is_sensitive,
-        request.quantity,
-        request.unit_of_issue.clone(),
-    )
-    .map_err(actix_web::error::ErrorBadRequest)?;
-
-    // Set optional fields using builder methods
-    if let Some(nsn) = &request.nsn {
-        updated = updated.with_nsn(nsn.clone());
-    }
-    if let Some(serial) = &request.serial_number {
-        updated = updated.with_serial_number(Some(serial.clone()));
-    }
-    if let Some(model) = &request.model_number {
-        updated = updated.with_model_number(model.clone());
-    }
-
-    property_service
-        .update_property(&updated, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(PropertyResponse {
-        id: updated.id(),
-        name: updated.name().to_string(),
-        description: updated.description().to_string(),
-        nsn: updated.nsn().cloned(),
-        serial_number: updated.serial_number().cloned(),
-        is_sensitive: updated.is_sensitive(),
-        quantity: updated.quantity(),
-        custodian: updated.custodian().cloned(),
-        qr_code: None,
-        status: format!("{:?}", updated.status()),
-    }))
-}
-
-/// Gets property for current user
-pub async fn get_my_property(
-    property_service: web::Data<Arc<dyn PropertyService>>,
-    user_id: web::ReqData<String>,
-) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?);
-
-    let properties = property_service
-        .list_properties(&context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    let responses: Vec<PropertyResponse> = properties
-        .into_iter()
-        .map(|p| PropertyResponse {
-            id: p.id(),
-            name: p.name().to_string(),
-            description: p.description().to_string(),
-            nsn: p.nsn().cloned(),
-            serial_number: p.serial_number().cloned(),
-            is_sensitive: p.is_sensitive(),
-            quantity: p.quantity(),
-            custodian: p.custodian().cloned(),
-            qr_code: None,
-            status: format!("{:?}", p.status()),
-        })
-        .collect();
-
-    Ok(HttpResponse::Ok().json(responses))
-}
-
-/// Generates QR code for property
-pub async fn generate_qr(
-    qr_service: web::Data<Arc<dyn QRCodeService>>,
-    id: web::Path<Uuid>,
-    user_id: web::ReqData<String>,
-    format: web::Query<QRFormatQuery>,
-) -> Result<HttpResponse, Error> {
-    let context = SecurityContext::new(Uuid::parse_str(&user_id.into_inner())
-        .map_err(actix_web::error::ErrorBadRequest)?);
-
-    let qr_format = match format.format.as_deref() {
-        Some("svg") => QRFormat::SVG,
-        _ => QRFormat::PNG,
-    };
-
-    let qr_data = QRData {
-        id: Uuid::new_v4(),
-        property_id: *id,
-        metadata: serde_json::json!({}),
-        timestamp: chrono::Utc::now(),
-    };
-
-    let qr_code = qr_service
-        .generate_qr(&qr_data, qr_format, &context)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(qr_code))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct QRFormatQuery {
-    format: Option<String>,
-}
-
-/// Configures property routes
-pub fn configure(cfg: &mut web::ServiceConfig) {
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("/property")
+        web::scope("/properties")
             .route("", web::post().to(create_property))
-            .route("/my", web::get().to(get_my_property))
             .route("/{id}", web::get().to(get_property))
             .route("/{id}", web::put().to(update_property))
-            .route("/{id}/qr", web::get().to(generate_qr)),
+            .route("/{id}/qr", web::get().to(generate_qr))
+            .route("/{id}/sync", web::get().to(get_sync_status))
     );
-}
-
-pub async fn get_sync_status(
-    id: web::Path<Uuid>,
-    context: web::ReqData<SecurityContext>,
-) -> Result<HttpResponse, Error> {
-    // Implementation here
-    Ok(HttpResponse::Ok().json(()))
 }

@@ -1,427 +1,243 @@
+use sqlx::PgPool;
+use sqlx::types::Json;
 use async_trait::async_trait;
-use sqlx::{PgPool, Row};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use std::sync::Arc;
-
-use crate::domain::property::{
-    entity::{Property, PropertyCategory, PropertyStatus, PropertyCondition, Location},
-    repository::{PropertyRepository, PropertySearchCriteria, RepositoryError, GeoBounds},
+use crate::{
+    domain::property::entity::{Property, PropertyCategory, PropertyStatus},
+    domain::property::repository::PropertyRepository,
+    domain::models::location::Location,
+    error::RepositoryError,
 };
 
-use crate::domain::models::transfer::PropertyTransfer;
-
-pub struct PostgresPropertyRepository {
+pub struct PgPropertyRepository {
     pool: PgPool,
 }
 
-impl PostgresPropertyRepository {
+impl PgPropertyRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
-
-    async fn save_location(&self, property_id: Uuid, location: &Location) -> Result<(), RepositoryError> {
-        sqlx::query(
-            r#"
-            INSERT INTO property_locations (
-                property_id, latitude, longitude, altitude, accuracy,
-                timestamp, building, room, grid_coordinates, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            "#,
-        )
-        .bind(property_id)
-        .bind(location.latitude)
-        .bind(location.longitude)
-        .bind(location.altitude)
-        .bind(location.accuracy)
-        .bind(location.timestamp)
-        .bind(&location.building)
-        .bind(&location.room)
-        .bind(&location.grid_coordinates)
-        .bind(&location.notes)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        Ok(())
-    }
 }
 
 #[async_trait]
-impl PropertyRepository for Arc<PostgresPropertyRepository> {
-    async fn create(&self, property: Property) -> Result<Property, RepositoryError> {
-        let mut tx = self.pool
-            .begin()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // Insert main property record
-        sqlx::query(
+impl PropertyRepository for PgPropertyRepository {
+    async fn create_property(&self, property: Property) -> Result<Property, RepositoryError> {
+        let record = sqlx::query!(
             r#"
             INSERT INTO properties (
-                id, name, description, category, status, condition,
-                is_sensitive, quantity, unit_of_measure, value,
-                nsn, serial_number, model_number, qr_code,
-                custodian, hand_receipt_number, sub_hand_receipt_number,
-                created_at, updated_at, last_inventoried
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+                name, description, category, status, current_holder_id, 
+                location, metadata, is_sensitive, quantity, notes,
+                serial_number, nsn, hand_receipt_number, requires_approval
             )
+            VALUES (
+                $1, $2, 
+                $3::property_category, 
+                $4::property_status, 
+                $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+            )
+            RETURNING 
+                id, name, description, 
+                category as "category: PropertyCategory",
+                status as "status: PropertyStatus",
+                current_holder_id,
+                location as "location: Json<Location>",
+                metadata as "metadata: Json<serde_json::Value>",
+                created_at,
+                updated_at,
+                is_sensitive,
+                quantity,
+                notes,
+                serial_number,
+                nsn,
+                hand_receipt_number,
+                requires_approval
             "#,
+            property.name,
+            property.description,
+            property.category as PropertyCategory,
+            property.status as PropertyStatus,
+            property.current_holder_id,
+            Json(&property.location) as _,
+            Json(&property.metadata) as _,
+            property.is_sensitive,
+            property.quantity,
+            property.notes.as_deref(),
+            property.serial_number.as_deref(),
+            property.nsn.as_deref(),
+            property.hand_receipt_number.as_deref(),
+            property.requires_approval
         )
-        .bind(property.id())
-        .bind(property.name())
-        .bind(property.description())
-        .bind(format!("{:?}", property.category()))
-        .bind(format!("{:?}", property.status()))
-        .bind(format!("{:?}", property.condition()))
-        .bind(property.is_sensitive())
-        .bind(property.quantity())
-        .bind(property.unit_of_measure())
-        .bind(property.value())
-        .bind(property.nsn())
-        .bind(property.serial_number())
-        .bind(property.model_number())
-        .bind(property.qr_code())
-        .bind(property.custodian())
-        .bind(property.hand_receipt_number())
-        .bind(property.sub_hand_receipt_number())
-        .bind(Utc::now())
-        .bind(Utc::now())
-        .bind(Option::<DateTime<Utc>>::None)
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // Save location if present
-        if let Some(location) = property.current_location() {
-            self.save_location(property.id(), location)
-                .await
-                .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-        }
-
-        tx.commit()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        Ok(property)
-    }
-
-    async fn get_by_id(&self, id: Uuid) -> Result<Property, RepositoryError> {
-        let row = sqlx::query(
-            r#"
-            SELECT * FROM properties WHERE id = $1
-            "#,
-        )
-        .bind(id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => RepositoryError::NotFound,
-            _ => RepositoryError::Storage(e.to_string()),
-        })?;
+        .map_err(|e| RepositoryError::Database(e.to_string()))?;
 
-        // TODO: Implement property row mapping
-        unimplemented!("Property row mapping not implemented")
+        Ok(Property {
+            id: record.id,
+            name: record.name,
+            description: record.description.unwrap_or_default(),
+            category: record.category,
+            status: record.status,
+            current_holder_id: record.current_holder_id,
+            location: record.location.0,
+            metadata: record.metadata.0,
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+            is_sensitive: record.is_sensitive,
+            quantity: record.quantity,
+            notes: record.notes,
+            serial_number: record.serial_number,
+            nsn: record.nsn,
+            hand_receipt_number: record.hand_receipt_number,
+            requires_approval: record.requires_approval,
+        })
     }
 
-    async fn update(&self, property: Property) -> Result<Property, RepositoryError> {
-        let mut tx = self.pool
-            .begin()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        sqlx::query(
+    async fn update_property(&self, property: &Property) -> Result<(), RepositoryError> {
+        sqlx::query!(
             r#"
-            UPDATE properties SET
-                name = $1,
-                description = $2,
-                category = $3,
-                status = $4,
-                condition = $5,
-                is_sensitive = $6,
-                quantity = $7,
-                unit_of_measure = $8,
-                value = $9,
-                nsn = $10,
-                serial_number = $11,
-                model_number = $12,
-                qr_code = $13,
-                custodian = $14,
-                hand_receipt_number = $15,
-                sub_hand_receipt_number = $16,
-                updated_at = $17
-            WHERE id = $18
+            UPDATE properties
+            SET name = $1, 
+                description = $2, 
+                category = $3::property_category, 
+                status = $4::property_status,
+                current_holder_id = $5, 
+                location = $6, 
+                metadata = $7,
+                is_sensitive = $8, 
+                quantity = $9, 
+                notes = $10,
+                serial_number = $11, 
+                nsn = $12, 
+                hand_receipt_number = $13,
+                requires_approval = $14, 
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $15
             "#,
+            property.name,
+            property.description,
+            property.category as PropertyCategory,
+            property.status as PropertyStatus,
+            property.current_holder_id,
+            Json(&property.location) as _,
+            Json(&property.metadata) as _,
+            property.is_sensitive,
+            property.quantity,
+            property.notes.as_deref(),
+            property.serial_number.as_deref(),
+            property.nsn.as_deref(),
+            property.hand_receipt_number.as_deref(),
+            property.requires_approval,
+            property.id
         )
-        .bind(property.name())
-        .bind(property.description())
-        .bind(format!("{:?}", property.category()))
-        .bind(format!("{:?}", property.status()))
-        .bind(format!("{:?}", property.condition()))
-        .bind(property.is_sensitive())
-        .bind(property.quantity())
-        .bind(property.unit_of_measure())
-        .bind(property.value())
-        .bind(property.nsn())
-        .bind(property.serial_number())
-        .bind(property.model_number())
-        .bind(property.qr_code())
-        .bind(property.custodian())
-        .bind(property.hand_receipt_number())
-        .bind(property.sub_hand_receipt_number())
-        .bind(Utc::now())
-        .bind(property.id())
-        .execute(&mut *tx)
+        .execute(&self.pool)
         .await
-        .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // Update location if present
-        if let Some(location) = property.current_location() {
-            self.save_location(property.id(), location)
-                .await
-                .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-        }
-
-        tx.commit()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        Ok(property)
-    }
-
-    async fn delete(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query("DELETE FROM properties WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
+        .map_err(|e| RepositoryError::Database(e.to_string()))?;
 
         Ok(())
     }
 
-    async fn search(&self, criteria: PropertySearchCriteria) -> Result<Vec<Property>, RepositoryError> {
-        let mut query = String::from("SELECT * FROM properties WHERE 1=1");
-        let mut params = vec![];
-
-        if let Some(status) = criteria.status {
-            query.push_str(" AND status = $1");
-            params.push(format!("{:?}", status));
-        }
-
-        if let Some(category) = criteria.category {
-            query.push_str(" AND category = $2");
-            params.push(format!("{:?}", category));
-        }
-
-        if let Some(is_sensitive) = criteria.is_sensitive {
-            query.push_str(" AND is_sensitive = $3");
-            params.push(is_sensitive.to_string());
-        }
-
-        // TODO: Implement parameter binding and row mapping
-        unimplemented!("Search implementation not complete")
-    }
-
-    async fn get_by_custodian(&self, custodian: &str) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query("SELECT * FROM properties WHERE custodian = $1")
-            .bind(custodian)
-            .fetch_all(&self.pool)
+    async fn delete_property(&self, id: i32) -> Result<(), RepositoryError> {
+        sqlx::query!("DELETE FROM properties WHERE id = $1", id)
+            .execute(&self.pool)
             .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
+            .map_err(|e| RepositoryError::Database(e.to_string()))?;
 
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
+        Ok(())
     }
 
-    async fn get_by_command(&self, command_id: &str) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query(
+    async fn get_property(&self, id: i32) -> Result<Option<Property>, RepositoryError> {
+        let record = sqlx::query!(
             r#"
-            SELECT p.* FROM properties p
-            JOIN unit_hierarchy h ON p.unit_code = h.unit_code
-            WHERE h.command_id = $1
+            SELECT 
+                id, name, description, 
+                category as "category: PropertyCategory",
+                status as "status: PropertyStatus",
+                current_holder_id,
+                location as "location: Json<Location>",
+                metadata as "metadata: Json<serde_json::Value>",
+                created_at,
+                updated_at,
+                is_sensitive,
+                quantity,
+                notes,
+                serial_number,
+                nsn,
+                hand_receipt_number,
+                requires_approval
+            FROM properties 
+            WHERE id = $1
             "#,
+            id
         )
-        .bind(command_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_by_status(&self, status: PropertyStatus) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query("SELECT * FROM properties WHERE status = $1")
-            .bind(format!("{:?}", status))
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_by_category(&self, category: PropertyCategory) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query("SELECT * FROM properties WHERE category = $1")
-            .bind(format!("{:?}", category))
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_by_nsn(&self, nsn: &str) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query("SELECT * FROM properties WHERE nsn = $1")
-            .bind(nsn)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_by_serial_number(&self, serial: &str) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query("SELECT * FROM properties WHERE serial_number = $1")
-            .bind(serial)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_by_hand_receipt(&self, receipt_number: &str) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query("SELECT * FROM properties WHERE hand_receipt_number = $1")
-            .bind(receipt_number)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_by_location(&self, bounds: GeoBounds) -> Result<Vec<Property>, RepositoryError> {
-        let rows = sqlx::query(
-            r#"
-            SELECT p.* FROM properties p
-            JOIN property_locations l ON p.id = l.property_id
-            WHERE l.latitude BETWEEN $1 AND $2
-            AND l.longitude BETWEEN $3 AND $4
-            "#,
-        )
-        .bind(bounds.min_latitude)
-        .bind(bounds.max_latitude)
-        .bind(bounds.min_longitude)
-        .bind(bounds.max_longitude)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_pending_verification(
-        &self,
-        threshold: chrono::Duration,
-        category: Option<PropertyCategory>,
-    ) -> Result<Vec<Property>, RepositoryError> {
-        let cutoff = Utc::now() - threshold;
-
-        let mut query = String::from(
-            r#"
-            SELECT * FROM properties
-            WHERE last_inventoried < $1 OR last_inventoried IS NULL
-            "#,
-        );
-
-        if let Some(cat) = category {
-            query.push_str(" AND category = $2");
-            sqlx::query(&query)
-                .bind(cutoff)
-                .bind(format!("{:?}", cat))
-                .fetch_all(&self.pool)
-                .await
-                .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-        } else {
-            sqlx::query(&query)
-                .bind(cutoff)
-                .fetch_all(&self.pool)
-                .await
-                .map_err(|e| RepositoryError::Storage(e.to_string()))?;
-        };
-
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
-    }
-
-    async fn get_latest_transfer(&self, property_id: Uuid) -> Result<Option<PropertyTransfer>, RepositoryError> {
-        let row = sqlx::query(
-            r#"
-            SELECT * FROM property_transfers
-            WHERE property_id = $1
-            ORDER BY timestamp DESC
-            LIMIT 1
-            "#,
-        )
-        .bind(property_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| RepositoryError::Storage(e.to_string()))?;
+        .map_err(|e| RepositoryError::Database(e.to_string()))?;
 
-        // TODO: Implement row mapping
-        unimplemented!("Row mapping not implemented")
+        Ok(record.map(|r| Property {
+            id: r.id,
+            name: r.name,
+            description: r.description.unwrap_or_default(),
+            category: r.category,
+            status: r.status,
+            current_holder_id: r.current_holder_id,
+            location: r.location.0,
+            metadata: r.metadata.0,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            is_sensitive: r.is_sensitive,
+            quantity: r.quantity,
+            notes: r.notes,
+            serial_number: r.serial_number,
+            nsn: r.nsn,
+            hand_receipt_number: r.hand_receipt_number,
+            requires_approval: r.requires_approval,
+        }))
     }
 
-    async fn begin_transaction(&self) -> Result<Box<dyn crate::domain::property::repository::PropertyTransaction>, RepositoryError> {
-        let tx = self.pool
-            .begin()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))?;
+    async fn list_properties(&self) -> Result<Vec<Property>, RepositoryError> {
+        let records = sqlx::query!(
+            r#"
+            SELECT 
+                id, name, description, 
+                category as "category: PropertyCategory",
+                status as "status: PropertyStatus",
+                current_holder_id,
+                location as "location: Json<Location>",
+                metadata as "metadata: Json<serde_json::Value>",
+                created_at,
+                updated_at,
+                is_sensitive,
+                quantity,
+                notes,
+                serial_number,
+                nsn,
+                hand_receipt_number,
+                requires_approval
+            FROM properties 
+            ORDER BY id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| RepositoryError::Database(e.to_string()))?;
 
-        Ok(Box::new(PostgresPropertyTransaction { tx }))
-    }
-}
-
-pub struct PostgresPropertyTransaction {
-    tx: sqlx::Transaction<'static, sqlx::Postgres>,
-}
-
-#[async_trait]
-impl crate::domain::property::repository::PropertyTransaction for PostgresPropertyTransaction {
-    async fn commit(self: Box<Self>) -> Result<(), RepositoryError> {
-        self.tx
-            .commit()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))
-    }
-
-    async fn rollback(self: Box<Self>) -> Result<(), RepositoryError> {
-        self.tx
-            .rollback()
-            .await
-            .map_err(|e| RepositoryError::Storage(e.to_string()))
-    }
-
-    async fn create(&mut self, property: Property) -> Result<Property, RepositoryError> {
-        // TODO: Implement transaction-aware create
-        unimplemented!("Transaction create not implemented")
-    }
-
-    async fn update(&mut self, property: Property) -> Result<Property, RepositoryError> {
-        // TODO: Implement transaction-aware update
-        unimplemented!("Transaction update not implemented")
-    }
-
-    async fn delete(&mut self, id: Uuid) -> Result<(), RepositoryError> {
-        // TODO: Implement transaction-aware delete
-        unimplemented!("Transaction delete not implemented")
+        Ok(records.into_iter().map(|r| Property {
+            id: r.id,
+            name: r.name,
+            description: r.description.unwrap_or_default(),
+            category: r.category,
+            status: r.status,
+            current_holder_id: r.current_holder_id,
+            location: r.location.0,
+            metadata: r.metadata.0,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            is_sensitive: r.is_sensitive,
+            quantity: r.quantity,
+            notes: r.notes,
+            serial_number: r.serial_number,
+            nsn: r.nsn,
+            hand_receipt_number: r.hand_receipt_number,
+            requires_approval: r.requires_approval,
+        }).collect())
     }
 }

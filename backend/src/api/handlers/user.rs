@@ -1,107 +1,89 @@
-use actix_web::{web, HttpResponse, Error};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
+use actix_web::{web, HttpResponse};
+use serde_json::json;
+use crate::{
+    domain::models::user::{User, UserService},
+    types::security::SecurityContext,
+    error::api::ApiError,
+};
 use std::sync::Arc;
 
-use crate::types::user::{Rank, Role, Unit};
-use crate::types::security::{
-    SecurityContext,
-    SecurityClassification,
-};
-use crate::types::permissions::{Permission, ResourceType, Action};
-
-#[derive(Debug, Serialize)]
-pub struct UserProfile {
-    pub id: Uuid,
-    pub name: String,
-    pub rank: Rank,
-    pub unit: Unit,
-    pub role: Role,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct UpdateProfileRequest {
-    pub name: Option<String>,
-    pub rank: Option<Rank>,
-    pub unit: Option<Unit>,
-}
-
-/// Gets a user's profile
-pub async fn get_user_profile(
-    id: web::Path<Uuid>,
+pub async fn get_user(
+    user_service: web::Data<Arc<dyn UserService>>,
     context: web::ReqData<SecurityContext>,
-) -> Result<HttpResponse, Error> {
+    id: web::Path<i32>,
+) -> Result<HttpResponse, ApiError> {
     // Only allow users to view their own profile or officers/NCOs to view profiles in their command
     let user_id = id.into_inner();
     if user_id != context.user_id && !context.can_view_user_profile(user_id) {
-        return Err(actix_web::error::ErrorForbidden("Insufficient permissions"));
+        return Err(ApiError::AuthorizationError("Insufficient permissions".to_string()));
     }
 
-    // TODO: Implement actual user profile retrieval
-    let profile = UserProfile {
-        id: user_id,
-        name: "John Doe".to_string(),
-        rank: Rank::E5,
-        unit: Unit {
-            name: "1st Battalion".to_string(),
-            command_id: Uuid::new_v4(),
-        },
-        role: Role::Soldier,
-    };
+    let user = user_service.get_user(user_id)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
 
-    Ok(HttpResponse::Ok().json(profile))
+    match user {
+        Some(u) => Ok(HttpResponse::Ok().json(json!({
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role,
+            "created_at": u.created_at,
+            "updated_at": u.updated_at,
+        }))),
+        None => Ok(HttpResponse::NotFound().finish()),
+    }
 }
 
-/// Updates a user's profile
-pub async fn update_user_profile(
-    id: web::Path<Uuid>,
-    request: web::Json<UpdateProfileRequest>,
+pub async fn update_user(
+    user_service: web::Data<Arc<dyn UserService>>,
     context: web::ReqData<SecurityContext>,
-) -> Result<HttpResponse, Error> {
+    id: web::Path<i32>,
+    req: web::Json<UpdateUserRequest>,
+) -> Result<HttpResponse, ApiError> {
     // Only allow users to update their own profile or officers to update profiles in their command
     let user_id = id.into_inner();
     if user_id != context.user_id && !context.can_update_user_profile(user_id) {
-        return Err(actix_web::error::ErrorForbidden("Insufficient permissions"));
+        return Err(ApiError::AuthorizationError("Insufficient permissions".to_string()));
     }
 
-    let request = request.into_inner();
+    let mut user = user_service.get_user(user_id)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?
+        .ok_or_else(|| ApiError::NotFound("User not found".to_string()))?;
 
-    // TODO: Implement actual profile update
-    let profile = UserProfile {
-        id: user_id,
-        name: request.name.unwrap_or_else(|| "John Doe".to_string()),
-        rank: request.rank.unwrap_or(Rank::E5),
-        unit: request.unit.unwrap_or(Unit {
-            name: "1st Battalion".to_string(),
-            command_id: Uuid::new_v4(),
-        }),
-        role: Role::Soldier,
-    };
-
-    Ok(HttpResponse::Ok().json(profile))
-}
-
-/// Gets users in a command
-pub async fn get_command_users(
-    _id: web::Path<Uuid>,
-    context: web::ReqData<SecurityContext>,
-) -> Result<HttpResponse, Error> {
-    // Only allow officers/NCOs to view users in their command
-    if !context.can_view_command_users() {
-        return Err(actix_web::error::ErrorForbidden("Insufficient permissions"));
+    // Update fields
+    if let Some(ref email) = req.email {
+        user.email = email.clone();
+    }
+    if let Some(ref role) = req.role {
+        user.role = role.clone();
     }
 
-    // TODO: Implement actual command users retrieval
-    let empty_users: Vec<UserProfile> = Vec::new();
-    Ok(HttpResponse::Ok().json(empty_users))
+    let updated = user_service.update_user(&user)
+        .await
+        .map_err(|e| ApiError::InternalError(e.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(json!({
+        "id": updated.id,
+        "username": updated.username,
+        "email": updated.email,
+        "role": updated.role,
+        "created_at": updated.created_at,
+        "updated_at": updated.updated_at,
+    })))
 }
 
-/// Configures user routes
-pub fn configure(cfg: &mut web::ServiceConfig) {
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdateUserRequest {
+    pub email: Option<String>,
+    pub role: Option<String>,
+}
+
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("/user")
-            .route("/{id}", web::get().to(get_user_profile))
-            .route("/{id}", web::put().to(update_user_profile))
-            .route("/command/{id}", web::get().to(get_command_users))
+        web::scope("/users")
+            .route("/{id}", web::get().to(get_user))
+            .route("/{id}", web::put().to(update_user))
     );
 }

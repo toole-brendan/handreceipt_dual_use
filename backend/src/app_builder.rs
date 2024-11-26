@@ -1,108 +1,94 @@
 use std::sync::Arc;
 use actix_web::web;
-use sqlx::postgres::PgPool;
+use sqlx::PgPool;
 
 use crate::{
+    api::auth::{
+        AuditServiceImpl, EncryptionServiceImpl,
+        SecurityServiceImpl,
+    },
     domain::{
-        property::{
-            service_impl::PropertyServiceImpl,
-            service_wrapper::PropertyServiceWrapper,
-        },
-        transfer::{
-            service::{TransferService, TransferServiceImpl},
-            service_wrapper::TransferServiceWrapper,
-        },
+        property::repository::PropertyRepository,
+        transfer::repository::TransferRepository,
     },
-    infrastructure::{
-        persistence::postgres::{
-            property_repository::PostgresPropertyRepository,
-            transfer_repository::PostgresTransferRepository,
+    infrastructure::persistence::{
+        postgres::{
+            property_repository::PgPropertyRepository,
+            transfer_repository::PgTransferRepository,
         },
-        security::DefaultSecurityService,
+        DatabaseConfig as PersistenceConfig,
     },
-    types::app::{AppState, AppConfig, SecurityService},
-    error::CoreError,
+    types::{
+        app::{AppState, AppConfig, SecurityConfig, Environment, DatabaseConfig},
+        security::SecurityContext,
+        SecurityService,
+    },
 };
 
-pub struct AppBuilder {
-    db_pool: Option<PgPool>,
-    config: Option<AppConfig>,
-}
+pub struct AppBuilder;
 
 impl AppBuilder {
     pub fn new() -> Self {
-        Self {
-            db_pool: None,
-            config: None,
-        }
+        Self
     }
 
-    pub fn with_database(mut self, db_pool: PgPool) -> Self {
-        self.db_pool = Some(db_pool);
-        self
+    fn build_connection_string(config: &PersistenceConfig) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            config.username,
+            config.password,
+            config.host,
+            config.port,
+            config.database
+        )
     }
 
-    pub fn with_config(mut self, config: AppConfig) -> Self {
-        self.config = Some(config);
-        self
+    fn convert_encryption_key(key: &str) -> [u8; 32] {
+        let mut result = [0u8; 32];
+        let bytes = hex::decode(key).expect("Invalid encryption key format");
+        result.copy_from_slice(&bytes);
+        result
     }
 
-    pub fn build(self) -> Result<web::Data<AppState>, CoreError> {
-        let db_pool = self.db_pool.ok_or_else(|| {
-            CoreError::Configuration("Database pool not configured".to_string())
-        })?;
+    pub async fn build(db_config: PersistenceConfig, encryption_key: String) -> Result<web::Data<AppState>, String> {
+        let connection_string = Self::build_connection_string(&db_config);
+        let db_pool = PgPool::connect(&connection_string)
+            .await
+            .map_err(|e| format!("Failed to connect to database: {}", e))?;
 
-        let config = self.config.unwrap_or_default();
+        let property_repo: Arc<dyn PropertyRepository + Send + Sync> = 
+            Arc::new(PgPropertyRepository::new(db_pool.clone()));
+        let transfer_repo: Arc<dyn TransferRepository + Send + Sync> = 
+            Arc::new(PgTransferRepository::new(db_pool.clone()));
 
-        // Create repositories
-        let property_repo = Arc::new(PostgresPropertyRepository::new(db_pool.clone()));
-        let transfer_repo = PostgresTransferRepository::new(db_pool);
+        let encryption_key_bytes = Self::convert_encryption_key(&encryption_key);
+        let encryption = Arc::new(EncryptionServiceImpl::new(&encryption_key_bytes));
+        
+        // Create a default security context for audit service
+        let security_context = SecurityContext::default();
+        let audit = Arc::new(AuditServiceImpl::new(security_context));
+        
+        let security: Arc<dyn SecurityService + Send + Sync> = Arc::new(SecurityServiceImpl::new(encryption, audit));
 
-        // Create domain services
-        let property_service = PropertyServiceImpl::new(property_repo);
-        let transfer_service = TransferServiceImpl::new(transfer_repo);
+        let app_db_config = DatabaseConfig {
+            url: connection_string,
+            max_connections: db_config.max_connections,
+        };
 
-        // Wrap domain services with app services
-        let property_service = Arc::new(PropertyServiceWrapper::new(property_service));
-        let transfer_service = Arc::new(TransferServiceWrapper::new(transfer_service));
-
-        // Create security service
-        let security = Arc::new(DefaultSecurityService::new(
-            config.security.encryption_key.clone(),
-            config.security.token_secret.clone(),
-        )) as Arc<dyn SecurityService + Send + Sync>;
+        let config = AppConfig {
+            environment: Environment::Development,
+            database: app_db_config,
+            security: SecurityConfig {
+                encryption_key,
+                token_secret: "your-token-secret".to_string(), // TODO: Make configurable
+            },
+        };
 
         Ok(web::Data::new(AppState {
             config,
             security,
-            property_service,
-            transfer_service,
+            property_repo,
+            transfer_repo,
         }))
-    }
-}
-
-impl Default for AppBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sqlx::postgres::PgPoolOptions;
-
-    #[tokio::test]
-    async fn test_app_builder() {
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect("postgres://test_user:test_password@localhost:5432/test_db")
-            .await
-            .expect("Failed to create pool");
-
-        let _app_state = AppBuilder::new()
-            .with_database(pool)
-            .build()
-            .expect("Failed to build app state");
     }
 }

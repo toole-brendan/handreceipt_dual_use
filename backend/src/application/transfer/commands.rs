@@ -1,270 +1,64 @@
-use uuid::Uuid;
 use std::sync::Arc;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
-
 use crate::{
     domain::{
-        models::{
-            qr::{QRCodeService, VerifyQRRequest},
-            transfer::{PropertyTransferRecord, TransferStatus, VerificationMethod},
+        transfer::{
+            entity::Transfer,
+            repository::TransferRepository,
         },
-        transfer::service::TransferService,
     },
-    types::{
-        app::PropertyService,
-        security::{SecurityContext, SecurityClassification},
-    },
-    error::CoreError,
+    error::validation::ValidationError,
+    types::security::SecurityContext,
 };
+use super::validation::TransferValidator;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InitiateTransferCommand {
-    pub property_id: Uuid,
-    pub new_custodian: String,
-    pub location: Option<String>,
-    pub notes: Option<String>,
+pub struct TransferCommand {
+    repository: Arc<dyn TransferRepository>,
+    validator: Arc<dyn TransferValidator>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ScanQRTransferCommand {
-    pub qr_data: String,
-    pub scanner_id: String,
-    pub location: Option<String>,
-    pub timestamp: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ApproveTransferCommand {
-    pub transfer_id: Uuid,
-    pub notes: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TransferResult {
-    pub transfer: PropertyTransferRecord,
-    pub status: TransferStatus,
-    pub requires_approval: bool,
-    pub verification_method: VerificationMethod,
-}
-
-pub struct TransferCommandService {
-    transfer_service: Arc<dyn TransferService>,
-    property_service: Arc<dyn PropertyService>,
-    qr_service: Arc<dyn QRCodeService>,
-}
-
-impl TransferCommandService {
+impl TransferCommand {
     pub fn new(
-        transfer_service: Arc<dyn TransferService>,
-        property_service: Arc<dyn PropertyService>,
-        qr_service: Arc<dyn QRCodeService>,
+        repository: Arc<dyn TransferRepository>,
+        validator: Arc<dyn TransferValidator>,
     ) -> Self {
         Self {
-            transfer_service,
-            property_service,
-            qr_service,
+            repository,
+            validator,
         }
     }
 
-    /// Initiates a new transfer using QR code
-    pub async fn initiate_transfer_with_qr(
+    pub async fn create_transfer(
         &self,
-        command: ScanQRTransferCommand,
+        transfer: Transfer,
         context: &SecurityContext,
-    ) -> Result<TransferResult, CoreError> {
-        // Validate QR code
-        let verify_request = VerifyQRRequest {
-            qr_data: command.qr_data,
-            signature: None,
-            timestamp: command.timestamp,
-            scanner_id: command.scanner_id,
-            location: command.location,
-        };
+    ) -> Result<Transfer, ValidationError> {
+        // Validate
+        self.validator.validate_create(&transfer, context)?;
 
-        let qr_data = self.qr_service.validate_qr(verify_request, context).await?;
-
-        // Get property
-        let property = self.property_service
-            .get_property(qr_data.property_id, context)
-            .await?
-            .ok_or_else(|| CoreError::NotFound("Property not found".into()))?;
-
-        // Check if property is available for transfer
-        if property.is_sensitive() && !context.has_permission_for_sensitive_items() {
-            return Err(CoreError::Authorization("Cannot transfer sensitive items".into()));
-        }
-
-        // Create transfer
-        let transfer = self.transfer_service
-            .initiate_transfer(
-                property.id(),
-                context.user_id.to_string(), // New custodian is the scanner
-                context,
-            )
-            .await?;
-
-        Ok(TransferResult {
-            transfer: transfer.into(),
-            status: TransferStatus::InProgress,
-            requires_approval: property.is_sensitive(),
-            verification_method: VerificationMethod::QRCode,
-        })
+        // Create
+        self.repository
+            .create_transfer(transfer)
+            .await
+            .map_err(|e| ValidationError::Repository(e.to_string()))
     }
 
-    /// Approves a transfer (Officers only)
     pub async fn approve_transfer(
         &self,
-        command: ApproveTransferCommand,
+        transfer: &Transfer,
         context: &SecurityContext,
-    ) -> Result<TransferResult, CoreError> {
-        // Verify officer permissions
-        if !context.is_officer() {
-            return Err(CoreError::Authorization("Only officers can approve transfers".into()));
-        }
+    ) -> Result<Transfer, ValidationError> {
+        // Validate
+        self.validator.validate_approve(transfer, context)?;
 
-        // Get transfer
-        let transfer = self.transfer_service
-            .approve_transfer(command.transfer_id, context)
-            .await?;
+        // Update status
+        let mut updated = transfer.clone();
+        updated.status = crate::domain::transfer::entity::TransferStatus::Approved;
 
-        Ok(TransferResult {
-            transfer: transfer.into(),
-            status: TransferStatus::Completed,
-            requires_approval: false,
-            verification_method: VerificationMethod::QRCode,
-        })
-    }
-
-    /// Gets pending transfers that require approval
-    pub async fn get_pending_transfers(
-        &self,
-        context: &SecurityContext,
-    ) -> Result<Vec<PropertyTransferRecord>, CoreError> {
-        self.transfer_service
-            .get_pending_transfers(context)
+        // Update in repository
+        self.repository
+            .update_transfer(&updated)
             .await
-            .map(|transfers| transfers.into_iter().map(Into::into).collect())
-            .map_err(|e| CoreError::Transfer(e.to_string()))
-    }
-
-    /// Gets transfer history for a property
-    pub async fn get_property_transfers(
-        &self,
-        property_id: Uuid,
-        context: &SecurityContext,
-    ) -> Result<Vec<PropertyTransferRecord>, CoreError> {
-        self.transfer_service
-            .get_property_transfers(property_id, context)
-            .await
-            .map(|transfers| transfers.into_iter().map(Into::into).collect())
-            .map_err(|e| CoreError::Transfer(e.to_string()))
-    }
-
-    /// Completes a transfer with blockchain verification
-    pub async fn complete_transfer(
-        &self,
-        transfer_id: Uuid,
-        blockchain_verification: String,
-        context: &SecurityContext,
-    ) -> Result<TransferResult, CoreError> {
-        let transfer = self.transfer_service
-            .complete_transfer(transfer_id, blockchain_verification, context)
-            .await?;
-
-        Ok(TransferResult {
-            transfer: transfer.into(),
-            status: TransferStatus::Confirmed,
-            requires_approval: false,
-            verification_method: VerificationMethod::Blockchain,
-        })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::HashMap;
-    use crate::{
-        domain::{
-            property::{
-                repository::mock::MockPropertyRepository,
-                service_impl::PropertyServiceImpl,
-                service_wrapper::PropertyServiceWrapper,
-            },
-            transfer::{
-                repository::mock::MockTransferRepository,
-                service::TransferServiceImpl,
-            },
-            models::qr::{QRCodeServiceImpl, QRData, QRFormat},
-        },
-        types::{
-            permissions::{Permission, ResourceType, Action},
-            security::{Role, SecurityClassification},
-        },
-    };
-    use ed25519_dalek::SigningKey;
-    use rand::rngs::OsRng;
-
-    fn create_test_services() -> TransferCommandService {
-        let repository = MockPropertyRepository::new();
-        let property_service = PropertyServiceImpl::new(repository);
-        let wrapped_service = Arc::new(PropertyServiceWrapper::new(property_service));
-        
-        let transfer_repository = Arc::new(MockTransferRepository::new());
-        let transfer_service = Arc::new(TransferServiceImpl::new(transfer_repository));
-        
-        let signing_key = SigningKey::generate(&mut OsRng);
-        let qr_service = Arc::new(QRCodeServiceImpl::new_with_key(signing_key));
-        
-        TransferCommandService::new(
-            transfer_service,
-            wrapped_service,
-            qr_service,
-        )
-    }
-
-    fn create_test_context() -> SecurityContext {
-        let mut context = SecurityContext::new(Uuid::new_v4());
-        context.roles = vec![Role::Officer];
-        context.unit_code = "TEST_UNIT".to_string();
-        context.classification = SecurityClassification::Unclassified;
-        context.permissions = vec![
-            Permission::new(ResourceType::Property, Action::Read, HashMap::new()),
-            Permission::new(ResourceType::Property, Action::Create, HashMap::new()),
-            Permission::new(ResourceType::Transfer, Action::Create, HashMap::new()),
-            Permission::new(ResourceType::Transfer, Action::ApproveCommand, HashMap::new()),
-        ];
-        context.metadata = HashMap::new();
-        context
-    }
-
-    #[tokio::test]
-    async fn test_transfer_workflow() {
-        let service = create_test_services();
-        let context = create_test_context();
-
-        let property_id = Uuid::new_v4();
-        let qr_response = service.qr_service
-            .generate_qr(
-                &QRData::new(property_id), 
-                QRFormat::PNG, 
-                &context
-            )
-            .await
-            .unwrap();
-
-        // Convert binary data to base64 string for the QR data
-        let qr_data = base64::encode(&qr_response.data);
-
-        let scan_command = ScanQRTransferCommand {
-            qr_data,  // Now it's a String
-            scanner_id: "TEST_SCANNER".to_string(),
-            location: None,
-            timestamp: Utc::now(),
-        };
-
-        let result = service.initiate_transfer_with_qr(scan_command, &context).await;
-        assert!(result.is_ok());
+            .map(|_| updated)
+            .map_err(|e| ValidationError::Repository(e.to_string()))
     }
 }

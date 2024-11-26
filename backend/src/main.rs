@@ -14,7 +14,7 @@ use actix_web::web;
 use dotenv::dotenv;
 use tracing::{info, Level};
 use crate::app_builder::AppBuilder;
-use crate::infrastructure::persistence::{DatabaseConfig, create_pool};
+use crate::infrastructure::persistence::DatabaseConfig as PersistenceConfig;
 
 fn init_logging() {
     tracing_subscriber::fmt()
@@ -38,16 +38,26 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting application with debug logging enabled");
 
-    // Create database config and pool
-    let db_config = DatabaseConfig::from_env();
-    let pool = create_pool(&db_config)
-        .await
-        .expect("Failed to create database pool");
+    // Create database config
+    let db_config = PersistenceConfig {
+        host: std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string()),
+        port: std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string()).parse().unwrap(),
+        username: std::env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string()),
+        password: std::env::var("DB_PASSWORD").unwrap_or_else(|_| "postgres".to_string()),
+        database: std::env::var("DB_NAME").unwrap_or_else(|_| "handreceipt".to_string()),
+        max_connections: std::env::var("DB_MAX_CONNECTIONS")
+            .unwrap_or_else(|_| "5".to_string())
+            .parse()
+            .unwrap(),
+    };
 
-    // Build and run the application
-    let app_state = AppBuilder::new()
-        .with_database(pool)
-        .build()
+    // Get encryption key from environment
+    let encryption_key = std::env::var("ENCRYPTION_KEY")
+        .unwrap_or_else(|_| "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_string());
+
+    // Build application state
+    let app_state = AppBuilder::build(db_config, encryption_key)
+        .await
         .expect("Failed to build application state");
 
     info!("Application state built successfully");

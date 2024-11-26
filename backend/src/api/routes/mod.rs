@@ -6,11 +6,9 @@ pub mod property;
 pub mod transfer;
 pub mod user;
 
-pub fn configure(cfg: &mut ServiceConfig) {
-    cfg
-        .service(web::scope("/api/v1")
-            .configure(property::configure)
-            .configure(mobile::configure)
-            .configure(user::configure)
-            .configure(transfer::configure));
+pub fn configure_routes(cfg: &mut actix_web::web::ServiceConfig) {
+    mobile::configure_routes(cfg);
+    property::configure_routes(cfg);
+    transfer::configure_routes(cfg);
+    user::configure_routes(cfg);
 }

@@ -11,8 +11,14 @@ use crate::{
         audit::AuditEvent,
     },
     domain::{
-        property::entity::Property,
-        transfer::entity::Transfer,
+        property::{
+            entity::Property,
+            repository::PropertyRepository,
+        },
+        transfer::{
+            entity::Transfer,
+            repository::TransferRepository,
+        },
     },
 };
 
@@ -90,8 +96,8 @@ pub trait AuditLogger: Send + Sync {
 pub struct AppState {
     pub config: AppConfig,
     pub security: Arc<dyn SecurityService>,
-    pub property_service: Arc<dyn PropertyService>,
-    pub transfer_service: Arc<dyn TransferService>,
+    pub property_repo: Arc<dyn PropertyRepository>,
+    pub transfer_repo: Arc<dyn TransferRepository>,
 }
 
 // Configuration types

@@ -1,22 +1,22 @@
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum ValidationError {
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
+    #[error("Invalid field: {0}")]
+    InvalidField(String),
 
-    #[error("Missing field: {0}")]
-    MissingField(String),
+    #[error("Not found: {0}")]
+    NotFound(String),
 
-    #[error("Invalid format: {0}")]
-    InvalidFormat(String),
+    #[error("Authorization error: {0}")]
+    Authorization(String),
 
-    #[error("Invalid hash: {0}")]
-    InvalidHash(String),
+    #[error("Repository error: {0}")]
+    Repository(String),
 
-    #[error("Invalid signature: {0}")]
-    InvalidSignature(String),
+    #[error("Invalid state: {0}")]
+    InvalidState(String),
 
-    #[error("Invalid timestamp: {0}")]
-    InvalidTimestamp(String),
+    #[error("Insufficient permissions")]
+    InsufficientPermissions,
 } 
