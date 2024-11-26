@@ -1,59 +1,51 @@
 use handreceipt::types::{
     security::{SecurityContext, SecurityClassification, Role},
-    permissions::{ResourceType, Action, Permission},
+    permissions::Permission,
     signature::{SignatureMetadata, SignatureType, SignatureAlgorithm}
 };
-use uuid::Uuid;
 use ed25519_dalek::{SigningKey, Signer, Verifier};
+use uuid::Uuid;
 
 #[test]
 fn test_basic_signature_generation() {
-    let signer_id = Uuid::new_v4();
+    let signer_id = 1;
     let mut context = SecurityContext::new(signer_id);
     context.classification = SecurityClassification::Unclassified;
-    context.permissions = vec![Permission {
-        resource_type: ResourceType::Property,
-        action: Action::Read,
-        constraints: Default::default(),
-    }];
+    context.permissions = vec![Permission::ViewProperty];
 
     let test_data = b"test message";
     let signature = sign_test_data(test_data, &context);
     
     assert!(!signature.signature.is_empty());
-    assert_eq!(signature.signer_id, signer_id);
+    assert_eq!(signature.signer_id, Uuid::from_u64_pair(0, signer_id as u64));
 }
 
 #[test]
 fn test_sensitive_signature_generation() {
-    let signer_id = Uuid::new_v4();
+    let signer_id = 1;
     let mut context = SecurityContext::new(signer_id);
-    context.classification = SecurityClassification::Sensitive;
-    context.roles = vec![Role::Officer];
-    context.permissions = vec![Permission {
-        resource_type: ResourceType::Property,
-        action: Action::HandleSensitive,
-        constraints: Default::default(),
-    }];
+    context.classification = SecurityClassification::Secret;
+    context.role = Role::Officer;
+    context.permissions = vec![Permission::ViewProperty];
 
     let test_data = b"sensitive data";
     let signature = sign_test_data(test_data, &context);
     
     assert!(!signature.signature.is_empty());
-    assert_eq!(signature.classification, SecurityClassification::Sensitive);
+    assert_eq!(signature.classification, SecurityClassification::Secret);
 }
 
 #[test]
 fn test_signature_metadata() {
-    let signer_id = Uuid::new_v4();
+    let signer_id = 1;
     let context = SecurityContext::new(signer_id);
     let test_data = b"test data";
     
     let signature = sign_test_data(test_data, &context);
     
-    assert_ne!(signature.key_id, Uuid::nil());
-    assert_eq!(signature.signer_id, signer_id);
+    assert_eq!(signature.signer_id, Uuid::from_u64_pair(0, signer_id as u64));
     assert_eq!(signature.algorithm, SignatureAlgorithm::Ed25519);
+    assert_ne!(signature.key_id, Uuid::nil());
 }
 
 #[test]
@@ -73,12 +65,12 @@ fn test_signature_generation() {
 
 // Helper function to simulate signing
 fn sign_test_data(data: &[u8], context: &SecurityContext) -> SignatureMetadata {
-    SignatureMetadata::new(
-        Uuid::new_v4(), // key_id
-        data.to_vec(),  // signature
-        context.user_id,
-        context.classification.clone(),
-        SignatureType::User,
-        SignatureAlgorithm::Ed25519,
-    )
+    SignatureMetadata {
+        key_id: Uuid::new_v4(),
+        signer_id: Uuid::from_u64_pair(0, context.user_id as u64),
+        signature: data.to_vec(),
+        classification: context.classification.clone(),
+        signature_type: SignatureType::User,
+        algorithm: SignatureAlgorithm::Ed25519,
+    }
 }

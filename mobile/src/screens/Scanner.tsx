@@ -1,71 +1,74 @@
-import React, { useState, useCallback } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  Alert,
-  ActivityIndicator,
-  SafeAreaView,
-} from 'react-native';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import QRCodeScanner from 'react-native-qrcode-scanner';
-import { useNavigation } from '@react-navigation/native';
-import { RNCamera } from 'react-native-camera';
-
+import { NavigationProp } from '../types/navigation';
+import HandReceiptModule from '../native/HandReceiptMobile';
 import { useTransferQueue } from '../hooks/useTransferQueue';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
-import { ScanResult } from '../types/scanner';
 import { SyncStatus } from '../types/sync';
-import { HandReceiptMobile } from '../native/HandReceiptMobile';
 
-const Scanner: React.FC = () => {
-  const navigation = useNavigation();
+interface Props {
+  navigation: NavigationProp<'Scanner'>;
+}
+
+const Scanner: React.FC<Props> = ({ navigation }) => {
   const [scanning, setScanning] = useState(false);
   const { addTransfer } = useTransferQueue();
   const { isOnline } = useNetworkStatus();
 
-  const handleScan = useCallback(async (data: string) => {
+  const handleScan = async (data: { data: string }) => {
     setScanning(true);
     try {
-      // Verify QR code with Rust core
-      const scanResult = await HandReceiptMobile.scanQR(data);
-      const isValid = await HandReceiptMobile.verifyTransfer(scanResult);
-
-      if (!isValid) {
-        Alert.alert('Error', 'Invalid or expired QR code');
-        return;
-      }
-
-      // Add to transfer queue
-      await addTransfer({
-        id: scanResult.id,
-        propertyId: scanResult.propertyId,
+      // Parse QR code locally
+      const qrData = await HandReceiptModule.scanQR(data.data);
+      
+      // Create transfer record
+      const transfer = {
+        id: qrData.transferId,
+        propertyId: qrData.propertyId,
         timestamp: new Date().toISOString(),
-        scanData: scanResult,
+        scanData: qrData,
         status: isOnline ? SyncStatus.PENDING : SyncStatus.OFFLINE,
-        retryCount: 0,
-      });
+        retryCount: 0
+      };
+
+      // Store locally first
+      await HandReceiptModule.storeTransfer(transfer);
+
+      // If online, submit to backend immediately
+      if (isOnline) {
+        const result = await HandReceiptModule.submitTransfer(transfer);
+        if (!result.success) {
+          Alert.alert('Warning', 'Transfer stored locally. Will sync when online: ' + (result.error || ''));
+        }
+      } else {
+        Alert.alert('Offline Mode', 'Transfer stored locally. Will sync when online.');
+      }
 
       // Navigate to confirmation
       navigation.navigate('TransferConfirmation', {
-        scanResult,
+        transfer
       });
     } catch (error) {
-      Alert.alert('Error', error.message);
+      if (error instanceof Error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Error', 'An unknown error occurred');
+      }
     } finally {
       setScanning(false);
     }
-  }, [navigation, addTransfer, isOnline]);
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Scan QR Code</Text>
         {scanning && <ActivityIndicator size="small" color="#0000ff" />}
       </View>
 
       <QRCodeScanner
-        onRead={({ data }) => handleScan(data)}
-        flashMode={RNCamera.Constants.FlashMode.auto}
+        onRead={handleScan}
         topContent={
           <Text style={styles.instructions}>
             Align QR code within the frame to scan
@@ -78,8 +81,10 @@ const Scanner: React.FC = () => {
             </Text>
           </View>
         }
+        reactivate={true}
+        reactivateTimeout={3000}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

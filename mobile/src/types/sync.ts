@@ -1,9 +1,9 @@
 export enum SyncStatus {
     PENDING = 'PENDING',
-    OFFLINE = 'OFFLINE',
-    IN_PROGRESS = 'IN_PROGRESS',
-    COMPLETED = 'COMPLETED',
-    FAILED = 'FAILED'
+    SYNCED = 'SYNCED',
+    FAILED = 'FAILED',
+    CANCELLED = 'CANCELLED',
+    OFFLINE = 'OFFLINE'
 }
 
 export interface Transfer {

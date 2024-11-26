@@ -161,6 +161,24 @@ impl SecurityContext {
     pub fn can_delete_property(&self) -> bool {
         self.has_permission(&Permission::DeleteProperty)
     }
+
+    pub fn can_approve_for_command(&self, command_code: &str) -> bool {
+        if !self.is_officer() {
+            return false;
+        }
+        
+        // Check if the command code is a prefix of the user's unit code
+        self.unit_code.starts_with(command_code)
+    }
+
+    pub fn has_permission_for_sensitive_items(&self) -> bool {
+        if !matches!(self.role, Role::Officer | Role::NCO) {
+            return false;
+        }
+
+        // Check for Secret/TopSecret classification
+        matches!(self.classification, SecurityClassification::Secret | SecurityClassification::TopSecret)
+    }
 }
 
 impl Default for SecurityContext {

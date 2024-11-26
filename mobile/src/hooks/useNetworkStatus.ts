@@ -1,62 +1,50 @@
-import { useState, useEffect, useCallback } from 'react';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import { HandReceiptMobile } from '../native/HandReceiptMobile';
+import { useState, useEffect } from 'react';
+import NetInfo from '@react-native-community/netinfo';
+import HandReceiptModule from '../native/HandReceiptMobile';
 
 export const useNetworkStatus = () => {
-    const [isOnline, setIsOnline] = useState(true);
-    const [isConnecting, setIsConnecting] = useState(false);
-
-    // Handle network state changes
-    const handleNetworkChange = useCallback(async (state: NetInfoState) => {
-        const wasOnline = isOnline;
-        const isNowOnline = state.isConnected ?? false;
-        
-        setIsOnline(isNowOnline);
-
-        // If we just came back online, sync pending transfers
-        if (!wasOnline && isNowOnline) {
-            setIsConnecting(true);
-            try {
-                await HandReceiptMobile.syncTransfers();
-            } catch (error) {
-                console.error('Sync error:', error);
-            } finally {
-                setIsConnecting(false);
-            }
-        }
-    }, [isOnline]);
+    const [isOnline, setIsOnline] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            const wasOffline = !isOnline;
+            const isNowOnline = Boolean(state.isConnected && state.isInternetReachable);
+            setIsOnline(isNowOnline);
+
+            // If we just came back online, sync pending transfers
+            if (wasOffline && isNowOnline) {
+                syncPendingTransfers();
+            }
+        });
+
         // Check initial state
-        NetInfo.fetch().then(handleNetworkChange);
+        NetInfo.fetch().then(state => {
+            setIsOnline(Boolean(state.isConnected && state.isInternetReachable));
+        });
 
-        // Subscribe to network changes
-        const unsubscribe = NetInfo.addEventListener(handleNetworkChange);
-
-        return () => unsubscribe();
-    }, [handleNetworkChange]);
-
-    // Force sync attempt
-    const syncNow = useCallback(async () => {
-        if (!isOnline) {
-            return false;
-        }
-
-        setIsConnecting(true);
-        try {
-            await HandReceiptMobile.syncTransfers();
-            return true;
-        } catch (error) {
-            console.error('Manual sync error:', error);
-            return false;
-        } finally {
-            setIsConnecting(false);
-        }
+        return () => {
+            unsubscribe();
+        };
     }, [isOnline]);
+
+    const syncPendingTransfers = async () => {
+        if (isSyncing) return;
+
+        try {
+            setIsSyncing(true);
+            const result = await HandReceiptModule.syncPendingTransfers();
+            console.log('Sync result:', result);
+        } catch (error) {
+            console.error('Sync error:', error);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     return {
         isOnline,
-        isConnecting,
-        syncNow
+        isSyncing,
+        syncPendingTransfers
     };
 }; 

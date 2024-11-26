@@ -95,7 +95,7 @@ mod tests {
                 },
                 metadata: crate::types::blockchain::TransactionMetadata {
                     creator: "test".to_string(),
-                    context: SecurityContext::new(uuid::Uuid::new_v4()),
+                    context: SecurityContext::new(1),
                     audit_events: Vec::new(),
                     custom_fields: std::collections::HashMap::new(),
                 },
@@ -113,7 +113,7 @@ mod tests {
                 },
                 metadata: crate::types::blockchain::TransactionMetadata {
                     creator: "test".to_string(),
-                    context: SecurityContext::new(uuid::Uuid::new_v4()),
+                    context: SecurityContext::new(2),
                     audit_events: Vec::new(),
                     custom_fields: std::collections::HashMap::new(),
                 },

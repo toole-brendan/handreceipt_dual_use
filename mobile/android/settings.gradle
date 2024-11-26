@@ -1,1 +1,11 @@
- 
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'HandReceipt'
+apply from: file("../node_modules/react-native/android/settings.gradle")
+include ':app'

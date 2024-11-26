@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 mod security_test;
 mod mobile_workflow_test;
@@ -22,20 +22,18 @@ use handreceipt::{
 
 /// Creates a test security context for integration tests
 pub fn create_test_context(is_officer: bool) -> SecurityContext {
-    let mut context = SecurityContext::new(uuid::Uuid::new_v4());
-    context.roles = if is_officer {
-        vec![Role::Officer]
-    } else {
-        vec![Role::Soldier]
-    };
-    context.classification = SecurityClassification::Unclassified;
-    context.permissions = vec![
-        Permission::new(ResourceType::Property, Action::Read, HashMap::new()),
-        Permission::new(ResourceType::Transfer, Action::Create, HashMap::new()),
-    ];
-    context.unit_code = "1-1-IN".to_string();
-    context.metadata = HashMap::new();
-    context
+    let role = if is_officer { Role::Officer } else { Role::Soldier };
+    SecurityContext {
+        user_id: 1,
+        name: "Test User".to_string(),
+        role: role.clone(),
+        unit: "Test Unit".to_string(),
+        unit_code: "1-1-IN".to_string(),
+        classification: SecurityClassification::Unclassified,
+        roles: HashSet::from([role]),
+        permissions: vec![Permission::ViewProperty, Permission::CreateProperty],
+        metadata: HashMap::new(),
+    }
 }
 
 /// Verifies a transfer has reached the expected status

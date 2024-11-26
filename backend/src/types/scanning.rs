@@ -111,11 +111,11 @@ impl QRScanResult {
     }
 
     /// Extracts the property ID from QR data
-    pub fn property_id(&self) -> Option<Uuid> {
+    pub fn property_id(&self) -> Option<String> {
         if let Ok(data_str) = String::from_utf8(self.data.clone()) {
             let parts: Vec<&str> = data_str.split(':').collect();
             if parts.len() == 2 {
-                return Uuid::parse_str(parts[0]).ok();
+                return Some(parts[0].to_string());
             }
         }
         None
@@ -148,7 +148,7 @@ mod tests {
             SecurityClassification::Unclassified,
         );
 
-        assert_eq!(scan_result.property_id().unwrap(), property_id);
+        assert_eq!(scan_result.property_id().unwrap(), property_id.to_string());
         assert_eq!(scan_result.verification_code().unwrap(), verification_code);
     }
 

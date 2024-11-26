@@ -37,15 +37,19 @@ impl QRScanner {
     }
 
     fn decode_qr(image: &GrayImage) -> Result<String> {
-        let quirc = Quirc::new();
-        let codes = quirc.identify(image.width() as usize, image.height() as usize, &image)
-            .map_err(|e| Error::Scanner(format!("QR decode error: {}", e)))?;
+        let mut quirc = Quirc::new();
+        let codes = quirc.identify(image.width() as usize, image.height() as usize, &image);
 
         for code in codes {
-            if let Ok(decoded) = code.decode() {
-                if let Ok(content) = String::from_utf8(decoded.payload) {
-                    return Ok(content);
+            match code {
+                Ok(code) => {
+                    if let Ok(decoded) = code.decode() {
+                        if let Ok(content) = String::from_utf8(decoded.payload) {
+                            return Ok(content);
+                        }
+                    }
                 }
+                Err(e) => return Err(Error::Scanner(format!("QR decode error: {}", e))),
             }
         }
 
@@ -68,15 +72,15 @@ impl QRScanner {
 }
 
 #[async_trait]
-impl Scanner for QRScanner {
+impl Scanner for Arc<QRScanner> {
     async fn initialize(&mut self) -> Result<()> {
         // Initialize camera hardware
         Ok(())
     }
 
     async fn scan(&self) -> Result<ScanResult> {
-        let image = Self::capture_image().await?;
-        let qr_content = Self::decode_qr(&image)?;
+        let image = QRScanner::capture_image().await?;
+        let qr_content = QRScanner::decode_qr(&image)?;
         
         let scan_data: ScanResult = serde_json::from_str(&qr_content)
             .map_err(|e| Error::InvalidQR(format!("Invalid QR data format: {}", e)))?;

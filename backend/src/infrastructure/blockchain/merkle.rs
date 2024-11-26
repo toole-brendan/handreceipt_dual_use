@@ -194,7 +194,7 @@ mod tests {
             },
             metadata: TransactionMetadata {
                 creator: "test".to_string(),
-                context: crate::types::security::SecurityContext::new(Uuid::new_v4()),
+                context: crate::types::security::SecurityContext::new(1),
                 audit_events: Vec::new(),
                 custom_fields: HashMap::new(),
             },
