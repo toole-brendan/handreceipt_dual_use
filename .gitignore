@@ -1,108 +1,13 @@
-# Rust
-/target/
-**/*.rs.bk
-Cargo.lock
-
-# IDE
-.vscode/
-.idea/
-*.iml
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Build
-/dist/
-/build/
-/out/
-
-# Dependencies
-/node_modules/
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Testing
-/coverage/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# System Files
+node_modules/
 .DS_Store
-Thumbs.db
-
-# Temporary files
-*.swp
-*.swo
-*~
-
-# Logs
 *.log
-logs/
-log/
-
-# Security
-*.pem
-*.key
-*.cert
-*.crt
-
-# Mobile
-*.apk
-*.aab
-*.ipa
-
-# Documentation generated
-/docs/generated/
-
-# Rust specific
-debug/
-target/
-**/*.rs.bk
-*.pdb
-
-# Frontend
-frontend/dist/
-frontend/node_modules/
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
-
-# Mobile app
-mobile-app/node_modules/
-mobile-app/ios/Pods/
-mobile-app/android/app/build/
-mobile-app/.env
-mobile-app/.env.local
-
-# Deployment
-deployment/terraform/.terraform/
-deployment/terraform/*.tfstate
-deployment/terraform/*.tfstate.backup
-deployment/terraform/*.tfvars
-
-# Local development
-*.profraw
-/tmp/
-
-# Additional Rust build artifacts
-**/deps/
-**/incremental/
-**/build/
-**/*.rmeta
-**/*.rlib
-**/*.dylib
-**/*.so
-**/*.dll
-**/*.d
-**/*.o
-**/examples/
-**/tmp/
-**/rmeta*/
+dist/
+build/
+.env
+*.hprof
+android/app/build/
+ios/Pods/
+.idea/
+.gradle/
+*.iml
+local.properties

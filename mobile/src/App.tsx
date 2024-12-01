@@ -1,53 +1,80 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Navigation } from './navigation';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, LogBox } from 'react-native';
 import { AuthProvider } from './contexts/AuthContext';
 
+// Ignore specific warnings if needed
+LogBox.ignoreLogs([
+  'ViewPropTypes will be removed',
+  'ColorPropType will be removed',
+]);
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('App Error:', error);
+    console.error('Error Info:', info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ color: 'red', textAlign: 'center' }}>
+            Something went wrong. Please restart the app.
+          </Text>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App = () => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const initializeApp = async () => {
-            try {
-                // For now, just simulate initialization
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                setIsLoading(false);
-            } catch (error) {
-                console.error('Initialization error:', error);
-                setError(typeof error === 'string' ? error : 'Failed to initialize app');
-                setIsLoading(false);
-            }
-        };
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Add any initialization logic here
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Initialization error:', error);
+        setIsLoading(false);
+      }
+    };
 
-        initializeApp();
-    }, []);
+    initializeApp();
+  }, []);
 
-    if (isLoading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={{ marginTop: 10, color: '#666' }}>Loading...</Text>
-            </View>
-        );
-    }
-
-    if (error) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
-            </View>
-        );
-    }
-
+  if (isLoading) {
     return (
-        <SafeAreaProvider>
-            <AuthProvider>
-                <Navigation />
-            </AuthProvider>
-        </SafeAreaProvider>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
     );
+  }
+
+  return (
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <Navigation />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
+  );
 };
 
 export default App; 
