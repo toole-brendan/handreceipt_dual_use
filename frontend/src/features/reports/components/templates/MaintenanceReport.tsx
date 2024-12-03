@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '@/ui/styles/reports/templates/maintenance-report.css';
+import '@/styles/features/reports/templates/maintenance-report.css';
 
 interface MaintenanceItem {
   id: string;

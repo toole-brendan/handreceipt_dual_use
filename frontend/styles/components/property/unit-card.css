@@ -1,0 +1,190 @@
+/* frontend/src/ui/styles/components/property/unit-card.css */
+
+/* Unit List Container */
+.unit-list {
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-width: 300px;
+}
+
+.unit-list h3 {
+  color: #ffffff;
+  font-size: 1.25rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #37474f;
+}
+
+/* Unit Tree Structure */
+.unit-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.unit-group {
+  margin-left: 1rem;
+}
+
+.unit-group.company {
+  margin-left: 0;
+}
+
+/* Unit Cards */
+.unit-card {
+  background: #181818;
+  border: 1px solid #37474f;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.unit-card:hover {
+  border-color: #0d47a1;
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.unit-card.selected {
+  border-color: #0d47a1;
+  background: rgba(13, 71, 161, 0.1);
+}
+
+.unit-card.hq {
+  border-left: 4px solid #ffd600;
+}
+
+/* Unit Card Headers */
+.unit-card h4 {
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.unit-card h5 {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+/* Unit Statistics */
+.unit-stats {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+}
+
+.personnel-count,
+.equipment-count {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Alert Badges */
+.unit-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.alert-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.alert-badge.sensitive {
+  background: rgba(213, 0, 0, 0.15);
+  color: #ff1744;
+}
+
+.alert-badge.pending {
+  background: rgba(255, 214, 0, 0.15);
+  color: #ffd600;
+}
+
+.alert-badge.overdue {
+  background: rgba(213, 0, 0, 0.15);
+  color: #ff1744;
+}
+
+/* Platoons Section */
+.platoons {
+  margin-left: 1.5rem;
+  border-left: 1px solid #37474f;
+  padding-left: 1rem;
+}
+
+/* Squads Section */
+.squads {
+  margin-left: 1.25rem;
+  border-left: 1px solid #37474f;
+  padding-left: 1rem;
+}
+
+.unit-card.squad {
+  padding: 0.75rem;
+  background: #1a1a1a;
+}
+
+.unit-card.squad h5 {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .unit-list {
+    min-width: auto;
+  }
+
+  .platoons,
+  .squads {
+    margin-left: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .unit-list {
+    padding: 1rem;
+  }
+
+  .unit-card {
+    padding: 0.75rem;
+  }
+
+  .unit-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .unit-list {
+    background: none;
+    box-shadow: none;
+  }
+
+  .unit-card {
+    break-inside: avoid;
+    border: 1px solid #000;
+    background: none;
+  }
+
+  .alert-badge {
+    border: 1px solid #000;
+  }
+} 

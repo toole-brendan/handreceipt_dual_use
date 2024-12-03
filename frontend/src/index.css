@@ -1,45 +1,25 @@
 /* frontend/src/index.css */
 
-/* Reset and base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Import base styles */
+@import './styles/base/variables.css';
+@import './styles/base/base.css';
 
-body {
-  font-family: "Alliance No.2", -apple-system, system-ui, sans-serif;
-  font-size: var(--font-size-md);
-  line-height: 1.5;
-  color: var(--color-text-primary);
-  background-color: var(--color-background);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Import layout styles */
+@import './styles/components/layout.css';
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+/* Import component styles */
+@import './styles/components/header.css';
+@import './styles/components/sidebar.css';
+@import './styles/components/loading-fallback.css';
 
-/* Basic typography */
-h1, h2, h3, h4, h5, h6 {
-  margin-bottom: var(--spacing-md);
-  font-weight: var(--font-weight-bold);
-  line-height: 1.2;
-}
+/* Import auth styles */
+@import './styles/components/auth/login.css';
+@import './styles/components/auth/shared.css';
 
-p {
-  margin-bottom: var(--spacing-md);
-}
-
-/* Basic link styles */
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
+/* Import dashboard styles */
+@import './styles/components/dashboard/dashboard.css';
+@import './styles/components/dashboard/base.css';
+@import './styles/components/dashboard/common.css';
+@import './styles/components/dashboard/roles/officer.css';
+@import './styles/components/dashboard/roles/nco.css';
+@import './styles/components/dashboard/components/asset-overview.css';

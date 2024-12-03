@@ -3,7 +3,7 @@ import React from 'react';
 import { useCurrentUserProperty } from '@/hooks';
 import { CurrentPropertyList } from './CurrentPropertyList';
 import { HistoricalPropertyList } from './HistoricalPropertyList';
-import '@/ui/styles/property/property-tables.css';
+import '@/styles/components/property/property-tables.css';
 
 const MyProperty: React.FC = () => {
   const { property, loading, error } = useCurrentUserProperty();

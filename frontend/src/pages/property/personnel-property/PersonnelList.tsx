@@ -1,8 +1,6 @@
 // frontend/src/pages/property/personnel-property/PersonnelList.tsx
 import React from 'react';
 import { Personnel } from '@/types/personnel';
-import { usePersonnel } from '@/hooks';
-import { PersonnelPropertyList } from './PersonnelPropertyList';
 
 interface PersonnelListProps {
   unitId: string;
@@ -11,16 +9,53 @@ interface PersonnelListProps {
   showSensitiveItems: boolean;
 }
 
+const mockPersonnel: Personnel[] = [
+  {
+    id: 'P001',
+    rank: 'SSG',
+    firstName: 'John',
+    lastName: 'Smith',
+    dodId: '1234567890',
+    unitId: '1PLT',
+    platoon: '1st Platoon',
+    squad: '1st Squad',
+    position: 'Squad Leader',
+    isCommander: false,
+    isPrimaryHandReceipt: true,
+    propertyAccess: {
+      canSignFor: true,
+      canTransfer: true,
+      canInventory: true,
+      sensitiveItems: true
+    },
+    propertyStats: {
+      propertyCount: 25,
+      sensitiveItemCount: 5,
+      totalValue: 50000,
+      pendingTransfers: 0
+    },
+    inventoryStatus: {
+      lastInventory: '2023-11-15T08:00:00Z',
+      nextInventoryDue: '2023-12-15T08:00:00Z',
+      overdueCount: 0,
+      cycleComplete: true
+    },
+    contact: {
+      email: 'john.smith@army.mil'
+    },
+    status: 'present',
+    clearance: 'SECRET'
+  }
+];
+
 export const PersonnelList: React.FC<PersonnelListProps> = ({ 
   unitId, 
   onPersonSelect, 
   selectedPerson,
   showSensitiveItems
 }) => {
-  const { personnel, loading, error } = usePersonnel(unitId);
-
-  if (loading) return <div>Loading personnel...</div>;
-  if (error) return <div>Error loading personnel</div>;
+  // Filter personnel by unit
+  const personnel = mockPersonnel.filter(p => p.unitId === unitId);
 
   // Group personnel by platoon
   const groupedPersonnel = personnel.reduce((acc: Record<string, Personnel[]>, person) => {
@@ -58,25 +93,25 @@ export const PersonnelList: React.FC<PersonnelListProps> = ({
                 </div>
                 <div className="property-stats">
                   <div className="stat">
-                    <span className="stat-value">{person.propertyCount || 0}</span>
+                    <span className="stat-value">{person.propertyStats.propertyCount || 0}</span>
                     <span className="stat-label">Items</span>
                   </div>
                   {showSensitiveItems && (
                     <div className="stat sensitive">
-                      <span className="stat-value">{person.sensitiveItemCount || 0}</span>
+                      <span className="stat-value">{person.propertyStats.sensitiveItemCount || 0}</span>
                       <span className="stat-label">Sensitive</span>
                     </div>
                   )}
-                  {person.pendingTransfers > 0 && (
+                  {person.propertyStats.pendingTransfers > 0 && (
                     <div className="stat pending">
-                      <span className="stat-value">{person.pendingTransfers}</span>
+                      <span className="stat-value">{person.propertyStats.pendingTransfers}</span>
                       <span className="stat-label">Pending</span>
                     </div>
                   )}
                 </div>
-                {person.lastInventory && (
+                {person.inventoryStatus.lastInventory && (
                   <div className="inventory-status">
-                    Last Inventory: {new Date(person.lastInventory).toLocaleDateString()}
+                    Last Inventory: {new Date(person.inventoryStatus.lastInventory).toLocaleDateString()}
                   </div>
                 )}
               </div>

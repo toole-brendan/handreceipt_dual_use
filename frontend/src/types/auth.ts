@@ -1,18 +1,21 @@
+export type Role = 'officer' | 'nco' | 'soldier';
+
 export interface User {
   id: string;
-  militaryId: string;
-  rank: string;
   name: string;
-  clearanceLevel: string;
+  rank: string;
+  unit: string;
+  role: Role;
 }
-
-export type UserRole = 'Admin' | 'Command' | 'Unit' | 'Individual';
 
 export interface AuthState {
   isAuthenticated: boolean;
-  classificationLevel: string;
-  role: UserRole;
-  unitId: string;
-  userId: string;
   user: User | null;
+  token: string | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface RootState {
+  auth: AuthState;
 } 

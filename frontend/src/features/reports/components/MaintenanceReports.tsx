@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReportGenerator } from '@/ui/components/reports/ReportGenerator';
+import { ReportGenerator } from '@/features/reports/components/ReportGenerator';
 
 const MaintenanceReports: React.FC = () => {
   return (

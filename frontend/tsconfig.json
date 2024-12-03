@@ -18,13 +18,21 @@
       "noFallthroughCasesInSwitch": true,
       "baseUrl": ".",
       "paths": {
+        "@/*": ["src/*"],
+        "@app/*": ["src/app/*"],
+        "@auth/*": ["src/auth/*"],
+        "@components/*": ["src/components/*"],
+        "@contexts/*": ["src/contexts/*"],
         "@features/*": ["src/features/*"],
+        "@hooks/*": ["src/hooks/*"],
+        "@pages/*": ["src/pages/*"],
+        "@services/*": ["src/services/*"],
         "@shared/*": ["src/shared/*"],
+        "@store/*": ["src/store/*"],
         "@styles/*": ["src/styles/*"],
-        "@utils/*": ["src/utils/*"],
         "@types/*": ["src/types/*"],
-        "@config/*": ["src/config/*"],
-        "@contexts/*": ["src/contexts/*"]
+        "@utils/*": ["src/utils/*"],
+        "@ui/*": ["src/ui/*"]
       }
     },
     "include": ["src"],

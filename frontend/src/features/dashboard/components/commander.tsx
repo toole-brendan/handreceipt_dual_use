@@ -1,14 +1,16 @@
 // frontend/src/pages/dashboard/commander.tsx
 
 import React, { useState, useEffect } from 'react';
-import ActivityFeed from '@/ui/components/dashboard/ActivityFeed';
-import SystemHealth from '@/ui/components/dashboard/SystemHealth';
-import AssetOverview from '@/ui/components/dashboard/AssetOverview';
-import SecurityAlerts from '@/ui/components/dashboard/SecurityAlerts';
-import MaintenanceSchedule from '@/ui/components/dashboard/MaintenanceSchedule';
-import WeatherReport from '@/ui/components/dashboard/WeatherReport';
-import PersonnelStatus from '@/ui/components/dashboard/PersonnelStatus';
-import '@/ui/styles/components/dashboard/commander-dashboard.css';
+import ActivityFeed from '../components/ActivityFeed';
+import SystemHealth from '../components/SystemHealth';
+import AssetOverview from '../components/AssetOverview';
+import SecurityAlerts from '../components/SecurityAlerts';
+import MaintenanceSchedule from '../components/MaintenanceSchedule';
+import WeatherReport from '../components/WeatherReport';
+import PersonnelStatus from '../components/PersonnelStatus';
+import InventoryCalendar from './officer/InventoryCalendar';
+import { mockInventoryChecks } from '../../../mocks/mockData';
+import '@/styles/components/dashboard/roles/officer.css';
 
 interface CommanderProfile {
   name: string;
@@ -50,6 +52,10 @@ const CommanderDashboard: React.FC = () => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 300000); // Refresh every 5 minutes
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    console.log('Mock Inventory Checks:', mockInventoryChecks);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -142,6 +148,10 @@ const CommanderDashboard: React.FC = () => {
               console.log('Alert clicked:', alertId);
             }}
           />
+        </div>
+
+        <div className="grid-item">
+          <InventoryCalendar inventoryChecks={mockInventoryChecks} />
         </div>
 
         <div className="grid-item">

@@ -114,4 +114,35 @@ export const mockActivities = [
     classification: 'SECRET',
   },
   // Add more mock activities...
+];
+
+export const mockInventoryChecks = [
+  {
+    id: 'ic1',
+    date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+    assignedOfficer: 'Capt. Sarah Johnson',
+    type: 'Cyclic' as const,
+    location: 'Building A',
+    time: '09:00',
+    lastCheckStatus: 'Pending' as const
+  },
+  {
+    id: 'ic2',
+    date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+    assignedOfficer: 'Lt. Michael Chen',
+    type: 'Sensitive Items' as const,
+    location: 'Armory',
+    time: '14:00',
+    lastCheckStatus: 'Pending' as const
+  },
+  {
+    id: 'ic3',
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    assignedOfficer: 'Maj. Robert Wilson',
+    type: 'Cyclic' as const,
+    location: 'Motor Pool',
+    time: '10:30',
+    lastCheckStatus: 'Completed' as const,
+    reportUrl: '/reports/ic3'
+  }
 ]; 

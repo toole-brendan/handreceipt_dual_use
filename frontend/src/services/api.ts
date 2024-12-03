@@ -40,6 +40,41 @@ export class ApiClient {
     }
   }
 
+  // HTTP Methods
+  async get<T>(endpoint: string): Promise<T> {
+    const response = await this.request<T>(endpoint, { method: 'GET' });
+    return response.data;
+  }
+
+  async post<T>(endpoint: string, data: any): Promise<T> {
+    const response = await this.request<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
+
+  async put<T>(endpoint: string, data: any): Promise<T> {
+    const response = await this.request<T>(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
+
+  async patch<T>(endpoint: string, data: any): Promise<T> {
+    const response = await this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
+
+  async delete<T>(endpoint: string): Promise<T> {
+    const response = await this.request<T>(endpoint, { method: 'DELETE' });
+    return response.data;
+  }
+
   // Asset endpoints
   async getAssets(): Promise<ApiResponse<Asset[]>> {
     return this.request<Asset[]>('/assets');
@@ -48,8 +83,6 @@ export class ApiClient {
   async getAsset(id: string): Promise<ApiResponse<Asset>> {
     return this.request<Asset>(`/assets/${id}`);
   }
-
-  // Add other endpoints as needed
 
   // Add this to your ApiClient class
   async testConnection(): Promise<boolean> {
@@ -85,7 +118,7 @@ export class ApiClient {
     }
   }
 
-  // Add these new methods to your existing api.ts
+  // RFID methods
   async scanRFIDTag(): Promise<ApiResponse<RFIDScanResult>> {
     return this.request<RFIDScanResult>('/rfid/scan');
   }

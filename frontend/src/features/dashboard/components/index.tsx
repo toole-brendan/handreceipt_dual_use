@@ -1,9 +1,9 @@
 import React from 'react';
-import DashboardCard from '@/ui/components/common/DashboardCard';
-import AssetOverview from '@/ui/components/dashboard/AssetOverview';
-import ActivityFeed from '@/ui/components/dashboard/ActivityFeed';
-import SystemHealth from '@/ui/components/dashboard/SystemHealth';
-import '@/ui/styles/dashboard.css';
+import DashboardCard from '../../../shared/components/common/DashboardCard';
+import AssetOverview from './AssetOverview';
+import ActivityFeed from './ActivityFeed';
+import SystemHealth from './SystemHealth';
+import '@/styles/components/dashboard/base.css';
 
 interface DashboardMetrics {
   totalAssets: number;

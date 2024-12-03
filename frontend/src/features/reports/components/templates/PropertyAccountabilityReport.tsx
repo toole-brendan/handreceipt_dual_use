@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import '@/ui/styles/reports/templates/property-accountability.css';
+import '@/styles/features/reports/templates/property-accountability.css';
 
 interface PropertyItem {
   id: string;

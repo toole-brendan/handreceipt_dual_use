@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import '@/ui/styles/reports/templates/security-report.css';
-import { ReportClassificationBadge } from '@/ui/components/reports/ReportClassificationBadge';
+import '@/styles/features/reports/templates/security-report.css';
+import { ReportClassificationBadge } from '@/features/reports/components/ReportClassificationBadge';
 
 interface SecurityIncident {
   id: string;

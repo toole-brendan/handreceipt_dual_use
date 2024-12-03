@@ -1,7 +1,7 @@
 /* frontend/src/ui/components/reports/ReportClassificationBadge.tsx */
 
 import React from 'react';
-import '@/ui/styles/reports/report-classification-badge.css';
+import '@/styles/components/reports/classification-badge.css';
 
 export type ClassificationLevel = 
   | 'UNCLASSIFIED' 

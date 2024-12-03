@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ReportGenerator } from '@/ui/components/reports/ReportGenerator';
-import ClassificationBanner from '@/ui/components/common/ClassificationBanner';
-import '@/ui/styles/reports/asset-reports.css';
+import { ReportGenerator } from '@/features/reports/components/ReportGenerator';
+import ClassificationBanner from '@/shared/components/common/ClassificationBanner';
+import '@/styles/features/reports/asset-reports.css';
 
 interface AssetReportFilter {
   status: string[];
@@ -97,11 +97,7 @@ const AssetReports: React.FC = () => {
         </div>
       </div>
 
-      <ReportGenerator 
-        type="asset"
-        filters={filters}
-        classification="SECRET"
-      />
+      <ReportGenerator />
 
       <ClassificationBanner />
     </div>

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import '@/ui/styles/dashboard/maintenance-dashboard.css';
+import '@/styles/components/dashboard/base.css';
+import '@/styles/components/dashboard/components/asset-overview.css';
 
 interface MaintenanceTask {
   id: string;
@@ -76,8 +77,8 @@ const MaintenanceDashboard: React.FC = () => {
   const filteredAndSortedTasks = tasks
     .filter(task => filterStatus === 'all' || task.status === filterStatus)
     .sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
+      const aValue = a[sortField] ?? '';
+      const bValue = b[sortField] ?? '';
       const direction = sortDirection === 'asc' ? 1 : -1;
       return aValue < bValue ? -direction : direction;
     });

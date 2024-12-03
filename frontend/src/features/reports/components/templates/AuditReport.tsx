@@ -1,8 +1,8 @@
 /* frontend/src/pages/reports/templates/AuditReport.tsx */
 
 import React, { useState, useEffect } from 'react';
-import '@/ui/styles/reports/templates/audit-report.css';
-import { ReportClassificationBadge } from '@/ui/components/reports/ReportClassificationBadge';
+import '@/styles/features/reports/templates/audit-report.css';
+import { ReportClassificationBadge } from '@/features/reports/components/ReportClassificationBadge';
 
 interface AuditEvent {
   id: string;

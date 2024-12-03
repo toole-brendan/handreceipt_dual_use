@@ -10,79 +10,116 @@ export interface NavItem {
   component?: React.LazyExoticComponent<ComponentType<any>>;
 }
 
-export interface NavSection {
-  title?: string;
-  items: NavItem[];
-}
+export const OFFICER_NAV_ITEMS: NavItem[] = [
+  {
+    to: '/property',
+    icon: 'inventory_2',
+    text: 'My Property'
+  },
+  {
+    to: '/transfers',
+    icon: 'swap_horiz',
+    text: 'Transfer Requests'
+  },
+  {
+    to: '/property/unit',
+    icon: 'library_books',
+    text: 'Unit Property Book'
+  },
+  {
+    to: '/property/sensitive',
+    icon: 'security',
+    text: 'Sensitive Items'
+  },
+  {
+    to: '/personnel',
+    icon: 'people',
+    text: 'Personnel View'
+  },
+  {
+    to: '/maintenance',
+    icon: 'build',
+    text: 'Maintenance'
+  },
+  {
+    to: '/reports',
+    icon: 'assessment',
+    text: 'Reports'
+  },
+  {
+    to: '/history',
+    icon: 'history',
+    text: 'History'
+  },
+  {
+    to: '/settings',
+    icon: 'settings',
+    text: 'Settings'
+  }
+];
 
-export const navigationConfig: NavSection[] = [
+export const NCO_NAV_ITEMS: NavItem[] = [
   {
-    items: [
-      { 
-        to: '/dashboard', 
-        icon: 'dashboard', 
-        text: 'Dashboard',
-        component: lazy(() => import('@/pages/dashboard/Dashboard'))
-      },
-      { 
-        to: '/my-property', 
-        icon: 'inventory_2', 
-        text: 'My Property',
-        component: lazy(() => import('@/pages/property/my-property'))
-      },
-      { 
-        to: '/personnel-property', 
-        icon: 'group', 
-        text: 'Personnel Property',
-        component: lazy(() => import('@/pages/property/personnel-property'))
-      },
-    ]
+    to: '/property',
+    icon: 'inventory_2',
+    text: 'My Property'
   },
   {
-    title: 'Blockchain',
-    items: [
-      { 
-        to: '/blockchain', 
-        icon: 'timeline', 
-        text: 'Overview',
-        component: lazy(() => import('@/pages/blockchain').then(module => ({ 
-          default: module.BlockchainOverview
-        })))
-      },
-      { 
-        to: '/blockchain/transactions', 
-        icon: 'swap_horiz', 
-        text: 'Transactions',
-        component: lazy(() => import('@/pages/blockchain/transactions'))
-      },
-    ]
+    to: '/transfers',
+    icon: 'swap_horiz',
+    text: 'Transfer Requests'
   },
   {
-    title: 'Reports',
-    items: [
-      { 
-        to: '/reports', 
-        icon: 'assessment', 
-        text: 'Reports',
-        component: lazy(() => import('@/pages/reports'))
-      },
-      { 
-        to: '/reports/builder', 
-        icon: 'build', 
-        text: 'Report Builder',
-        component: lazy(() => import('@/pages/reports/ReportBuilder'))
-      },
-    ]
+    to: '/nco/squad',
+    icon: 'groups',
+    text: 'Squad Dashboard'
   },
   {
-    title: 'Assets',
-    items: [
-      { 
-        to: '/assets/create-qr', 
-        icon: 'qr_code', 
-        text: 'Create QR Code',
-        component: lazy(() => import('@/pages/assets/CreateQRCode'))
-      },
-    ]
+    to: '/personnel',
+    icon: 'people',
+    text: 'Personnel View'
+  },
+  {
+    to: '/maintenance',
+    icon: 'build',
+    text: 'Maintenance'
+  },
+  {
+    to: '/history',
+    icon: 'history',
+    text: 'History'
+  },
+  {
+    to: '/settings',
+    icon: 'settings',
+    text: 'Settings'
+  }
+];
+
+export const SOLDIER_NAV_ITEMS: NavItem[] = [
+  {
+    to: '/property',
+    icon: 'inventory_2',
+    text: 'My Property'
+  },
+  {
+    to: '/transfers',
+    icon: 'swap_horiz',
+    text: 'Transfer Requests'
+  },
+  {
+    to: '/maintenance',
+    icon: 'build',
+    text: 'Maintenance'
+  },
+  {
+    to: '/history',
+    icon: 'history',
+    text: 'History'
+  },
+  {
+    to: '/settings',
+    icon: 'settings',
+    text: 'Settings'
   }
 ]; 

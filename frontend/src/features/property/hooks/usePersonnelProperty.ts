@@ -1,23 +1,28 @@
 import { useState, useEffect } from 'react';
-import { HandReceiptItem } from '@/types/personnel';
-import { mockHandReceiptItems } from '@/mocks/mockPersonnelData';
+import { PropertyItem } from '@/features/property/types';
+import { getPersonnelProperty } from '@/features/property/services/propertyService';
 
-export const usePersonnelProperty = (personnelId: string) => {
-  const [properties, setProperties] = useState<HandReceiptItem[]>([]);
+interface UsePersonnelPropertyResult {
+  properties: PropertyItem[];
+  loading: boolean;
+  error: Error | null;
+}
+
+export const usePersonnelProperty = (personnelId: string): UsePersonnelPropertyResult => {
+  const [properties, setProperties] = useState<PropertyItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Simulate API call with mock data
     const fetchProperties = async () => {
       try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // For demo, return all items for any personnel
-        setProperties(mockHandReceiptItems);
+        setLoading(true);
+        const data = await getPersonnelProperty(personnelId);
+        setProperties(data);
+        setError(null);
       } catch (err) {
-        setError('Failed to fetch property data');
+        setError(err instanceof Error ? err : new Error('Failed to fetch properties'));
+        setProperties([]);
       } finally {
         setLoading(false);
       }
@@ -27,4 +32,6 @@ export const usePersonnelProperty = (personnelId: string) => {
   }, [personnelId]);
 
   return { properties, loading, error };
-}; 
+};
+
+export default usePersonnelProperty; 

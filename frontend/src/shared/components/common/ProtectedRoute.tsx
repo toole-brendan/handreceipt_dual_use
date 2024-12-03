@@ -1,48 +1,34 @@
 /* ProtectedRoute.tsx */
 
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
-import { AuthState } from '@/types/auth';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import LoadingFallback from '@/shared/components/feedback/LoadingFallback';
 
 interface ProtectedRouteProps {
-  requiredRole?: string[];
-  requiredClearance?: string[];
+  children: React.ReactNode;
+  role?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  requiredRole = [],
-  requiredClearance = []
-}) => {
-  const auth = useSelector<RootState, AuthState>((state) => {
-    console.log('Auth state in ProtectedRoute:', state.auth);
-    return state.auth;
-  });
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
+  const { isAuthenticated, currentUser, isLoading } = useAuth();
 
-  // Add default authentication for development
-  if (import.meta.env.DEV && !auth.isAuthenticated) {
-    console.log('DEV mode: Using default authentication');
-    return <Outlet />;
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return <LoadingFallback />;
   }
 
-  if (!auth.isAuthenticated) {
-    console.log('Not authenticated, redirecting to login');
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  const hasRequiredRole = requiredRole.length === 0 || 
-    (auth.role && requiredRole.includes(auth.role));
-  
-  const hasRequiredClearance = requiredClearance.length === 0 || 
-    (auth.classificationLevel && requiredClearance.includes(auth.classificationLevel));
-
-  if (!hasRequiredRole || !hasRequiredClearance) {
-    console.log('Missing required role or clearance, redirecting to unauthorized');
-    return <Navigate to="/unauthorized" replace />;
+  // Check role requirements if specified
+  if (role && currentUser?.role !== role) {
+    return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

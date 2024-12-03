@@ -1,7 +1,7 @@
 /* frontend/src/ui/components/common/ClassificationBanner.tsx */
 
 import React from 'react';
-import '@/ui/styles/components/classification-banner.css';
+import '@/styles/components/classification-banner.css';
 
 const ClassificationBanner: React.FC = () => {
   return (

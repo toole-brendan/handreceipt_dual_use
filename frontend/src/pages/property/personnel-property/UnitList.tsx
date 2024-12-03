@@ -1,8 +1,7 @@
 // frontend/src/pages/property/personnel-property/UnitList.tsx
 import React from 'react';
 import { Unit } from '@/types/personnel';
-import { useUnits } from '@/hooks';
-import '@/ui/styles/components/property/unit-card.css';
+import '@/styles/components/property/unit-card.css';
 
 interface UnitListProps {
   onUnitSelect: (unitId: string) => void;
@@ -10,11 +9,6 @@ interface UnitListProps {
 }
 
 export const UnitList: React.FC<UnitListProps> = ({ onUnitSelect, selectedUnit }) => {
-  const { units, loading, error } = useUnits();
-
-  if (loading) return <div>Loading units...</div>;
-  if (error) return <div>Error loading units</div>;
-
   return (
     <div className="unit-list">
       <h3>Unit Structure</h3>
@@ -102,7 +96,6 @@ export const UnitList: React.FC<UnitListProps> = ({ onUnitSelect, selectedUnit }
                   <span className="alert-badge sensitive">8 Sensitive</span>
                 </div>
               </div>
-              {/* Similar squad structure as 1st Platoon */}
             </div>
 
             {/* 3rd Platoon */}
@@ -121,7 +114,6 @@ export const UnitList: React.FC<UnitListProps> = ({ onUnitSelect, selectedUnit }
                   <span className="alert-badge overdue">1 Overdue</span>
                 </div>
               </div>
-              {/* Similar squad structure as 1st Platoon */}
             </div>
           </div>
         </div>

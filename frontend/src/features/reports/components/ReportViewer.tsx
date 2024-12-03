@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import ClassificationBanner from '@/ui/components/common/ClassificationBanner';
-import LoadingFallback from '@/ui/components/common/LoadingFallback';
-import { ReportClassificationBadge } from '@/ui/components/reports/ReportClassificationBadge';
-import type { ClassificationLevel } from '@/ui/components/reports/ReportClassificationBadge';
-import '@/ui/styles/reports/report-viewer.css';
+import ClassificationBanner from '@/shared/components/common/ClassificationBanner';
+import LoadingFallback from '@/shared/components/feedback/LoadingFallback';
+import { ReportClassificationBadge } from '@/features/reports/components/ReportClassificationBadge';
+import type { ClassificationLevel } from '@/features/reports/components/ReportClassificationBadge';
+import '@/styles/features/reports/report-viewer.css';
 
 interface Report {
   id: string;

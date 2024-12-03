@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import '@/ui/styles/reports/report-categories.css';
+import '@/styles/features/reports/report-categories.css';
 
 const ReportCategories: React.FC = () => {
   return (

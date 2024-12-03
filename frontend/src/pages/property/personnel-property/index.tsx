@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { UnitList } from './UnitList';
 import { PersonnelList } from './PersonnelList';
-import { PersonnelPropertyList } from './PersonnelPropertyList';
-import { ReportClassificationBadge } from '@/ui/components/reports/ReportClassificationBadge';
-import '@/ui/styles/property/personnel-property.css';
+import { PersonnelPropertyList } from '@/features/property/components/PersonnelPropertyList';
+import { ReportClassificationBadge } from '@/shared/components/reports/ReportClassificationBadge';
+import '@/styles/components/property/personnel-property.css';
 
 const PersonnelProperty: React.FC = () => {
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
