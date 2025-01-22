@@ -75,12 +75,12 @@ pub enum TransactionType {
     SystemEvent,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TransactionStatus {
     Pending,
     Confirmed,
     Failed,
-    Rejected,
+    Unknown,
 }
 
 impl std::fmt::Display for TransactionType {
@@ -120,7 +120,7 @@ impl std::fmt::Display for TransactionStatus {
             TransactionStatus::Pending => write!(f, "PENDING"),
             TransactionStatus::Confirmed => write!(f, "CONFIRMED"),
             TransactionStatus::Failed => write!(f, "FAILED"),
-            TransactionStatus::Rejected => write!(f, "REJECTED"),
+            TransactionStatus::Unknown => write!(f, "UNKNOWN"),
         }
     }
 }
@@ -133,7 +133,7 @@ impl std::str::FromStr for TransactionStatus {
             "PENDING" => Ok(TransactionStatus::Pending),
             "CONFIRMED" => Ok(TransactionStatus::Confirmed),
             "FAILED" => Ok(TransactionStatus::Failed),
-            "REJECTED" => Ok(TransactionStatus::Rejected),
+            "UNKNOWN" => Ok(TransactionStatus::Unknown),
             _ => Err(CoreError::Validation(
                 format!("Invalid transaction status: {}", s).into()
             )),

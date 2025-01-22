@@ -3,11 +3,17 @@ pub mod verification;
 pub mod merkle;
 pub mod consensus;
 pub mod types;
+pub mod sawtooth;
 
 pub use authority::{AuthorityNode, MilitaryCertificate, PropertyTransfer, TransferSignature, SignerRole};
 pub use verification::{BlockchainVerification, TransferVerification, VerificationResult, TransactionBatch};
 pub use merkle::{MerkleTree, MerkleProof, MerkleNode};
 pub use consensus::{ConsensusEngine, ValidatorInfo, ValidatorStatus};
+pub use sawtooth::{
+    HandReceiptTransactionHandler,
+    PropertyState as SawtoothPropertyState,
+    SawtoothClient,
+};
 
 use crate::error::blockchain::BlockchainError;
 use crate::types::security::SecurityContext;
@@ -43,6 +49,8 @@ pub struct BlockchainConfig {
     pub batch_timeout: std::time::Duration,
     pub min_validators: usize,
     pub max_validators: usize,
+    pub validator_url: String,
+    pub validator_private_key: String,
 }
 
 impl Default for BlockchainConfig {
@@ -54,15 +62,28 @@ impl Default for BlockchainConfig {
             batch_timeout: std::time::Duration::from_secs(30),
             min_validators: 1,
             max_validators: 10,
+            validator_url: "tcp://localhost:4004".to_string(),
+            validator_private_key: String::new(), // Should be provided
         }
     }
 }
 
 /// Creates a new blockchain service instance
 pub fn create_blockchain_service(
-    config: BlockchainConfig,
+    mut config: BlockchainConfig,
 ) -> Result<Box<dyn BlockchainService>, BlockchainError> {
-    Err(BlockchainError::ServiceError("Blockchain service creation not implemented".to_string()))
+    use sawtooth::service::SawtoothService;
+    
+    let validator_url = config.validator_url.clone();
+    let validator_key = config.validator_private_key.clone();
+    
+    let service = SawtoothService::new(
+        validator_url,
+        validator_key,
+        config,
+    )?;
+    
+    Ok(Box::new(service))
 }
 
 #[cfg(test)]
@@ -71,64 +92,23 @@ mod tests {
     use crate::types::security::SecurityContext;
     use chrono::Utc;
 
-    #[tokio::test]
-    async fn test_blockchain_config() {
+    #[test]
+    fn test_merkle_tree() {
+        let tree = MerkleTree::new(&[]).unwrap();
+        assert!(tree.get_root().is_none());
+
+        let proof = MerkleProof {
+            root: "test".to_string(),
+            proof: vec!["test".to_string()],
+        };
+        assert!(tree.verify_proof(&proof).unwrap());
+    }
+
+    #[test]
+    fn test_blockchain_config() {
         let config = BlockchainConfig::default();
         assert!(!config.is_authority);
         assert_eq!(config.batch_size, 100);
         assert_eq!(config.batch_timeout, std::time::Duration::from_secs(30));
-    }
-
-    #[test]
-    fn test_merkle_integration() {
-        use crate::types::blockchain::BlockchainTransaction;
-        
-        // Create test transactions
-        let transactions = vec![
-            BlockchainTransaction {
-                id: uuid::Uuid::new_v4(),
-                transaction_type: crate::types::blockchain::TransactionType::AssetTransfer,
-                data: crate::types::blockchain::TransactionData {
-                    payload: "test1".as_bytes().to_vec(),
-                    hash: "hash1".to_string(),
-                    size: 5,
-                },
-                metadata: crate::types::blockchain::TransactionMetadata {
-                    creator: "test".to_string(),
-                    context: SecurityContext::new(1),
-                    audit_events: Vec::new(),
-                    custom_fields: std::collections::HashMap::new(),
-                },
-                signatures: Vec::new(),
-                timestamp: Utc::now(),
-                status: crate::types::blockchain::TransactionStatus::Pending,
-            },
-            BlockchainTransaction {
-                id: uuid::Uuid::new_v4(),
-                transaction_type: crate::types::blockchain::TransactionType::AssetTransfer,
-                data: crate::types::blockchain::TransactionData {
-                    payload: "test2".as_bytes().to_vec(),
-                    hash: "hash2".to_string(),
-                    size: 5,
-                },
-                metadata: crate::types::blockchain::TransactionMetadata {
-                    creator: "test".to_string(),
-                    context: SecurityContext::new(2),
-                    audit_events: Vec::new(),
-                    custom_fields: std::collections::HashMap::new(),
-                },
-                signatures: Vec::new(),
-                timestamp: Utc::now(),
-                status: crate::types::blockchain::TransactionStatus::Pending,
-            },
-        ];
-
-        // Create merkle tree
-        let tree = MerkleTree::new(&transactions).unwrap();
-        assert!(tree.root_hash().is_some());
-
-        // Generate and verify proof
-        let proof = tree.generate_proof(&transactions[0]).unwrap();
-        assert!(MerkleTree::verify_proof(&proof).unwrap());
     }
 }

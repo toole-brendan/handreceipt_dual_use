@@ -55,31 +55,31 @@ impl HandReceiptMobile {
 #[cfg(target_os = "ios")]
 mod ios {
     use super::*;
-    use std::ffi::{c_void, CString};
-    use std::os::raw::c_char;
 
     #[no_mangle]
-    pub extern "C" fn mobile_core_new() -> *mut c_void {
-        // Implementation for iOS
-        std::ptr::null_mut()
+    pub extern "C" fn rust_init() -> bool {
+        // Initialize any iOS-specific functionality
+        true
     }
 }
 
 // FFI exports for Android
 #[cfg(target_os = "android")]
 mod android {
-    use super::HandReceiptMobile;
+    use super::*;
     use jni::JNIEnv;
     use jni::objects::JClass;
-    use jni::sys::{jlong, jstring};
+    use jni::sys::jstring;
 
     #[no_mangle]
-    pub extern "system" fn Java_com_handreceipt_MobileCore_scanQR(
-        env: JNIEnv,
+    pub extern "system" fn Java_com_handreceipt_HandReceiptModule_nativeInit(
+        _env: JNIEnv,
         _class: JClass,
-        core_ptr: jlong,
     ) -> jstring {
-        // Implementation for Android
-        std::ptr::null_mut()
+        // Return a simple initialization message
+        let output = "Rust library initialized";
+        let output_string = _env.new_string(output)
+            .expect("Couldn't create Java string!");
+        output_string.into_raw()
     }
 } 

@@ -1,0 +1,62 @@
+# Sawtooth Validator Configuration
+
+# Bind network, component, and consensus interfaces
+bind = [
+    "network:tcp://127.0.0.1:8800",
+    "component:tcp://127.0.0.1:4004",
+    "consensus:tcp://127.0.0.1:5050"
+]
+
+# Network endpoint
+endpoint = "tcp://127.0.0.1:8800"
+
+# Peering mode (dynamic or static)
+peering = "dynamic"
+
+# Seed peers for initial connection
+# seeds = ["tcp://seed1:8800", "tcp://seed2:8800"]
+
+# Maximum number of peers to maintain
+maximum_peer_connectivity = 10
+
+# Minimum number of peers required for operation
+minimum_peer_connectivity = 3
+
+# Scheduler type (serial or parallel)
+scheduler = "parallel"
+
+# Transaction families
+opentsdb_url = ""
+opentsdb_db = ""
+opentsdb_username = ""
+opentsdb_password = ""
+
+[families]
+handreceipt = "1.0"
+
+[permissions]
+handreceipt = ["transfer", "create"]
+
+[roles]
+# Officer role can create and approve transfers
+officer = ["handreceipt.transfer", "handreceipt.create"]
+# NCO role can create and initiate transfers
+nco = ["handreceipt.transfer", "handreceipt.create"]
+# Soldier role can only initiate transfers
+soldier = ["handreceipt.transfer"]
+
+[keys]
+# These should be set via environment variables in production
+# validator_key = ""
+# network_public_key = ""
+# network_private_key = ""
+
+[storage]
+# Type of storage implementation to use
+type = "lmdb"
+
+# Storage size
+size = 1024
+
+# Directory to store data
+data_dir = "/var/lib/sawtooth" 

@@ -3,6 +3,9 @@ import React
 import Security
 import CommonCrypto
 
+// Import the Rust library header
+import handreceipt_mobile
+
 @objc(HandReceiptModule)
 class HandReceiptModule: NSObject {
     private let queue = DispatchQueue(label: "com.handreceipt.core", qos: .userInitiated)
@@ -17,6 +20,17 @@ class HandReceiptModule: NSObject {
     @objc
     static func requiresMainQueueSetup() -> Bool {
         return false
+    }
+    
+    @objc
+    func initialize(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+        // Initialize Rust library
+        let result = rust_init()
+        if result {
+            resolve(["success": true])
+        } else {
+            reject("INIT_ERROR", "Failed to initialize Rust library", nil)
+        }
     }
     
     private func generateOrGetKeyPair() {

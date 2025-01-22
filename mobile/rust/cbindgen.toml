@@ -1,0 +1,29 @@
+language = "C"
+header = "/* HandReceipt Mobile Core - C Interface */"
+include_guard = "HANDRECEIPT_MOBILE_H"
+style = "both"
+cpp_compat = true
+
+[defines]
+"target_os = ios" = "IOS"
+"target_os = android" = "ANDROID"
+
+[export]
+include = ["HandReceiptError"]
+prefix = "handreceipt_"
+
+[fn]
+rename_args = "camelCase"
+args = "auto"
+
+[enum]
+rename_variants = "ScreamingSnakeCase"
+prefix_with_name = true
+
+[parse]
+parse_deps = true
+include = ["handreceipt-mobile-core"]
+
+[parse.expand]
+crates = ["handreceipt-mobile-core"]
+clean = true 

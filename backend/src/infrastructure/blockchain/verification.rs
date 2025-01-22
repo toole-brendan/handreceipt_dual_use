@@ -8,6 +8,7 @@ use rand::rngs::OsRng;
 use std::collections::HashMap;
 use futures::TryFutureExt;
 use uuid::Uuid;
+use parking_lot::RwLock as ParkingRwLock;
 
 use crate::{
     domain::models::transfer::{PropertyTransferRecord, TransferStatus},
@@ -17,6 +18,11 @@ use crate::{
         blockchain::{BlockchainTransaction, TransactionType, TransactionData, TransactionMetadata, TransactionStatus},
     },
     error::blockchain::BlockchainError,
+    infrastructure::blockchain::{
+        merkle::{MerkleTree, MerkleProof},
+        sawtooth::client::SawtoothClient,
+        sawtooth::verification::SawtoothVerification,
+    },
 };
 
 use super::{
@@ -28,7 +34,6 @@ use super::{
         AuthorityService,
         MilitaryCertificate,
     },
-    merkle::{MerkleTree, MerkleProof},
 };
 
 const BATCH_SIZE: usize = 100;
@@ -302,5 +307,50 @@ impl TransferVerification for BlockchainVerification {
         }
 
         Ok(hashes)
+    }
+}
+
+pub struct VerificationService {
+    sawtooth: Arc<SawtoothVerification>,
+}
+
+impl VerificationService {
+    pub fn new(sawtooth: Arc<SawtoothVerification>) -> Self {
+        Self { sawtooth }
+    }
+}
+
+#[async_trait]
+impl TransferVerification for VerificationService {
+    async fn verify_transfer(
+        &self,
+        transfer: &PropertyTransferRecord,
+        context: &SecurityContext,
+    ) -> Result<VerificationResult, CoreError> {
+        self.sawtooth.verify_transfer(transfer, context).await
+    }
+
+    async fn get_transfer_status(
+        &self,
+        transfer_id: i32,
+        context: &SecurityContext,
+    ) -> Result<TransferStatus, CoreError> {
+        self.sawtooth.get_transfer_status(transfer_id, context).await
+    }
+
+    async fn record_transfer(
+        &self,
+        transfer: &PropertyTransferRecord,
+        context: &SecurityContext,
+    ) -> Result<String, CoreError> {
+        self.sawtooth.record_transfer(transfer, context).await
+    }
+
+    async fn record_batch(
+        &self,
+        transfers: &[PropertyTransferRecord],
+        context: &SecurityContext,
+    ) -> Result<Vec<String>, CoreError> {
+        self.sawtooth.record_batch(transfers, context).await
     }
 }

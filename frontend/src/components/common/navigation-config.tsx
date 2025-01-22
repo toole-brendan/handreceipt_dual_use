@@ -7,9 +7,7 @@ import {
   ArrowLeftRight, 
   Shield, 
   Users, 
-  Wrench, 
   QrCode,
-  BarChart3,
   History,
   Settings
 } from 'lucide-react';
@@ -46,19 +44,9 @@ export const OFFICER_NAV_ITEMS: NavItemConfig[] = [
     text: 'Sensitive Items'
   },
   {
-    to: '/maintenance',
-    icon: <Wrench className="h-5 w-5" />,
-    text: 'Maintenance'
-  },
-  {
     to: '/qr',
     icon: <QrCode className="h-5 w-5" />,
     text: 'QR Generator'
-  },
-  {
-    to: '/reports',
-    icon: <BarChart3 className="h-5 w-5" />,
-    text: 'Reports'
   },
   {
     to: '/history',
@@ -95,11 +83,6 @@ export const NCO_NAV_ITEMS: NavItemConfig[] = [
     text: 'Sensitive Items'
   },
   {
-    to: '/maintenance',
-    icon: <Wrench className="h-5 w-5" />,
-    text: 'Maintenance'
-  },
-  {
     to: '/history',
     icon: <History className="h-5 w-5" />,
     text: 'History'
@@ -127,11 +110,6 @@ export const SOLDIER_NAV_ITEMS: NavItemConfig[] = [
     to: '/sensitive-items',
     icon: <Shield className="h-5 w-5" />,
     text: 'Sensitive Items'
-  },
-  {
-    to: '/maintenance',
-    icon: <Wrench className="h-5 w-5" />,
-    text: 'Maintenance'
   },
   {
     to: '/history',

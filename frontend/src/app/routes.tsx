@@ -42,10 +42,6 @@ const ForgotPassword = lazy(() => import('@/pages/auth/forgot-password.page'));
 const PropertyIndex = lazy(() => import('@/pages/property/index.page'));
 const SensitiveItems = lazy(() => import('@/pages/property/sensitive-items.page'));
 
-// Maintenance pages
-const MaintenanceIndex = lazy(() => import('@/pages/maintenance/index.page'));
-const MaintenanceRequest = lazy(() => import('@/pages/maintenance/request.page'));
-
 // Transfer pages
 const TransfersIndex = lazy(() => import('@/pages/transfers/index.page'));
 const NewTransfer = lazy(() => import('@/pages/transfers/new.page'));
@@ -53,13 +49,12 @@ const NewTransfer = lazy(() => import('@/pages/transfers/new.page'));
 // Personnel pages (NCO & Officer only)
 const PersonnelDetails = lazy(() => import('@/pages/personnel/details.page'));
 
-// Reports pages (Officer only)
-const ReportsIndex = lazy(() => import('@/pages/reports/index.page'));
-const HistoryPage = lazy(() => import('@/pages/history/index.page'));
-
 // QR pages (Officer only)
 const QRIndex = lazy(() => import('@/pages/qr/index.page'));
 const QRBulk = lazy(() => import('@/pages/qr/bulk.page'));
+
+// History route
+const HistoryIndex = lazy(() => import('@/pages/history/index.page'));
 
 // Settings pages
 const Settings = lazy(() => import('@/pages/settings/index.page'));
@@ -77,9 +72,6 @@ const PersonnelIndex = lazy(() => import('@/features/personnel/components/Person
 
 // Sensitive Items routes
 const SensitiveItemsDashboard = lazy(() => import('@/pages/sensitive-items/index.page'));
-
-// History route
-const HistoryIndex = lazy(() => import('@/pages/history/index.page'));
 
 // Root layout that wraps authenticated routes
 const RootLayout = () => (
@@ -136,22 +128,6 @@ const routes = [
           }
         ]
       },
-      // Maintenance routes
-      {
-        path: 'maintenance',
-        children: [
-          {
-            path: '',
-            element: <ProtectedRoute><MaintenanceIndex /></ProtectedRoute>,
-            errorElement: <RouteErrorFallback />
-          },
-          {
-            path: 'request',
-            element: <ProtectedRoute><MaintenanceRequest /></ProtectedRoute>,
-            errorElement: <RouteErrorFallback />
-          }
-        ]
-      },
       // Transfer routes
       {
         path: 'transfers',
@@ -180,21 +156,6 @@ const routes = [
           {
             path: ':id',
             element: <ProtectedRoute role="NCO"><PersonnelDetails /></ProtectedRoute>,
-            errorElement: <RouteErrorFallback />
-          }
-        ]
-      },
-      // Reports routes (Officer only)
-      {
-        path: 'reports',
-        children: [
-          {
-            path: '',
-            element: <ProtectedRoute role="OFFICER">
-              <Suspense fallback={<LoadingFallback />}>
-                <ReportsIndex />
-              </Suspense>
-            </ProtectedRoute>,
             errorElement: <RouteErrorFallback />
           }
         ]

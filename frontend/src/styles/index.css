@@ -73,13 +73,6 @@
 @import './features/dashboard/base.css';
 @import './features/dashboard/base.css';
 
-/* Reports */
-@import './features/reports/asset-reports.css';
-@import './features/reports/report-builder.css';
-@import './features/reports/report-generator.css';
-@import './features/reports/report-viewer.css';
-@import './features/reports/print.css';
-
 /* Property Management */
 @import './components/property/property-card.css';
 @import './components/property/property-layout.css';
@@ -104,5 +97,6 @@
 /* 8. Themes */
 @import './themes/light.css';
 @import './themes/dark.css';
-@import './themes/utilities.css'; @import "./components/property/property-layout.css";
+@import './themes/utilities.css';
+@import "./components/property/property-layout.css";
 @import "./components/sensitive-items/sensitive-layout.css";

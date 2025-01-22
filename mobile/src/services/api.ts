@@ -2,9 +2,13 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import HandReceiptModule from '../native/HandReceiptMobile';
-import { Transfer } from '../types/sync';
-import { Property } from '../types/scanner';
+import { Transfer, TransferRequest, TransferStatus, QRScanResult } from '../types/sync';
+import { Property, PropertyStatus, SyncStatus } from '../types/scanner';
 import { API_URL } from '@env';
+
+// Default values if env vars are not set
+const DEFAULT_API_URL = 'http://localhost:8080';
+const DEFAULT_API_TIMEOUT = 30000;
 
 class ApiClient {
   private api: AxiosInstance;
@@ -16,7 +20,8 @@ class ApiClient {
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_URL || 'http://localhost:8080',
+      baseURL: API_URL || DEFAULT_API_URL,
+      timeout: DEFAULT_API_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -103,12 +108,12 @@ class ApiClient {
   // Property APIs
   async getProperties(): Promise<Property[]> {
     try {
-      await this.handleOfflineRequest('GET', '/api/property');
-      const response = await this.api.get('/api/property');
+      await this.handleOfflineRequest('GET', '/api/properties');
+      const response = await this.api.get('/api/properties');
+      await AsyncStorage.setItem('cached_properties', JSON.stringify(response.data));
       return response.data;
     } catch (error) {
       if (error instanceof Error) {
-        // Return cached data if offline
         const cached = await AsyncStorage.getItem('cached_properties');
         if (cached) return JSON.parse(cached);
       }
@@ -116,13 +121,49 @@ class ApiClient {
     }
   }
 
-  async transferProperty(transfer: Transfer): Promise<void> {
+  async getPropertyById(id: string): Promise<Property> {
     try {
-      await this.handleOfflineRequest('POST', '/api/property/transfer', transfer);
+      await this.handleOfflineRequest('GET', `/api/properties/${id}`);
+      const response = await this.api.get(`/api/properties/${id}`);
+      await AsyncStorage.setItem(`cached_property_${id}`, JSON.stringify(response.data));
+      return response.data;
+    } catch (error) {
+      if (error instanceof Error) {
+        const cached = await AsyncStorage.getItem(`cached_property_${id}`);
+        if (cached) return JSON.parse(cached);
+      }
+      throw error;
+    }
+  }
+
+  async createProperty(property: Partial<Property>): Promise<Property> {
+    const response = await this.api.post('/api/properties', property);
+    return response.data;
+  }
+
+  async updateProperty(id: string, property: Partial<Property>): Promise<Property> {
+    const response = await this.api.put(`/api/properties/${id}`, property);
+    return response.data;
+  }
+
+  async getPropertyQR(id: string): Promise<string> {
+    const response = await this.api.get(`/api/properties/${id}/qr`);
+    return response.data.qrCode;
+  }
+
+  async getPropertySyncStatus(id: string): Promise<SyncStatus> {
+    const response = await this.api.get(`/api/properties/${id}/sync`);
+    return response.data.status;
+  }
+
+  // Transfer APIs
+  async createTransfer(transfer: TransferRequest): Promise<Transfer> {
+    try {
+      await this.handleOfflineRequest('POST', '/api/transfers', transfer);
       await HandReceiptModule.storeTransfer(transfer);
-      await this.api.post('/api/property/transfer', transfer);
-    } catch (error: unknown) {
-      // Queue for later if offline
+      const response = await this.api.post('/api/transfers', transfer);
+      return response.data;
+    } catch (error) {
       if (error instanceof Error && error.message === 'Offline mode: Request queued') {
         await HandReceiptModule.storeTransfer(transfer);
       }
@@ -130,12 +171,65 @@ class ApiClient {
     }
   }
 
+  async getTransfer(id: string): Promise<Transfer> {
+    const response = await this.api.get(`/api/transfers/${id}`);
+    return response.data;
+  }
+
+  async approveTransfer(id: string): Promise<Transfer> {
+    const response = await this.api.post(`/api/transfers/${id}/approve`);
+    return response.data;
+  }
+
+  async scanQRTransfer(qrData: QRScanResult): Promise<Transfer> {
+    const response = await this.api.post('/api/transfers/scan-qr', qrData);
+    return response.data;
+  }
+
+  async getPendingTransfers(): Promise<Transfer[]> {
+    const response = await this.api.get('/api/transfers/pending');
+    return response.data;
+  }
+
+  async getTransferStatus(id: string): Promise<TransferStatus> {
+    const response = await this.api.get(`/api/transfers/${id}/status`);
+    return response.data.status;
+  }
+
+  async getPropertyTransfers(propertyId: string): Promise<Transfer[]> {
+    const response = await this.api.get(`/api/transfers/property/${propertyId}`);
+    return response.data;
+  }
+
+  // Mobile-specific APIs
+  async getMobileSyncStatus(id: string): Promise<SyncStatus> {
+    const response = await this.api.get(`/api/mobile/sync/${id}`);
+    return response.data.status;
+  }
+
+  // User APIs
+  async login(credentials: { username: string; password: string }): Promise<void> {
+    const response = await this.api.post('/api/user/login', credentials);
+    await AsyncStorage.setItem('auth_token', response.data.token);
+  }
+
+  async logout(): Promise<void> {
+    await AsyncStorage.removeItem('auth_token');
+    await this.api.post('/api/user/logout');
+  }
+
+  async getUserProfile(): Promise<any> {
+    const response = await this.api.get('/api/user/profile');
+    return response.data;
+  }
+
   // Sync APIs
   async syncOfflineData(): Promise<void> {
     try {
       const result = await HandReceiptModule.syncPendingTransfers();
       console.log('Sync result:', result);
-    } catch (error: unknown) {
+      await this.processOfflineQueue();
+    } catch (error) {
       console.error('Sync failed:', error);
       throw error;
     }

@@ -14,9 +14,17 @@ actix-service = { workspace = true }
 actix-rt = { workspace = true }
 actix-cors = { workspace = true }
 
+# Blockchain
+sawtooth-sdk = "0.5"
+protobuf = "2.27"
+rust-crypto = "0.2"
+reqwest = { version = "0.11", features = ["json"] }
+parking_lot = { version = "0.12", features = ["send_guard"] }
+openssl = { version = "0.10", features = ["vendored"] }
+
 # Async Runtime
-tokio = { workspace = true }
-futures = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+futures = { workspace = true, features = ["std", "async-await"] }
 async-trait = { workspace = true }
 
 # Database

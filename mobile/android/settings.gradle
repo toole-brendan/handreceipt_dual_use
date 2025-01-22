@@ -5,23 +5,8 @@ apply from: file("../node_modules/@react-native-community/cli-platform-android/n
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
 
-// Exclude react-native-camera
-def excludeList = [
-    'react-native-camera'
-]
+// Include react-native-camera
+include ':react-native-camera'
+project(':react-native-camera').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-camera/android')
 
-// Filter out excluded projects
-def configureProjects = { project ->
-    if (project.children) {
-        project.children.each { child ->
-            configureProjects(child)
-        }
-    }
-    if (excludeList.contains(project.name)) {
-        project.buildFileName = 'nothing.gradle'
-    }
-}
-
-rootProject.children.each { project ->
-    configureProjects(project)
-}
+// Remove exclude list since we want to include the camera module

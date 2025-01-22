@@ -50,6 +50,12 @@ pub enum CoreError {
 
     #[error("Encryption error: {0}")]
     Encryption(String),
+
+    #[error("Serialization error: {0}")]
+    Serialization(String),
+
+    #[error("Unknown error: {0}")]
+    Unknown(String),
 }
 
 impl From<String> for CoreError {

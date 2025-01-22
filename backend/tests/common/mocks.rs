@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use rand;
 
 use handreceipt::{
     domain::{
         property::{Property, PropertyService, PropertySearchCriteria},
-        transfer::{Transfer, TransferService, TransferStatus},
+        transfer::{Transfer, TransferService, TransferStatus, PropertyTransferRecord},
         models::qr::{QRCodeService, QRFormat, QRResponse, QRData, VerifyQRRequest},
     },
     error::CoreError,
@@ -246,4 +247,18 @@ impl QRCodeService for MockQRCodeService {
 
         Ok(qr_data)
     }
+}
+
+pub fn create_mock_transfer() -> PropertyTransferRecord {
+    PropertyTransferRecord {
+        id: rand::random::<i64>(),
+        from_node: format!("Node_{}", Uuid::new_v4()),
+        to_node: format!("Node_{}", Uuid::new_v4()),
+        timestamp: Utc::now(),
+        status: TransferStatus::Pending,
+    }
+}
+
+pub fn create_mock_transfers(count: usize) -> Vec<PropertyTransferRecord> {
+    (0..count).map(|_| create_mock_transfer()).collect()
 }
