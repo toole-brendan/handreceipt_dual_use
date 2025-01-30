@@ -1,5 +1,6 @@
 import { NativeModules } from 'react-native';
 import type { MerkleProof, TransactionPayload, NetworkStatus } from '../types/sawtooth';
+import { Platform } from 'react-native';
 
 interface SawtoothBridge {
     // Transaction Management
@@ -30,6 +31,16 @@ const { SawtoothModule } = NativeModules;
 if (!SawtoothModule) {
     throw new Error('Sawtooth native module is not available');
 }
+
+// For emulator development
+const EMULATOR_HOST = Platform.select({
+  android: '10.0.2.2',
+  ios: 'localhost'
+});
+
+const REST_API_URL = __DEV__ 
+  ? `http://${EMULATOR_HOST}:8008`
+  : 'http://blockchain:8008';
 
 export class SawtoothService {
     private bridge: SawtoothBridge = SawtoothModule;

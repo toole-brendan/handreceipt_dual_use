@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   PermissionsAndroid,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { RNCamera, BarCodeReadEvent } from 'react-native-camera';
 import { useNavigation } from '@react-navigation/native';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -21,11 +22,20 @@ import { TransferStackNavigationProp } from '../../types/navigation';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
+const TEST_QR_DATA = {
+  propertyId: "TEST-PROPERTY-001",
+  signature: "emulated_signature_for_testing"
+};
+
 export const ScannerScreen = () => {
   const navigation = useNavigation<TransferStackNavigationProp>();
   const { isOnline } = useNetworkStatus();
   const { user } = useAuth();
   
+  const isEmulator = Platform.isTV || 
+    (Platform.OS === 'android' && !Constants.isDevice) ||
+    (Platform.OS === 'ios' && !Constants.isDevice);
+    
   const [scanning, setScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,6 +67,24 @@ export const ScannerScreen = () => {
       setHasPermission(true);
     }
   };
+
+  const loadTestQR = useCallback(async () => {
+    if (!isEmulator) return;
+    
+    setLoading(true);
+    try {
+      const response = await HandReceiptModule.verifyAsset(JSON.stringify(TEST_QR_DATA));
+      if (response.success) {
+        navigation.navigate('QRGenerator', { itemId: TEST_QR_DATA.propertyId });
+      } else {
+        Alert.alert('Test Error', 'Failed to verify test QR data');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to process test QR data');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigation, isEmulator]);
 
   const handleBarCodeRead = useCallback(async (event: BarCodeReadEvent) => {
     if (!scanning || loading) return;
@@ -124,57 +152,71 @@ export const ScannerScreen = () => {
 
   return (
     <View style={styles.container}>
-      <RNCamera
-        style={styles.camera}
-        type={RNCamera.Constants.Type.back}
-        flashMode={
-          torchOn
-            ? RNCamera.Constants.FlashMode.torch
-            : RNCamera.Constants.FlashMode.off
-        }
-        androidCameraPermissionOptions={{
-          title: 'Camera Permission',
-          message: 'HandReceipt needs access to your camera to scan QR codes.',
-          buttonPositive: 'OK',
-          buttonNegative: 'Cancel',
-        }}
-        onBarCodeRead={handleBarCodeRead}
-        captureAudio={false}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Scan QR Code</Text>
-            <TouchableOpacity
-              style={styles.torchButton}
-              onPress={toggleTorch}
-            >
-              <Icon
-                name={torchOn ? 'flash-on' : 'flash-off'}
-                size={24}
-                color="#fff"
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.scanArea}>
-            {loading && (
-              <ActivityIndicator
-                size="large"
-                color="#fff"
-                style={styles.loadingIndicator}
-              />
-            )}
-            <View style={styles.cornerTL} />
-            <View style={styles.cornerTR} />
-            <View style={styles.cornerBL} />
-            <View style={styles.cornerBR} />
-          </View>
-
-          <Text style={styles.instructions}>
-            Position the QR code within the frame to scan
-          </Text>
+      {isEmulator ? (
+        <View style={styles.emulatorContainer}>
+          <Text style={styles.emulatorText}>Running in Emulator Mode</Text>
+          <TouchableOpacity 
+            style={styles.testButton}
+            onPress={loadTestQR}
+            disabled={loading}
+          >
+            <Text style={styles.testButtonText}>Load Test QR</Text>
+          </TouchableOpacity>
+          {loading && <ActivityIndicator style={styles.loading} />}
         </View>
-      </RNCamera>
+      ) : (
+        <RNCamera
+          style={styles.camera}
+          type={RNCamera.Constants.Type.back}
+          flashMode={
+            torchOn
+              ? RNCamera.Constants.FlashMode.torch
+              : RNCamera.Constants.FlashMode.off
+          }
+          androidCameraPermissionOptions={{
+            title: 'Camera Permission',
+            message: 'HandReceipt needs access to your camera to scan QR codes.',
+            buttonPositive: 'OK',
+            buttonNegative: 'Cancel',
+          }}
+          onBarCodeRead={handleBarCodeRead}
+          captureAudio={false}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.header}>
+              <Text style={styles.headerText}>Scan QR Code</Text>
+              <TouchableOpacity
+                style={styles.torchButton}
+                onPress={toggleTorch}
+              >
+                <Icon
+                  name={torchOn ? 'flash-on' : 'flash-off'}
+                  size={24}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.scanArea}>
+              {loading && (
+                <ActivityIndicator
+                  size="large"
+                  color="#fff"
+                  style={styles.loadingIndicator}
+                />
+              )}
+              <View style={styles.cornerTL} />
+              <View style={styles.cornerTR} />
+              <View style={styles.cornerBL} />
+              <View style={styles.cornerBR} />
+            </View>
+
+            <Text style={styles.instructions}>
+              Position the QR code within the frame to scan
+            </Text>
+          </View>
+        </RNCamera>
+      )}
     </View>
   );
 };
@@ -291,6 +333,31 @@ const styles = StyleSheet.create({
     bottom: 80,
     left: 0,
     right: 0,
+  },
+  emulatorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  emulatorText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+  },
+  testButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  loading: {
+    marginTop: 20,
   },
 });
 

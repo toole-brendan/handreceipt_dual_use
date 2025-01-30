@@ -52,6 +52,11 @@ target 'HandReceipt' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
+    
+    installer.pods_project.build_configurations.each do |config|
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)', 'IS_EMULATOR=1']
+    end
+    
     __apply_Xcode_12_5_M1_post_install_workaround(installer)
   end
 end

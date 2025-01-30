@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 import { Navigation } from './navigation';
 import { View, Text, ActivityIndicator, LogBox } from 'react-native';
 import { AuthProvider } from './contexts/AuthContext';
+import { EmulatorBanner } from './components/common/EmulatorBanner';
 
 // Ignore specific warnings if needed
 LogBox.ignoreLogs([
@@ -47,7 +49,9 @@ const App = () => {
     const initializeApp = async () => {
       try {
         // Add any initialization logic here
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 1000);
+        });
         setIsLoading(false);
       } catch (error) {
         console.error('Initialization error:', error);
@@ -70,7 +74,10 @@ const App = () => {
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
-          <Navigation />
+          <NavigationContainer>
+            <Navigation />
+            <EmulatorBanner />
+          </NavigationContainer>
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

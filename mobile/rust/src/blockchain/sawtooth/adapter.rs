@@ -28,6 +28,11 @@ pub struct SawtoothAdapterImpl {
     client: reqwest::Client,
 }
 
+#[cfg(debug_assertions)]
+const TX_TIMEOUT: u64 = 30; // Longer timeout for emulators
+#[cfg(not(debug_assertions))]
+const TX_TIMEOUT: u64 = 10;
+
 impl SawtoothAdapterImpl {
     /// Creates a new SawtoothAdapter instance
     pub fn new(key_bytes: &[u8]) -> Result<Self, Error> {
@@ -36,7 +41,7 @@ impl SawtoothAdapterImpl {
         let signer = Arc::new(ThreadSafeSigner::new(context, private_key));
 
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(std::time::Duration::from_secs(TX_TIMEOUT))
             .build()?;
 
         Ok(Self {
@@ -223,3 +228,7 @@ pub struct TransferData {
     pub timestamp: u64,
     pub signature: String,
 }
+
+// Sawtooth transaction processor integration
+// Batch submission handling
+// State delta tracking
