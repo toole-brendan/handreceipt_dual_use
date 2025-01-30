@@ -15,3 +15,4 @@ local.properties
 target/debug/deps/libsawtooth_sdk-*.rlib
 target/debug/deps/libhandreceipt_mobile.a
 target/debug/
+rust/target/x86_64-linux-android/release/
