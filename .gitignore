@@ -11,3 +11,7 @@ ios/Pods/
 .gradle/
 *.iml
 local.properties
+# Large files
+target/debug/deps/libsawtooth_sdk-*.rlib
+target/debug/deps/libhandreceipt_mobile.a
+target/debug/
