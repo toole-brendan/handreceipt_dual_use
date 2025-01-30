@@ -1,0 +1,4 @@
+module HandReceiptMobile {
+    header "handreceipt_mobile.h"
+    export *
+} 

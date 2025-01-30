@@ -133,7 +133,7 @@ pub extern "C" fn sync_pending_transfers(ptr: *mut c_void) {
 
 // Helper function to free strings created by Rust
 #[no_mangle]
-pub extern "C" fn free_rust_string(s: *mut c_char) {
+pub extern "C" fn handreceipt_free_string(s: *mut c_char) {
     unsafe {
         if !s.is_null() {
             let _ = CString::from_raw(s);

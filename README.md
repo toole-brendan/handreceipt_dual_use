@@ -12,7 +12,6 @@ A secure military property management system using QR codes and blockchain verif
 
 - **Transfer Workflow**
   - QR code scanning for transfers
-  - Commander approval for sensitive items
   - Blockchain verification of transfers
   - Digital signatures with Ed25519
 

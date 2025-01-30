@@ -1,28 +1,34 @@
 use std::sync::Arc;
 use async_trait::async_trait;
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use chrono::{DateTime, Utc};
 use image::GrayImage;
 use quircs::Quirc;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 use crate::{
     Result,
     error::Error,
     security::SecurityManager,
-    offline::Storage,
+    sync::Storage,
 };
 
 use super::{Scanner, ScanResult, Location};
 
 pub type QRScanResult = ScanResult;
 
+/// QR code scanner implementation using device camera
 pub struct QRScanner {
     storage: Arc<Storage>,
     security: Arc<SecurityManager>,
 }
 
 impl QRScanner {
+    /// Creates a new QRScanner instance
+    ///
+    /// # Arguments
+    /// * `storage` - Storage implementation for scan results
+    /// * `security` - Security manager for signature verification
     pub fn new(storage: Arc<Storage>, security: Arc<SecurityManager>) -> Self {
         Self { storage, security }
     }
@@ -56,6 +62,15 @@ impl QRScanner {
         Err(Error::InvalidQR("No valid QR code found".to_string()))
     }
 
+    /// Verifies the digital signature of a scanned QR code
+    ///
+    /// # Arguments
+    /// * `property_id` - UUID of the property being transferred
+    /// * `timestamp` - Timestamp of the transfer
+    /// * `signature` - Base64-encoded digital signature
+    ///
+    /// # Returns
+    /// true if signature is valid, false otherwise
     async fn verify_signature(&self, property_id: Uuid, timestamp: DateTime<Utc>, signature: &str) -> Result<bool> {
         let msg = format!("{}:{}", property_id, timestamp.timestamp());
         let signature_bytes = BASE64.decode(signature.as_bytes())
@@ -109,7 +124,7 @@ impl Scanner for QRScanner {
         };
 
         // Store the scan
-        self.storage.store_transfer(&scan_result).await?;
+        self.storage.add_transfer(scan_result.clone())?;
 
         Ok(scan_result)
     }

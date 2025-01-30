@@ -1,1 +1,0 @@
-export { AssetVerificationForm } from './AssetVerificationForm'; 

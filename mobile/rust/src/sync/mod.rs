@@ -1,29 +1,59 @@
 use std::sync::Arc;
 use tokio::time::Duration;
 use serde::{Serialize, Deserialize};
+use std::sync::Mutex;
 
 use crate::{
     Result,
-    offline::Storage,
-    scanner::ScanResult,
+    error::Error,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-struct TransferRequest {
-    property_id: String,
-    scan_data: String,
-    timestamp: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransferRequest {
+    pub property_id: String,
+    pub scan_data: String,
+    pub timestamp: String,
+}
+
+pub struct OfflineQueue {
+    pending: Vec<TransferRequest>,
+}
+
+impl OfflineQueue {
+    pub fn new() -> Self {
+        Self {
+            pending: Vec::new(),
+        }
+    }
+
+    pub fn initialize(&mut self) {
+        // Initialize any necessary components
+    }
+
+    pub async fn sync_pending(&self) -> Result<()> {
+        // TODO: Implement actual sync logic
+        Ok(())
+    }
+
+    pub fn get_pending(&self) -> Result<Vec<TransferRequest>> {
+        Ok(self.pending.clone())
+    }
+
+    pub fn add_pending(&mut self, request: TransferRequest) -> Result<()> {
+        self.pending.push(request);
+        Ok(())
+    }
 }
 
 pub struct SyncManager {
-    storage: Arc<Storage>,
+    queue: Arc<OfflineQueue>,
     sync_interval: Duration,
 }
 
 impl SyncManager {
-    pub fn new(storage: Arc<Storage>) -> Self {
+    pub fn new(queue: Arc<OfflineQueue>) -> Self {
         Self {
-            storage,
+            queue,
             sync_interval: Duration::from_secs(30),
         }
     }
@@ -34,16 +64,19 @@ impl SyncManager {
     }
 
     pub async fn sync_pending(&self) -> Result<()> {
-        // Get pending transfers from storage
-        let pending = self.storage.get_pending_transfers().await?;
-        
-        // For each pending transfer, attempt to sync
-        for transfer in pending {
-            // TODO: Implement actual sync logic
-            // For now, just log the transfer
-            println!("Syncing transfer for property: {}", transfer.property_id);
-        }
-        
+        self.queue.sync_pending().await
+    }
+}
+
+// Add Storage definition
+#[derive(Default)]
+pub struct Storage {
+    transfers: Mutex<Vec<crate::scanner::ScanResult>>,
+}
+
+impl Storage {
+    pub fn add_transfer(&self, transfer: crate::scanner::ScanResult) -> crate::Result<()> {
+        self.transfers.lock()?.push(transfer.clone());
         Ok(())
     }
 } 
