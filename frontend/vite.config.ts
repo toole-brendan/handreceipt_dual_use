@@ -8,11 +8,41 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: {
+    chunkSizeWarningLimit: 1000, // Increase from default 500kb to 1000kb
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name].[ext]',
-        chunkFileNames: 'assets/[name].js',
-        entryFileNames: 'assets/[name].js'
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js',
+        manualChunks: {
+          'react-core': ['react', 'react-dom', 'react-router-dom', 'react-redux', '@reduxjs/toolkit'],
+          'mui': [
+            '@mui/material',
+            '@mui/icons-material',
+            '@mui/x-data-grid',
+            '@mui/x-date-pickers',
+            '@emotion/react',
+            '@emotion/styled'
+          ],
+          'ui-components': [
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-label',
+            '@radix-ui/react-select',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tooltip'
+          ],
+          'visualization': [
+            'd3',
+            'recharts',
+            'react-sparklines',
+            'leaflet',
+            'react-leaflet'
+          ],
+          'utils': ['date-fns', 'clsx', 'class-variance-authority', 'tailwind-merge'],
+          'antd': ['antd', '@ant-design/icons']
+        }
       }
     }
   },

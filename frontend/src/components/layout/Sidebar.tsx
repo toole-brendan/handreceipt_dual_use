@@ -13,11 +13,9 @@ import {
   useTheme,
   styled,
   Theme,
-  IconButton,
 } from '@mui/material';
 import {
   Logout as LogoutIcon,
-  ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 import { RootState } from '@/store/store';
 import {
@@ -30,10 +28,7 @@ import {
 const DRAWER_WIDTH = 240;
 
 interface SidebarProps {
-  variant: 'permanent' | 'temporary';
-  open: boolean;
-  onClose: () => void;
-  isMobile: boolean;
+  variant: 'permanent';
 }
 
 interface UserState {
@@ -55,19 +50,7 @@ const StyledDrawer = styled(Drawer)(({ theme }: { theme: Theme }) => ({
     borderRight: '1px solid rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(12px)',
     paddingTop: theme.mixins.toolbar.minHeight,
-    [theme.breakpoints.down('md')]: {
-      width: '100%',
-      paddingTop: theme.mixins.toolbar.minHeight,
-    },
   },
-}));
-
-const DrawerHeader = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(0, 1),
-  ...theme.mixins.toolbar,
-  justifyContent: 'flex-end',
 }));
 
 const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }) => ({
@@ -116,10 +99,6 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }
     letterSpacing: '0.01em',
     fontFamily: 'Inter, sans-serif',
   },
-  [theme.breakpoints.down('md')]: {
-    margin: theme.spacing(0.5, 2),
-    padding: theme.spacing(1.5, 2),
-  },
 }));
 
 const StyledDivider = styled(Divider)(({ theme }: { theme: Theme }) => ({
@@ -127,7 +106,7 @@ const StyledDivider = styled(Divider)(({ theme }: { theme: Theme }) => ({
   margin: theme.spacing(1, 0),
 }));
 
-const Sidebar: React.FC<SidebarProps> = ({ variant, open, onClose, isMobile }) => {
+const Sidebar: React.FC<SidebarProps> = ({ variant }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,16 +132,6 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open, onClose, isMobile }) =
   const handleLogout = () => {
     // TODO: Implement logout functionality
     navigate('login');
-    if (isMobile) {
-      onClose();
-    }
-  };
-
-  const handleNavigation = (to: string) => {
-    navigate(to.replace(/^\//, ''));
-    if (isMobile) {
-      onClose();
-    }
   };
 
   const navItems = getNavItems();
@@ -170,21 +139,6 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open, onClose, isMobile }) =
 
   const drawerContent = (
     <>
-      {isMobile && (
-        <DrawerHeader>
-          <IconButton 
-            onClick={onClose}
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              },
-            }}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-        </DrawerHeader>
-      )}
       <StyledDivider />
       <Box
         component="nav"
@@ -196,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open, onClose, isMobile }) =
             <ListItem key={item.to} disablePadding>
               <StyledListItemButton
                 selected={location.pathname === item.to.replace(/^\//, '')}
-                onClick={() => handleNavigation(item.to)}
+                onClick={() => navigate(item.to.replace(/^\//, ''))}
                 aria-current={location.pathname === item.to.replace(/^\//, '') ? 'page' : undefined}
                 aria-describedby={item.description ? `nav-desc-${item.to.replace(/\//g, '-')}` : undefined}
               >
@@ -240,12 +194,8 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open, onClose, isMobile }) =
   return (
     <StyledDrawer
       variant={variant}
-      open={open}
-      onClose={onClose}
+      open={true}
       anchor={theme.direction === 'rtl' ? 'right' : 'left'}
-      ModalProps={{
-        keepMounted: true, // Better mobile performance
-      }}
     >
       {drawerContent}
     </StyledDrawer>

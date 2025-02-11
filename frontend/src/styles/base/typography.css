@@ -38,74 +38,57 @@
   --letter-spacing-wider: 0.05em;
 
   /* Semantic Text Styles */
-  --text-heading-1: {
-    font-size: var(--font-size-4xl);
-    line-height: var(--line-height-tight);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--letter-spacing-tight);
-  }
+  /* Heading Styles */
+  --text-heading-1-size: var(--font-size-4xl);
+  --text-heading-1-line-height: var(--line-height-tight);
+  --text-heading-1-weight: var(--font-weight-bold);
+  --text-heading-1-spacing: var(--letter-spacing-tight);
 
-  --text-heading-2: {
-    font-size: var(--font-size-3xl);
-    line-height: var(--line-height-tight);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--letter-spacing-tight);
-  }
+  --text-heading-2-size: var(--font-size-3xl);
+  --text-heading-2-line-height: var(--line-height-tight);
+  --text-heading-2-weight: var(--font-weight-bold);
+  --text-heading-2-spacing: var(--letter-spacing-tight);
 
-  --text-heading-3: {
-    font-size: var(--font-size-2xl);
-    line-height: var(--line-height-snug);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--letter-spacing-tight);
-  }
+  --text-heading-3-size: var(--font-size-2xl);
+  --text-heading-3-line-height: var(--line-height-snug);
+  --text-heading-3-weight: var(--font-weight-semibold);
+  --text-heading-3-spacing: var(--letter-spacing-tight);
 
-  --text-heading-4: {
-    font-size: var(--font-size-xl);
-    line-height: var(--line-height-snug);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--letter-spacing-normal);
-  }
+  --text-heading-4-size: var(--font-size-xl);
+  --text-heading-4-line-height: var(--line-height-snug);
+  --text-heading-4-weight: var(--font-weight-semibold);
+  --text-heading-4-spacing: var(--letter-spacing-normal);
 
-  --text-body-large: {
-    font-size: var(--font-size-lg);
-    line-height: var(--line-height-normal);
-    font-weight: var(--font-weight-normal);
-    letter-spacing: var(--letter-spacing-normal);
-  }
+  /* Body Text Styles */
+  --text-body-large-size: var(--font-size-lg);
+  --text-body-large-line-height: var(--line-height-normal);
+  --text-body-large-weight: var(--font-weight-normal);
+  --text-body-large-spacing: var(--letter-spacing-normal);
 
-  --text-body: {
-    font-size: var(--font-size-md);
-    line-height: var(--line-height-normal);
-    font-weight: var(--font-weight-normal);
-    letter-spacing: var(--letter-spacing-normal);
-  }
+  --text-body-size: var(--font-size-md);
+  --text-body-line-height: var(--line-height-normal);
+  --text-body-weight: var(--font-weight-normal);
+  --text-body-spacing: var(--letter-spacing-normal);
 
-  --text-body-small: {
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-normal);
-    font-weight: var(--font-weight-normal);
-    letter-spacing: var(--letter-spacing-normal);
-  }
+  --text-body-small-size: var(--font-size-sm);
+  --text-body-small-line-height: var(--line-height-normal);
+  --text-body-small-weight: var(--font-weight-normal);
+  --text-body-small-spacing: var(--letter-spacing-normal);
 
-  --text-caption: {
-    font-size: var(--font-size-xs);
-    line-height: var(--line-height-tight);
-    font-weight: var(--font-weight-normal);
-    letter-spacing: var(--letter-spacing-wide);
-  }
+  /* Utility Text Styles */
+  --text-caption-size: var(--font-size-xs);
+  --text-caption-line-height: var(--line-height-tight);
+  --text-caption-weight: var(--font-weight-normal);
+  --text-caption-spacing: var(--letter-spacing-wide);
 
-  --text-overline: {
-    font-size: var(--font-size-xs);
-    line-height: var(--line-height-tight);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--letter-spacing-wider);
-    text-transform: uppercase;
-  }
+  --text-overline-size: var(--font-size-xs);
+  --text-overline-line-height: var(--line-height-tight);
+  --text-overline-weight: var(--font-weight-medium);
+  --text-overline-spacing: var(--letter-spacing-wider);
+  --text-overline-transform: uppercase;
 
-  --text-button: {
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-tight);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--letter-spacing-wide);
-  }
-} 
+  --text-button-size: var(--font-size-sm);
+  --text-button-line-height: var(--line-height-tight);
+  --text-button-weight: var(--font-weight-medium);
+  --text-button-spacing: var(--letter-spacing-wide);
+}

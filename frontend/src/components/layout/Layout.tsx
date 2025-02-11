@@ -1,8 +1,8 @@
 /* frontend/src/shared/components/Layout/Layout.tsx */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Box, styled, Theme, useMediaQuery, useTheme } from '@mui/material';
+import { Box, styled, Theme } from '@mui/material';
 import Header from './Header';
 import Navigation from './Navigation';
 import SkipLink from '../common/SkipLink';
@@ -56,19 +56,6 @@ const MainContent = styled(Box)(() => ({
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [isDrawerOpen, setIsDrawerOpen] = useState(!isMobile);
-
-  const handleDrawerToggle = () => {
-    setIsDrawerOpen(!isDrawerOpen);
-  };
-
-  const handleDrawerClose = () => {
-    if (isMobile) {
-      setIsDrawerOpen(false);
-    }
-  };
 
   // Don't show navigation on login page
   const isLoginPage = location.pathname === '/login';
@@ -80,25 +67,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <AppLayout>
       <SkipLink />
-      <Header onMenuClick={handleDrawerToggle} isMobile={isMobile} />
+      <Header />
       <AppBody>
-        <Navigation 
-          open={isDrawerOpen}
-          onClose={handleDrawerClose}
-          isMobile={isMobile}
-        />
+        <Navigation />
         <MainContent
           id="main"
           tabIndex={-1}
           role="main"
           aria-label="Main content"
-          sx={{
-            marginLeft: !isMobile && isDrawerOpen ? '240px' : 0,
-            transition: theme.transitions.create(['margin', 'width'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
-          }}
         >
           {/* Announce page changes to screen readers */}
           <Box
