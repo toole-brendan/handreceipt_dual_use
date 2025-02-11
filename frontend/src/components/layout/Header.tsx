@@ -4,6 +4,11 @@ import React from 'react';
 import { AppBar, styled } from '@mui/material';
 import { AppBarContent } from './mui/AppBarContent';
 
+interface HeaderProps {
+  onMenuClick: () => void;
+  isMobile: boolean;
+}
+
 const StyledAppBar = styled(AppBar)(() => ({
   backgroundColor: 'rgba(0, 0, 0, 0.9)',
   backdropFilter: 'blur(12px)',
@@ -21,7 +26,7 @@ const StyledAppBar = styled(AppBar)(() => ({
   },
 }));
 
-const Header: React.FC = () => {
+const Header: React.FC<HeaderProps> = ({ onMenuClick, isMobile }) => {
   return (
     <StyledAppBar
       position="fixed"
@@ -30,7 +35,7 @@ const Header: React.FC = () => {
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
-      <AppBarContent />
+      <AppBarContent onMenuClick={onMenuClick} isMobile={isMobile} />
     </StyledAppBar>
   );
 };

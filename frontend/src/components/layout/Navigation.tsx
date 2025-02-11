@@ -4,10 +4,21 @@ import React from 'react';
 import Sidebar from './Sidebar';
 import { BreadcrumbProvider } from '../navigation/breadcrumb/BreadcrumbContext';
 
-const Navigation: React.FC = () => {
+interface NavigationProps {
+  open: boolean;
+  onClose: () => void;
+  isMobile: boolean;
+}
+
+const Navigation: React.FC<NavigationProps> = ({ open, onClose, isMobile }) => {
   return (
     <BreadcrumbProvider>
-      <Sidebar variant="permanent" />
+      <Sidebar 
+        variant={isMobile ? "temporary" : "permanent"}
+        open={open}
+        onClose={onClose}
+        isMobile={isMobile}
+      />
     </BreadcrumbProvider>
   );
 };

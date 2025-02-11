@@ -24,6 +24,7 @@ import {
   Settings as SettingsIcon,
   Logout as LogoutIcon,
   KeyboardArrowDown as ArrowDownIcon,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { RootState } from '@/store/store';
 import {
@@ -41,7 +42,10 @@ interface UserState {
   permissions: string[];
 }
 
-interface AppBarContentProps {}
+interface AppBarContentProps {
+  onMenuClick: () => void;
+  isMobile: boolean;
+}
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -174,7 +178,7 @@ const LogoBox = styled(Box)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-export const AppBarContent: React.FC<AppBarContentProps> = () => {
+export const AppBarContent: React.FC<AppBarContentProps> = ({ onMenuClick, isMobile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
@@ -260,6 +264,22 @@ export const AppBarContent: React.FC<AppBarContentProps> = () => {
 
   return (
     <Toolbar>
+      {isMobile && (
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={onMenuClick}
+          sx={{
+            mr: 2,
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            },
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
+      )}
       <LogoContainer onClick={handleLogoClick}>
         <LogoBox>
           <h1>HandReceipt</h1>
