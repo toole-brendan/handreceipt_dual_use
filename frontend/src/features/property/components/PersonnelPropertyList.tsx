@@ -8,9 +8,6 @@ import {
   IconButton,
   Tooltip,
   styled,
-  Theme,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import {
   FilterList as FilterIcon,
@@ -21,7 +18,6 @@ import { PropertyCard, PropertyItem } from './PropertyCard';
 import { StatusChip } from '../../../components/common/mui/StatusChip';
 
 interface PersonnelPropertyListProps {
-  personnelId: string;
   showSensitiveItems: boolean;
   timeframe: string;
   items?: PropertyItem[];
@@ -31,37 +27,36 @@ interface PersonnelPropertyListProps {
   onPrint?: () => void;
 }
 
-const StyledContainer = styled(Paper)(({ theme }: { theme: Theme }) => ({
+const StyledContainer = styled(Paper)(() => ({
   backgroundColor: 'rgba(255, 255, 255, 0.03)',
   backdropFilter: 'blur(12px)',
   border: '1px solid rgba(255, 255, 255, 0.1)',
   borderRadius: 0,
-  padding: theme.spacing(3),
+  padding: '24px',
 }));
 
-const HeaderSection = styled(Box)(({ theme }: { theme: Theme }) => ({
+const HeaderSection = styled(Box)(() => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: theme.spacing(3),
+  marginBottom: '24px',
 }));
 
-const ActionButton = styled(IconButton)(({ theme }: { theme: Theme }) => ({
+const ActionButton = styled(IconButton)(() => ({
   backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  marginLeft: theme.spacing(1),
+  marginLeft: '8px',
   borderRadius: 0,
   '&:hover': {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
 }));
 
-const StyledDivider = styled(Divider)(({ theme }: { theme: Theme }) => ({
-  margin: theme.spacing(3, 0),
+const StyledDivider = styled(Divider)(() => ({
+  margin: '24px 0',
   backgroundColor: 'rgba(255, 255, 255, 0.1)',
 }));
 
 export const PersonnelPropertyList: React.FC<PersonnelPropertyListProps> = ({
-  personnelId,
   showSensitiveItems,
   timeframe,
   items = [],
@@ -70,7 +65,6 @@ export const PersonnelPropertyList: React.FC<PersonnelPropertyListProps> = ({
   onExport,
   onPrint,
 }) => {
-  const theme = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const handleFilterChange = (category: string | null) => {
@@ -199,4 +193,4 @@ export const PersonnelPropertyList: React.FC<PersonnelPropertyListProps> = ({
   );
 };
 
-export default PersonnelPropertyList; 
+export default PersonnelPropertyList;

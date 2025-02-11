@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiShield, FiX } from 'react-icons/fi';
-import { styled, alpha, Theme } from '@mui/material';
+import { styled, Theme } from '@mui/material';
 
 interface MFAProps {
   onVerify: (code: string) => void;

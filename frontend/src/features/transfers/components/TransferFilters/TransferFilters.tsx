@@ -12,11 +12,10 @@ import {
   InputLabel,
 } from '@mui/material';
 import { 
-  Settings, 
   RotateCcw,
   BookmarkPlus,
 } from 'lucide-react';
-import type { FiltersState, TransferType, TransferPriority, Category, TransferStatus } from '../../types';
+import type { FiltersState } from '../../types';
 
 interface TransferFiltersProps {
   filters: FiltersState;

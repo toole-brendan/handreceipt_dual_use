@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Label } from './label';
 import { Input } from '../input';
@@ -110,4 +109,4 @@ export const WithErrorInput: Story = {
       />
     </div>
   ),
-}; 
+};

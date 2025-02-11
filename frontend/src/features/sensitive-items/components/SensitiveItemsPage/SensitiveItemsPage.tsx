@@ -7,6 +7,7 @@ import { LocationFilter } from '../filters/LocationFilter';
 import { SerialSearch } from '../filters/SerialSearch';
 import { VerifyNowButton } from '../verification/VerifyNowButton';
 import DashboardCard from '@/components/common/DashboardCard';
+import { PropertyStatus, SensitiveItem, VerificationStatus } from '@/types/property';
 
 interface FilterValue {
   category: string;
@@ -14,32 +15,30 @@ interface FilterValue {
   search: string;
 }
 
-interface CategoryFilterProps {
-  value: string;
-  onChange: (value: string) => void;
-}
-
-interface LocationFilterProps {
-  value: string;
-  onChange: (value: string) => void;
-}
-
-interface SerialSearchProps {
-  value: string;
-  onChange: (value: string) => void;
-}
-
-const mockSensitiveItems = [
+const mockSensitiveItems: SensitiveItem[] = [
   {
     id: '1',
     name: 'M4A1 Carbine',
     serialNumber: 'W123456',
     category: 'Weapons',
     location: 'Armory A',
-    lastVerified: '2024-01-25T10:00:00Z',
-    status: 'verified'
+    propertyStatus: 'SERVICEABLE' as PropertyStatus,
+    verificationStatus: 'VERIFIED' as VerificationStatus,
+    isSensitive: true as const,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    value: 1000,
+    nsn: '1234-56-7890',
+    status: 'SERVICEABLE' as PropertyStatus,
+    verificationSchedule: {
+      frequency: 'DAILY',
+      lastVerification: '2024-01-25T10:00:00Z',
+      nextVerification: '2024-02-25T10:00:00Z'
+    },
+    securityLevel: 'SECRET',
+    lastInventoryCheck: '2024-01-25T10:00:00Z',
+    nextInventoryCheck: '2024-02-25T10:00:00Z'
   },
-  // Add more mock items as needed
 ];
 
 const SensitiveItemsMetrics: React.FC = () => {
@@ -139,11 +138,8 @@ export const SensitiveItemsPage: React.FC = () => {
         mb: 2 
       }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+          <Typography variant="h4" component="h4">
             Sensitive Items
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Track and verify sensitive items across your unit
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -213,4 +209,4 @@ export const SensitiveItemsPage: React.FC = () => {
       </Box>
     </Box>
   );
-}; 
+};

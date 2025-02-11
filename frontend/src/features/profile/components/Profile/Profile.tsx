@@ -1,159 +1,134 @@
-import React, { useState, useEffect } from 'react';
-import { UserProfile } from '@/types/user';
-import ProfileHeader from '@/shared/components/components/profile/ProfileHeader';
-import ProfileDetails from '@/shared/components/components/profile/ProfileDetails';
-import ActivityLog from '@/shared/components/components/profile/ActivityLog';
-import SecuritySettings from '@/shared/components/components/profile/SecuritySettings';
-import '@/styles/components/pages/profile.css';
+import React, { useState } from 'react';
+import { Box, Tabs, Tab, Button, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
+import { UserProfile } from '../../../../types/user';
+import ProfileDetails from '../ProfileDetails';
+import SecuritySettings from '../SecuritySettings';
+import { ActivityLog } from '../ActivityLog';
+import { ArrowLeft } from 'lucide-react';
 
-// Mock data with better organization
+// Mock data
 const mockProfile: UserProfile = {
-  // Personal Information
   id: 'usr_7f4c9b2d',
   username: 'CPT.ANDERSON.JAMES.A',
+  firstName: 'James',
+  lastName: 'Anderson',
   email: 'james.anderson@mail.mil',
-  profileImage: '/assets/profile/default-officer.png',
   phoneNumber: '(910) 555-0122',
+  profileImage: '/assets/profile/default-officer.png',
   
   // Military Information
-  rank: 'Captain',
+  rank: 'CPT',
   unit: '2nd Battalion, 325th Airborne Infantry Regiment',
-  role: 'Company Commander',
+  branch: 'Army',
+  mos: '11A - Infantry Officer',
+  dodId: '1234567890',
+  role: 'OFFICER',
   classification: 'SECRET',
   
   // System Access & Permissions
   permissions: [
-    'ASSET_MANAGEMENT',    // Can manage all assets
-    'PERSONNEL_VIEW',      // Can view personnel records
-    'TRANSFER_APPROVE',    // Can approve asset transfers
-    'INVENTORY_FULL',      // Full inventory access
-    'REPORTS_GENERATE'     // Can generate reports
+    'ASSET_MANAGEMENT',
+    'PERSONNEL_VIEW',
+    'TRANSFER_APPROVE',
+    'INVENTORY_FULL',
+    'REPORTS_GENERATE'
   ],
   
-  // Account Details
-  lastLogin: new Date('2024-03-26T08:15:00Z').toISOString(),
+  lastLogin: new Date().toISOString(),
   
-  // User Preferences
   preferences: {
-    // Display Settings
-    theme: 'system',
+    theme: 'dark',
     language: 'en-US',
     timezone: 'America/New_York',
     dateFormat: 'DD MMM YYYY',
-    
-    // Notification Preferences
     notifications: {
-      email: true,           // Email notifications
-      push: true,            // Push notifications
-      transferRequests: true, // Transfer request alerts
-      securityAlerts: true,  // Security-related alerts
-      systemUpdates: true,   // System update notifications
-      assetChanges: true,    // Asset modification alerts
+      email: true,
+      push: true,
+      transferRequests: true,
+      securityAlerts: true,
+      systemUpdates: true,
+      assetChanges: true,
     },
   },
 };
 
 const Profile: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState(0);
 
-  // Tabs configuration
-  const tabs = [
-    { id: 'details', label: 'Profile Details' },
-    { id: 'security', label: 'Security' },
-    { id: 'activity', label: 'Activity Log' }
-  ];
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        // Simulate API call with mock data
-        setTimeout(() => {
-          setProfile(mockProfile);
-          setLoading(false);
-        }, 500);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, []);
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-gray-600">Loading profile...</div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-red-600">Error loading profile</div>
-      </div>
-    );
-  }
-
-  // Render the appropriate component based on active tab
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'details':
-        return <ProfileDetails profile={profile} onUpdate={() => {}} />;
-      case 'security':
-        return <SecuritySettings profile={profile} />;
-      case 'activity':
-        return <ActivityLog userId={profile.id} />;
-      default:
-        return null;
-    }
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
   };
 
   return (
-    <div className="profile-container">
-      <div className="profile-content">
-        <div className="profile-header">
-          <div className="profile-avatar">
-            <img 
-              src={profile?.profileImage || '/default-avatar.png'} 
-              alt="Profile" 
-            />
-          </div>
-          <div className="profile-info">
-            <h1 className="profile-name">{profile?.username}</h1>
-            <p className="profile-role">
-              {profile?.rank} - {profile?.unit}
-            </p>
-            <p className="profile-role secondary">{profile?.role}</p>
-            <span className="profile-classification">
-              {profile?.classification}
-            </span>
-          </div>
-        </div>
+    <Box className="profile-container" sx={{ p: 3 }}>
+      {/* Back to My Property Button */}
+      <Box sx={{ mb: 4 }}>
+        <Button
+          component={Link}
+          to="/property"
+          startIcon={<ArrowLeft size={20} />}
+          variant="outlined"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            '&:hover': {
+              borderColor: 'rgba(255, 255, 255, 0.5)',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            },
+            textTransform: 'none',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          Back to My Property
+        </Button>
+      </Box>
 
-        <div className="profile-tabs">
-          <div className="profile-tab-list">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`profile-tab ${activeTab === tab.id ? 'active' : ''}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="profile-tab-content">
-            {renderTabContent()}
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Profile Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ color: '#fff' }}>
+          {mockProfile.rank} {mockProfile.firstName} {mockProfile.lastName}
+        </Typography>
+      </Box>
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'rgba(255, 255, 255, 0.1)', mb: 3 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={handleTabChange}
+          sx={{
+            '& .MuiTab-root': {
+              color: 'rgba(255, 255, 255, 0.7)',
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              minHeight: 48,
+              '&.Mui-selected': {
+                color: '#fff',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#fff',
+            },
+          }}
+        >
+          <Tab label="Profile Details" />
+          <Tab label="Security" />
+          <Tab label="Activity Log" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      <Box className="profile-content">
+        {activeTab === 0 && <ProfileDetails profile={mockProfile} />}
+        {activeTab === 1 && <SecuritySettings profile={mockProfile} />}
+        {activeTab === 2 && <ActivityLog userId={mockProfile.id} />}
+      </Box>
+    </Box>
   );
 };
 

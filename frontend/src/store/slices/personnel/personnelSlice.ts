@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Personnel, Unit, HandReceipt, PropertyTransfer } from '@/features/personnel/types';
+import { Personnel, Unit, HandReceipt, PropertyTransfer } from '@features/personnel/types';
 import { RootState } from '@/store/store';
 
 interface PersonnelState {
@@ -100,7 +100,7 @@ const personnelSlice = createSlice({
     updateFilters: (state, action: PayloadAction<Partial<PersonnelState['filters']>>) => {
       state.filters = { ...state.filters, ...action.payload };
     },
-    clearError: (state) => {
+    clearPersonnelError: (state) => {
       state.error = null;
     },
   },
@@ -166,7 +166,7 @@ export const selectPersonnelFilters = (state: RootState) => state.personnel.filt
 export const selectFilteredPersonnel = (state: RootState) => {
   const { unit, status, searchQuery } = state.personnel.filters;
   return state.personnel.personnel.filter((person: Personnel) => {
-    const matchesUnit = !unit || person.unitId === unit;
+    const matchesUnit = !unit || person.unit === unit;
     const matchesStatus = !status || person.status === status;
     const matchesSearch = !searchQuery || 
       `${person.firstName} ${person.lastName} ${person.rank}`.toLowerCase()
@@ -175,5 +175,5 @@ export const selectFilteredPersonnel = (state: RootState) => {
   });
 };
 
-export const { setSelectedPerson, setSelectedUnit, updateFilters, clearError } = personnelSlice.actions;
-export default personnelSlice.reducer; 
+export const { setSelectedPerson, setSelectedUnit, updateFilters, clearPersonnelError } = personnelSlice.actions;
+export default personnelSlice.reducer;

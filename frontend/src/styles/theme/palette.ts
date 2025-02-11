@@ -1,10 +1,24 @@
-import { PaletteOptions, alpha } from '@mui/material/styles';
+import { CustomThemeColors } from '@/types/theme';
 
 // Glass morphism helper
 const createGlassEffect = (baseColor: string, opacity = 0.1) => `rgba${baseColor.replace('rgb', '')}`.replace(')', `, ${opacity})`);
 
-export const palette: PaletteOptions = {
-  mode: 'dark',
+// Custom colors for specific status indicators
+export const customColors: CustomThemeColors = {
+  status: {
+    verified: '#FFFFFF', // White for verified status
+    pending: '#FFD700', // Amber for pending
+    sensitive: '#FF3B3B', // Red for sensitive items
+    inactive: 'rgba(255, 255, 255, 0.38)', // Faded white for inactive
+  },
+  glass: {
+    light: createGlassEffect('#FFFFFF', 0.05),
+    medium: createGlassEffect('#FFFFFF', 0.08),
+    dark: createGlassEffect('#FFFFFF', 0.12),
+  },
+};
+
+export const palette = {
   primary: {
     main: '#FFFFFF', // Pure white for primary elements
     light: 'rgba(255, 255, 255, 0.85)',
@@ -53,18 +67,4 @@ export const palette: PaletteOptions = {
     disabledBackground: 'rgba(255, 255, 255, 0.12)',
     focus: 'rgba(255, 255, 255, 0.12)',
   },
-  // Custom colors for specific status indicators
-  custom: {
-    status: {
-      verified: '#FFFFFF', // White for verified status
-      pending: '#FFD700', // Amber for pending
-      sensitive: '#FF3B3B', // Red for sensitive items
-      inactive: 'rgba(255, 255, 255, 0.38)', // Faded white for inactive
-    },
-    glass: {
-      light: createGlassEffect('#FFFFFF', 0.05),
-      medium: createGlassEffect('#FFFFFF', 0.08),
-      dark: createGlassEffect('#FFFFFF', 0.12),
-    },
-  },
-}; 
+} as const;

@@ -1,5 +1,9 @@
 import React from 'react';
-import { Sparklines, SparklinesLine } from 'react-sparklines';
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer
+} from 'recharts';
 import type { SystemMetric } from '@/shared/hooks/useSystemMetrics';
 import '@/styles/components/components/dashboard/metric-card.css';
 
@@ -8,7 +12,7 @@ export interface MetricCardProps {
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
-  const getStatusColor = (status: 'healthy' | 'degraded' | 'critical') => {
+  const getStatusColor = (status: SystemMetric['status']) => {
     const colors = {
       healthy: 'var(--color-success)',
       degraded: 'var(--color-warning)',
@@ -17,7 +21,9 @@ const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
     return colors[status] || 'var(--color-text-secondary)';
   };
 
-  const values = metric.history.map((h: { value: number }) => h.value);
+  const chartData = metric.history.map((h: { value: number }) => ({
+    value: h.value
+  }));
 
   return (
     <div className="metric-card">
@@ -37,9 +43,17 @@ const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
       </div>
 
       <div className="metric-card__chart" aria-hidden="true">
-        <Sparklines data={values} height={20} width={100}>
-          <SparklinesLine color={getStatusColor(metric.status)} />
-        </Sparklines>
+        <ResponsiveContainer width="100%" height={20}>
+          <LineChart data={chartData}>
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={getStatusColor(metric.status)}
+              dot={false}
+              strokeWidth={1}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="metric-card__threshold">
@@ -49,4 +63,4 @@ const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
   );
 };
 
-export default React.memo(MetricCard); 
+export default React.memo(MetricCard);

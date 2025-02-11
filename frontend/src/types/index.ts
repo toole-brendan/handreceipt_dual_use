@@ -1,19 +1,73 @@
-// Re-export all types from their domains
-export * from './auth';
-export * from './common';
-export * from './system';
-export * from './property';
-export * from './personnel';
+export * from '@/types/alerts';
+export * from '@/types/auth';
+export * from '@/types/common';
+export * from '@/types/handReceipt';
+export * from '@/types/personnel';
+export * from '@/types/property';
+export * from '@/types/system';
+export * from '@/types/user';
 
-// Export type utilities
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-};
+// Re-export commonly used types
+export type {
+  DateRange,
+  PaginationState,
+  SortState,
+  FilterState,
+  TableState,
+  SelectOption,
+  LoadingState,
+  AsyncState,
+} from '@/types/common';
 
-export type Nullable<T> = T | null;
+// Export API types from services/api/types
+export type { ApiResponse, ApiError } from '@/services/api/types';
 
-export type AsyncData<T> = {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-};
+export type {
+  UserRole,
+  User,
+  AuthState,
+} from '@/types/auth';
+
+export type {
+  Property,
+  PropertyStatus,
+  VerificationStatus,
+  PropertyTransfer,
+  SensitiveItem,
+  Verification,
+  PropertyFilters,
+  PropertyStats,
+} from '@/types/property';
+
+export type {
+  Personnel,
+  PersonnelStatus,
+  DutyStatus,
+  Unit,
+  UnitType,
+  UnitEchelon,
+  HandReceipt,
+  PersonnelFilters,
+  PersonnelStats,
+} from '@/types/personnel';
+
+export type {
+  UserProfile,
+  UserSettingsUpdate,
+  UserPreferences,
+} from '@/types/user';
+
+export type {
+  Alert,
+} from '@/types/alerts';
+
+export type {
+  SystemState,
+  SystemMetrics,
+  SystemNotification,
+  SystemNotifications,
+  SystemUpdate,
+  SystemUpdates,
+  SystemConfig,
+  SystemStatus,
+} from '@/types/system';

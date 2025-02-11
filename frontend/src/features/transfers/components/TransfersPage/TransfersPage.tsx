@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import TransferMetrics from '../TransferMetrics/TransferMetrics';
 import TransferFilters from '../TransferFilters/TransferFilters';
 import TransfersTable from '../TransfersTable/TransfersTable';
-import type { FiltersState, Transfer } from '../../types';
+import type { FiltersState } from '../../types';
 
 export const TransfersPage: React.FC = () => {
   const [filters, setFilters] = useState<FiltersState>({});
@@ -27,11 +27,8 @@ export const TransfersPage: React.FC = () => {
         mb: 2 
       }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+          <Typography variant="h4" component="h4">
             Property Transfers
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage and track property transfer requests across units
           </Typography>
         </Box>
         <Button
@@ -108,4 +105,4 @@ export const TransfersPage: React.FC = () => {
       </Box>
     </Box>
   );
-}; 
+};

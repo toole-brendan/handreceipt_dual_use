@@ -1,34 +1,15 @@
-import { createTheme, Theme, ThemeOptions } from '@mui/material/styles';
-import { palette } from './palette';
+import { createTheme } from '@mui/material';
+import type { CustomTheme } from '@/types/theme';
+import { palette, customColors } from './palette';
 import { typography } from './typography';
 import { components } from './components';
 
-// Define custom palette structure
-interface CustomPaletteOptions {
-  custom: {
-    status: {
-      verified: string;
-      pending: string;
-      sensitive: string;
-      inactive: string;
-    };
-    glass: {
-      light: string;
-      medium: string;
-      dark: string;
-    };
-  };
-}
-
-// Extend the theme to include custom properties
-declare module '@mui/material/styles' {
-  interface Palette extends CustomPaletteOptions {}
-  interface PaletteOptions extends Partial<CustomPaletteOptions> {}
-}
-
-// Create base theme with custom properties
+// Create base theme
 const baseTheme = createTheme({
-  palette,
+  palette: {
+    mode: 'dark',
+    ...palette
+  },
   typography,
   shape: {
     borderRadius: 0, // Military-style sharp corners
@@ -70,14 +51,14 @@ const baseTheme = createTheme({
     snackbar: 1400,
     tooltip: 1500,
   },
-} as ThemeOptions);
-
-// Create full theme with components that depend on base theme
-const theme = createTheme(baseTheme, {
-  components,
 });
 
-// Export the theme type
-export type CustomTheme = typeof theme;
+// Create full theme with components and custom colors
+const theme = createTheme({
+  ...baseTheme,
+  components,
+  custom: customColors
+}) as CustomTheme;
 
-export default theme; 
+export type { CustomTheme };
+export default theme;

@@ -1,3 +1,5 @@
+import { UserRole } from '@/types/auth';
+
 export interface UserProfile {
   rank: string;
   fullName: string;
@@ -7,38 +9,43 @@ export interface UserProfile {
 
 export interface User {
   id: string;
-  classification: string;
-  permissions: string[];
   rank?: string;
   name?: string;
   unit?: string;
   dutyPosition?: string;
+  role: UserRole;
 }
 
-export interface SettingsState {
-  darkMode: boolean;
-  highContrast: boolean;
-  fontSize: 'default' | 'large' | 'xlarge';
-  emailNotifications: {
+export interface NotificationSettings {
+  email: {
+    enabled: boolean;
     transferRequests: boolean;
     sensitiveItems: boolean;
     maintenance: boolean;
   };
-  pushNotifications: {
+  push: {
+    enabled: boolean;
     urgentAlerts: boolean;
     propertyUpdates: boolean;
   };
-  mobileSettings: {
+  mobile: {
+    enabled: boolean;
     offlineMode: boolean;
     cameraAccess: boolean;
   };
 }
 
-export interface SettingsActions {
-  toggleDarkMode: () => void;
-  toggleHighContrast: () => void;
-  setFontSize: (size: 'default' | 'large' | 'xlarge') => void;
-  toggleEmailNotification: (key: keyof SettingsState['emailNotifications']) => void;
-  togglePushNotification: (key: keyof SettingsState['pushNotifications']) => void;
-  toggleMobileSetting: (key: keyof SettingsState['mobileSettings']) => void;
-} 
+export interface AppearanceSettings {
+  darkMode: boolean;
+  highContrast: boolean;
+  fontSize: 'default' | 'large' | 'xlarge';
+}
+
+export interface SettingsState {
+  notifications: NotificationSettings;
+  appearance: AppearanceSettings;
+  loading: boolean;
+  error: string | null;
+}
+
+export type FontSize = 'default' | 'large' | 'xlarge';

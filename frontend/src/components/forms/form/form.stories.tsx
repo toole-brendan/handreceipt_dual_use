@@ -1,9 +1,8 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Form, FormField, FormSection, FormActions } from './form';
 import { Input } from '../input';
 import { Select } from '../select';
-import { Button } from '../button';
+import { Button } from '@/components/forms/button';
 
 const meta = {
   title: 'UI/Inputs/Form',
@@ -57,8 +56,8 @@ export const WithSections: Story = {
       </FormSection>
 
       <FormActions>
-        <Button variant="ghost">Cancel</Button>
-        <Button type="submit" variant="primary">Save Changes</Button>
+        <Button variant="text" color="inherit">Cancel</Button>
+        <Button type="submit" variant="contained" color="primary">Save Changes</Button>
       </FormActions>
     </Form>
   ),
@@ -156,8 +155,8 @@ export const DifferentFields: Story = {
       </FormField>
       
       <FormActions>
-        <Button variant="ghost">Cancel</Button>
-        <Button type="submit" variant="primary">Send Message</Button>
+        <Button variant="text" color="inherit">Cancel</Button>
+        <Button type="submit" variant="contained" color="primary">Send Message</Button>
       </FormActions>
     </Form>
   ),
@@ -198,9 +197,9 @@ export const CollapsibleSections: Story = {
       </FormSection>
       
       <FormActions sticky>
-        <Button variant="ghost">Cancel</Button>
-        <Button type="submit" variant="primary">Save Profile</Button>
+        <Button variant="text" color="inherit">Cancel</Button>
+        <Button type="submit" variant="contained" color="primary">Save Profile</Button>
       </FormActions>
     </Form>
   ),
-}; 
+};

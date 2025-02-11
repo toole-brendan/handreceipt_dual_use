@@ -2,13 +2,11 @@ import React from 'react';
 import { Button } from '@mui/material';
 
 interface TransferButtonProps {
-  personnelId: string;
   onTransfer: () => void;
   disabled?: boolean;
 }
 
 export const TransferButton: React.FC<TransferButtonProps> = ({
-  personnelId,
   onTransfer,
   disabled = false
 }) => {
@@ -22,4 +20,4 @@ export const TransferButton: React.FC<TransferButtonProps> = ({
       Transfer Items
     </Button>
   );
-}; 
+};

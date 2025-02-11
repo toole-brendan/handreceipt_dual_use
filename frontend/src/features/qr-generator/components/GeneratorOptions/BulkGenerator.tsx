@@ -33,7 +33,7 @@ export const BulkGenerator: React.FC<BulkGeneratorProps> = ({
         </button>
       </div>
       <div className="items-grid">
-        {items.map((item, index) => (
+        {items.map((item) => (
           <div key={item.id} className="grid-item">
             <input
               type="checkbox"
@@ -49,4 +49,4 @@ export const BulkGenerator: React.FC<BulkGeneratorProps> = ({
       </div>
     </div>
   );
-}; 
+};

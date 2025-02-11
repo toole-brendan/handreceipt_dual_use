@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, useParams, Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { CircularProgress } from '@mui/material';
 import Layout from '@components/layout/Layout';
 import ProtectedRoute from '@components/common/ProtectedRoute';
@@ -40,18 +40,15 @@ const ForgotPassword = lazy(() => import('@/pages/auth/forgot-password.page'));
 
 // Property pages
 const PropertyIndex = lazy(() => import('@/pages/property/index.page'));
-const SensitiveItems = lazy(() => import('@/pages/property/sensitive-items.page'));
 
 // Transfer pages
 const TransfersIndex = lazy(() => import('@/pages/transfers/index.page'));
-const NewTransfer = lazy(() => import('@/pages/transfers/new.page'));
 
 // Personnel pages (NCO & Officer only)
 const PersonnelDetails = lazy(() => import('@/pages/personnel/details.page'));
 
 // QR pages (Officer only)
 const QRIndex = lazy(() => import('@/pages/qr/index.page'));
-const QRBulk = lazy(() => import('@/pages/qr/bulk.page'));
 
 // History route
 const HistoryIndex = lazy(() => import('@/pages/history/index.page'));
@@ -64,7 +61,6 @@ const About = lazy(() => import('@/pages/utility/about.page'));
 const Help = lazy(() => import('@/pages/utility/help.page'));
 const Network = lazy(() => import('@/pages/utility/network.page'));
 const Notifications = lazy(() => import('@/pages/utility/notifications.page'));
-const Security = lazy(() => import('@/pages/utility/security.page'));
 const NotFound = lazy(() => import('@/pages/utility/not-found.page'));
 
 // Lazy load components
@@ -103,7 +99,13 @@ const routes = [
   },
   {
     path: '/profile',
-    element: <Suspense fallback={<LoadingFallback />}><Profile /></Suspense>,
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      </Suspense>
+    ),
     errorElement: <RouteErrorFallback />
   },
   
@@ -137,11 +139,6 @@ const routes = [
             element: <ProtectedRoute><TransfersIndex /></ProtectedRoute>,
             errorElement: <RouteErrorFallback />
           },
-          {
-            path: 'new',
-            element: <ProtectedRoute><NewTransfer /></ProtectedRoute>,
-            errorElement: <RouteErrorFallback />
-          }
         ]
       },
       // Personnel routes (NCO & Officer only)
@@ -169,11 +166,6 @@ const routes = [
             element: <ProtectedRoute role="OFFICER"><QRIndex /></ProtectedRoute>,
             errorElement: <RouteErrorFallback />
           },
-          {
-            path: 'bulk',
-            element: <ProtectedRoute role="OFFICER"><QRBulk /></ProtectedRoute>,
-            errorElement: <RouteErrorFallback />
-          }
         ]
       },
       // Settings route
@@ -189,8 +181,8 @@ const routes = [
         errorElement: <RouteErrorFallback />
       },
       {
-        path: 'help',
-        element: <Help />,
+        path: 'utility/help',
+        element: <Suspense fallback={<LoadingFallback />}><Help /></Suspense>,
         errorElement: <RouteErrorFallback />
       },
       {
@@ -201,11 +193,6 @@ const routes = [
       {
         path: 'notifications',
         element: <ProtectedRoute><Notifications /></ProtectedRoute>,
-        errorElement: <RouteErrorFallback />
-      },
-      {
-        path: 'security',
-        element: <ProtectedRoute><Security /></ProtectedRoute>,
         errorElement: <RouteErrorFallback />
       },
       // Sensitive Items routes

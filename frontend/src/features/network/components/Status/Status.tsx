@@ -8,9 +8,8 @@ import {
   Grid,
   Typography,
   styled,
-  useTheme,
 } from '@mui/material';
-import { StatusChip } from '@/components/common/mui/StatusChip';
+import { StatusChip, StatusType } from '@/components/common/mui/StatusChip';
 import { ProgressIndicator } from '@/components/common/mui/ProgressIndicator';
 
 interface NetworkStatus {
@@ -42,22 +41,21 @@ const MetricItem = styled(Box)(({ theme }) => ({
   },
 }));
 
-const getStatusVariant = (status: NetworkStatus['status']) => {
+const getStatusVariant = (status: NetworkStatus['status']): StatusType => {
   switch (status) {
     case 'healthy':
-      return 'success';
+      return 'verified';
     case 'warning':
-      return 'warning';
+      return 'pending';
     case 'error':
-      return 'error';
+      return 'sensitive';
     default:
-      return 'default';
+      return 'inactive';
   }
 };
 
 const NetworkStatus: React.FC = () => {
-  const theme = useTheme();
-  const [status, setStatus] = React.useState<NetworkStatus>({
+  const [status] = React.useState<NetworkStatus>({
     status: 'healthy',
     uptime: '99.99%',
     latency: 45,

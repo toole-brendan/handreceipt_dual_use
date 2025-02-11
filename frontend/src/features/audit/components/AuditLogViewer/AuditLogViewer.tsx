@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '../../../../store/store';
 import { FiEye, FiDownload, FiX } from 'react-icons/fi';
 
 interface AuditLog {
@@ -45,12 +45,12 @@ export const AuditLogViewer: React.FC = () => {
     }
   });
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     fetchAuditLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, classificationLevel]);
+  }, [filters, user?.classification]);
 
   const fetchAuditLogs = async () => {
     setLoading(true);
@@ -66,7 +66,7 @@ export const AuditLogViewer: React.FC = () => {
 
       const response = await fetch(`/api/audit/logs?${queryParams}`, {
         headers: {
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
       });
 
@@ -89,7 +89,7 @@ export const AuditLogViewer: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
         body: JSON.stringify({ filters }),
       });

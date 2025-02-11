@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '@/store/store';
 import { FiPlus, FiX } from 'react-icons/fi';
 import '../../../ui/styles/verification-workflow.css';
 
@@ -50,12 +50,13 @@ export const VerificationWorkflow: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<WorkflowFilters>({});
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const classification = user?.classification || '';
 
   useEffect(() => {
     fetchWorkflowTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, classificationLevel]);
+  }, [filters, classification]);
 
   const fetchWorkflowTasks = async () => {
     setLoading(true);
@@ -69,7 +70,7 @@ export const VerificationWorkflow: React.FC = () => {
         `/api/verifications/workflow?${queryParams}`,
         {
           headers: {
-            'Classification-Level': classificationLevel,
+            'Classification-Level': classification,
           },
         }
       );
@@ -99,7 +100,7 @@ export const VerificationWorkflow: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Classification-Level': classificationLevel,
+            'Classification-Level': classification,
           },
           body: JSON.stringify({ notes }),
         }
@@ -114,32 +115,6 @@ export const VerificationWorkflow: React.FC = () => {
     } catch (error) {
       setError(
         error instanceof Error ? error.message : 'Failed to complete step'
-      );
-    }
-  };
-
-  const handleTaskAssignment = async (taskId: string, userId: string) => {
-    try {
-      const response = await fetch(
-        `/api/verifications/workflow/${taskId}/assign`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Classification-Level': classificationLevel,
-          },
-          body: JSON.stringify({ userId }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to assign task');
-      }
-
-      await fetchWorkflowTasks();
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to assign task'
       );
     }
   };

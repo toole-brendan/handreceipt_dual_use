@@ -13,7 +13,7 @@ import {
   Description as DocIcon,
   Person as ProfileIcon
 } from '@mui/icons-material';
-import type { Personnel, HandReceiptItem } from '@/features/personnel/types';
+import type { Personnel } from '@/types/personnel';
 import EquipmentTable from '../tables/AssignedItemsTable';
 
 interface PersonnelCardProps {
@@ -76,7 +76,7 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({
               {personnel.rank} {personnel.lastName}, {personnel.firstName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {personnel.position} • {personnel.platoon}
+              {personnel.position} • {personnel.unit.shortName}
             </Typography>
           </Box>
         </Box>
@@ -84,15 +84,18 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({
         {/* Right side - Stats */}
         <Box sx={{ textAlign: 'right' }}>
           <Typography variant="body2" color="text.secondary">
-            Assigned Items: {personnel.propertyStats.propertyCount}
+            Assigned Items: {personnel.assignedProperty?.length || 0}
           </Typography>
           <Typography 
             variant="body2" 
             sx={{ 
-              color: personnel.status === 'present' ? 'success.main' : 'warning.main'
+              color: personnel.status === 'ACTIVE' ? 'success.main' : 
+                     personnel.status === 'DEPLOYED' ? 'info.main' :
+                     personnel.status === 'LEAVE' ? 'warning.main' :
+                     personnel.status === 'INACTIVE' ? 'error.main' : 'text.secondary'
             }}
           >
-            Status: {personnel.status.toUpperCase()}
+            Status: {personnel.status}
           </Typography>
         </Box>
       </Box>
@@ -103,7 +106,7 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({
         <Box sx={{ p: 2 }}>
           {/* Equipment Table */}
           <EquipmentTable
-            equipment={[]} // TODO: Get actual items from API
+            equipment={personnel.assignedProperty || []}
             onTransfer={onTransferEquipment}
             onViewDetails={onViewEquipmentDetails}
           />
@@ -137,4 +140,4 @@ const PersonnelCard: React.FC<PersonnelCardProps> = ({
   );
 };
 
-export default PersonnelCard; 
+export default PersonnelCard;

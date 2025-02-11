@@ -1,4 +1,4 @@
-import { configureStore, Middleware, ThunkAction, Action, ThunkMiddleware, combineReducers } from '@reduxjs/toolkit';
+import { configureStore, Middleware, ThunkAction, Action, combineReducers } from '@reduxjs/toolkit';
 import { authReducer } from './slices/auth';
 import { propertyReducer } from './slices/property';
 import { personnelReducer } from './slices/personnel';

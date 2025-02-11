@@ -2,13 +2,11 @@ import React from 'react';
 import { Button } from '@mui/material';
 
 interface HandReceiptButtonProps {
-  personnelId: string;
   onGenerate: () => void;
   disabled?: boolean;
 }
 
 export const HandReceiptButton: React.FC<HandReceiptButtonProps> = ({
-  personnelId,
   onGenerate,
   disabled = false
 }) => {
@@ -22,4 +20,4 @@ export const HandReceiptButton: React.FC<HandReceiptButtonProps> = ({
       Generate Hand Receipt
     </Button>
   );
-}; 
+};

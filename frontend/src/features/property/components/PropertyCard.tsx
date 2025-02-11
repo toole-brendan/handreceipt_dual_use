@@ -42,10 +42,7 @@ interface PropertyCardProps {
   onGenerateQR?: (id: string) => void;
 }
 
-const StyledCard = styled(Card)(({ theme }: { theme: Theme & CustomTheme }) => {
-  const customTheme = theme as CustomTheme;
-  
-  return {
+const StyledCard = styled(Card)(({ theme }: { theme: Theme & CustomTheme }) => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
@@ -82,8 +79,7 @@ const StyledCard = styled(Card)(({ theme }: { theme: Theme & CustomTheme }) => {
     [theme.breakpoints.up('md')]: {
       width: `calc(33.333% - ${theme.spacing(3)})`,
     },
-  };
-});
+}));
 
 const PropertyDetails = styled(Box)(({ theme }: { theme: Theme }) => ({
   display: 'grid',
@@ -256,4 +252,4 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       </CardActions>
     </StyledCard>
   );
-}; 
+};

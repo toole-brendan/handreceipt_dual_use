@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '@/store/store';
 import '../../../ui/styles/verification-review.css';
 
 interface VerificationReview {
@@ -45,11 +45,12 @@ export const VerificationReview: React.FC = () => {
   });
   const [selectedVerification, setSelectedVerification] = useState<VerificationReview | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const classification = user?.classification || '';
 
   useEffect(() => {
     fetchVerifications();
-  }, [filters, classificationLevel]);
+  }, [filters, classification]);
 
   const fetchVerifications = async () => {
     try {
@@ -64,7 +65,7 @@ export const VerificationReview: React.FC = () => {
 
       const response = await fetch(`/api/verifications/review?${queryParams}`, {
         headers: {
-          'Classification-Level': classificationLevel,
+          'Classification-Level': classification,
         },
       });
 
@@ -87,7 +88,7 @@ export const VerificationReview: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Classification-Level': classificationLevel,
+          'Classification-Level': classification,
         },
         body: JSON.stringify({
           approved,
@@ -260,4 +261,4 @@ export const VerificationReview: React.FC = () => {
       )}
     </div>
   );
-}; 
+};

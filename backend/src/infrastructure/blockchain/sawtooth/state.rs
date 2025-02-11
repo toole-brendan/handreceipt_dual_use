@@ -15,6 +15,8 @@ pub struct PropertyState {
     pub custodian: String,
     pub status: String,
     pub timestamp: i64,
+    pub transfer_history: Vec<TransferRecord>,
+    pub last_updated: DateTime<Utc>,
 }
 
 impl PropertyState {

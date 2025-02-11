@@ -1,11 +1,8 @@
 import React from 'react';
 import { Box, Typography, Grid } from '@mui/material';
 import { MetricsCard } from './PropertyMetrics';
-import { usePropertyAnalytics } from '../../hooks/usePropertyAnalytics';
 
 export const PropertyAnalytics: React.FC = () => {
-  const analytics = usePropertyAnalytics();
-
   return (
     <Box className="property-analytics">
       <Typography variant="h6" gutterBottom>

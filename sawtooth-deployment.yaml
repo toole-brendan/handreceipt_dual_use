@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sawtooth-validator
+spec:
+  replicas: 1 # Start with a single validator for simplicity
+  selector:
+    matchLabels:
+      app: sawtooth
+  template:
+    metadata:
+      labels:
+        app: sawtooth
+    spec:
+      containers:
+      - name: sawtooth-validator
+        image: hyperledger/sawtooth-validator:1.2
+        ports:
+        - containerPort: 4004
+          name: validator-port
+        - containerPort: 8800
+          name: rest-api-port
+        volumeMounts:
+        - name: sawtooth-config
+          mountPath: /etc/sawtooth
+      volumes:
+      - name: sawtooth-config
+        configMap:
+          name: sawtooth-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sawtooth-validator-service
+spec:
+  selector:
+    app: sawtooth
+  ports:
+    - protocol: TCP
+      port: 4004
+      targetPort: 4004
+      name: validator-port
+    - protocol: TCP
+      port: 8800
+      targetPort: 8800
+      name: rest-api-port
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sawtooth-config
+data:
+  # Basic Sawtooth configuration (will need to be customized)
+  validator.toml: |
+    bind = [
+      "tcp://0.0.0.0:4004"
+    ]
+    endpoint = "tcp://sawtooth-validator-service:4004"
+    peering = "static"

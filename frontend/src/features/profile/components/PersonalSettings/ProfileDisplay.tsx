@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserProfile, UserSettingsUpdate } from '@/types/user';
+import { UserProfile } from '@/types/user';
 
 interface ProfileDetailsProps {
   profile: UserProfile;
@@ -147,4 +147,4 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({ profile, onUpdate }) =>
   );
 };
 
-export default ProfileDetails; 
+export default ProfileDetails;

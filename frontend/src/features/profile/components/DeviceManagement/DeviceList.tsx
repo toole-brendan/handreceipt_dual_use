@@ -1,11 +1,6 @@
 import React from 'react';
-import { UserProfile } from '@/types/user';
 
-interface DeviceListProps {
-  profile: UserProfile;
-}
-
-const DeviceList: React.FC<DeviceListProps> = ({ profile }) => {
+const DeviceList: React.FC = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Connected Devices</h2>
@@ -32,4 +27,4 @@ const DeviceList: React.FC<DeviceListProps> = ({ profile }) => {
   );
 };
 
-export default DeviceList; 
+export default DeviceList;

@@ -1,4 +1,4 @@
-import { ApiResponse } from '@/types/shared';
+import { ApiResponse } from '@/services/api/types';
 
 export class ApiClient {
   private baseUrl: string;
@@ -104,4 +104,4 @@ export class ApiClient {
   }
 }
 
-export const api = new ApiClient(); 
+export const api = new ApiClient();

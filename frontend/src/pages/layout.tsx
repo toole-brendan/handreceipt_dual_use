@@ -1,5 +1,5 @@
-import React from 'react';
-import { Header, Sidebar } from '@/components/layout';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
 import { Outlet } from 'react-router-dom';
 
 const Layout = () => {
@@ -7,7 +7,7 @@ const Layout = () => {
     <div className="app-layout">
       <Header />
       <div className="main-content">
-        <Sidebar />
+        <Sidebar variant="permanent" />
         <main>
           <Outlet />
         </main>

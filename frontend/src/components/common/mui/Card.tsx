@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Card as MuiCard, CardProps as MuiCardProps, styled } from '@mui/material';
-import { CustomTheme } from '../../../styles/theme';
 
 type CustomVariant = 'outlined' | 'contained';
 type MuiVariant = 'outlined' | 'elevation';
@@ -22,8 +21,6 @@ interface StyledCardProps extends Omit<MuiCardProps, 'variant'> {
 const StyledCard = styled(MuiCard, {
   shouldForwardProp: (prop) => !['variant', 'emphasis', 'noHover'].includes(prop as string),
 })<StyledCardProps>(({ theme, variant = 'outlined', emphasis = 'medium', noHover }) => {
-  const customTheme = theme as CustomTheme;
-  
   const getBackgroundColor = () => {
     switch (emphasis) {
       case 'high':
@@ -100,4 +97,4 @@ export const SecondaryCard: React.FC<Omit<CardProps, 'variant' | 'emphasis'>> = 
 
 export const SubtleCard: React.FC<Omit<CardProps, 'variant' | 'emphasis'>> = (props) => (
   <Card variant="contained" emphasis="low" {...props} />
-); 
+);

@@ -1,20 +1,21 @@
-import React, { startTransition } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import React from 'react';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import Layout from '@components/layout/Layout';
 import LoadingFallback from '@components/feedback/LoadingFallback';
 import ErrorBoundary from '@components/feedback/ErrorBoundary';
 import routes from './routes';
 import { SettingsProvider } from '@contexts/SettingsContext';
 import theme from '@/styles/theme';
 
-// Configure router
-const router = createBrowserRouter(routes);
+// Configure router with hash routing for static hosting
+const router = createHashRouter(routes, {
+  basename: '' // Explicitly set basename for static hosting
+});
 
 const App: React.FC = () => {
   // Wrap the entire app in startTransition
-  const [isPending, startRouteTransition] = React.useTransition();
+  const [isPending] = React.useTransition();
 
   return (
     <ThemeProvider theme={theme}>

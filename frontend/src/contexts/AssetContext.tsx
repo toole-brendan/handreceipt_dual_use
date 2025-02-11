@@ -26,4 +26,4 @@ export const useAssetContext = () => {
     throw new Error('useAssetContext must be used within an AssetProvider');
   }
   return context;
-}; 
+};

@@ -1,4 +1,4 @@
-import { RosterItem, GeneratedQR } from '../types/qr.types';
+import { GeneratedQR } from '../types/qr.types';
 
 export const processRoster = async (file: File): Promise<GeneratedQR[]> => {
   const formData = new FormData();
@@ -14,4 +14,4 @@ export const processRoster = async (file: File): Promise<GeneratedQR[]> => {
   }
 
   return response.json();
-}; 
+};

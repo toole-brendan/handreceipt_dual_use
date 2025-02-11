@@ -59,7 +59,7 @@ const Scanner: React.FC = () => {
         throw new Error('Failed to verify asset');
       }
 
-      const data = await response.json();
+      await response.json();
       // Navigate to asset detail page on success
       navigate(`/assets/${decodedText}`);
 

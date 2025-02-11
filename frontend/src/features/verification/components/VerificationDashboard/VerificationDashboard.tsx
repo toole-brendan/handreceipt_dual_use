@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '../../../../store/store';
 import { FiRefreshCw } from 'react-icons/fi';
 
 interface VerificationStats {
@@ -34,25 +34,25 @@ export const VerificationDashboard: React.FC = () => {
   const [departmentStats, setDepartmentStats] = useState<DepartmentStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     fetchDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classificationLevel]);
+  }, [user?.classification]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
       const [statsResponse, trendsResponse, deptResponse] = await Promise.all([
         fetch('/api/verifications/stats', {
-          headers: { 'Classification-Level': classificationLevel },
+          headers: { 'Classification-Level': user?.classification || '' },
         }),
         fetch('/api/verifications/trends', {
-          headers: { 'Classification-Level': classificationLevel },
+          headers: { 'Classification-Level': user?.classification || '' },
         }),
         fetch('/api/verifications/department-stats', {
-          headers: { 'Classification-Level': classificationLevel },
+          headers: { 'Classification-Level': user?.classification || '' },
         }),
       ]);
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Personnel } from '../types';
+import { Personnel } from '@/types/personnel';
 import { api } from '@/services/api';
 
 interface UsePersonnelDataResult {
@@ -34,4 +34,4 @@ export const usePersonnelData = (personnelId: string): UsePersonnelDataResult =>
   }, [personnelId]);
 
   return { personnel, isLoading, error };
-}; 
+};

@@ -10,7 +10,6 @@ import {
   Pie,
   Cell,
   Tooltip,
-  Legend,
 } from 'recharts';
 
 interface StatusDataPoint {
@@ -163,4 +162,4 @@ export const StatusDistribution: React.FC<StatusDistributionProps> = ({
   );
 };
 
-export default StatusDistribution; 
+export default StatusDistribution;

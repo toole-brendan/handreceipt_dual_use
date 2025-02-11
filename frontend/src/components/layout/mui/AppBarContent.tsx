@@ -26,7 +26,6 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
 import { RootState } from '@/store/store';
-import { CustomTheme } from '../../../styles/theme';
 import {
   OFFICER_SEARCH_SCOPE,
   NCO_SEARCH_SCOPE,
@@ -44,10 +43,7 @@ interface UserState {
 
 interface AppBarContentProps {}
 
-const Search = styled('div')(({ theme }) => {
-  const customTheme = theme as CustomTheme;
-  
-  return {
+const Search = styled('div')(({ theme }) => ({
     position: 'relative',
     borderRadius: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
@@ -72,8 +68,7 @@ const Search = styled('div')(({ theme }) => {
       marginLeft: theme.spacing(3),
       width: 'auto',
     },
-  };
-});
+}));
 
 const SearchIconWrapper = styled('div')(({ theme }) => ({
   padding: theme.spacing(0, 2),
@@ -100,10 +95,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-const UserInfo = styled(Box)(({ theme }) => {
-  const customTheme = theme as CustomTheme;
-  
-  return {
+const UserInfo = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
@@ -125,13 +117,9 @@ const UserInfo = styled(Box)(({ theme }) => {
       transform: 'translateY(-1px)',
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.5)',
     },
-  };
-});
+}));
 
-const StyledMenu = styled(Menu)(({ theme }) => {
-  const customTheme = theme as CustomTheme;
-  
-  return {
+const StyledMenu = styled(Menu)(({ theme }) => ({
     '& .MuiPaper-root': {
       backgroundColor: '#000000',
       backdropFilter: 'blur(12px)',
@@ -151,35 +139,13 @@ const StyledMenu = styled(Menu)(({ theme }) => {
         },
       },
     },
-  };
-});
+}));
 
-const StyledBadge = styled(Badge)(({ theme }) => ({
+const StyledBadge = styled(Badge)(() => ({
   '& .MuiBadge-badge': {
     backgroundColor: '#FF3B3B',
     color: '#FFFFFF',
     boxShadow: '0 0 0 2px #000000',
-    '&::after': {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      borderRadius: '50%',
-      animation: 'ripple 1.2s infinite ease-in-out',
-      border: '1px solid currentColor',
-      content: '""',
-    },
-  },
-  '@keyframes ripple': {
-    '0%': {
-      transform: 'scale(.8)',
-      opacity: 1,
-    },
-    '100%': {
-      transform: 'scale(2.4)',
-      opacity: 0,
-    },
   },
 }));
 
@@ -408,4 +374,4 @@ export const AppBarContent: React.FC<AppBarContentProps> = () => {
       </StyledMenu>
     </Toolbar>
   );
-}; 
+};

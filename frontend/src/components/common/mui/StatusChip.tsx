@@ -1,6 +1,5 @@
 import React from 'react';
 import { Chip, ChipProps, styled } from '@mui/material';
-import { CustomTheme } from '../../../styles/theme';
 
 export type StatusType = 'verified' | 'pending' | 'sensitive' | 'inactive';
 
@@ -25,7 +24,7 @@ const getStatusColor = (status: StatusType): string => {
 
 const StyledChip = styled(Chip, {
   shouldForwardProp: (prop) => !['status', 'pulseAnimation'].includes(prop as string),
-})<StatusChipProps>(({ theme, status, pulseAnimation }) => {
+})<StatusChipProps>(({ status, pulseAnimation }) => {
   const statusColor = getStatusColor(status);
   
   return {
@@ -93,4 +92,4 @@ export const InactiveChip = React.forwardRef<HTMLDivElement, Omit<StatusChipProp
   <StatusChip ref={ref} status="inactive" {...props} />
 ));
 
-InactiveChip.displayName = 'InactiveChip'; 
+InactiveChip.displayName = 'InactiveChip';

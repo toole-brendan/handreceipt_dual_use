@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+// Placeholder for future implementation
 
 export const usePropertyAnalytics = () => {
   // Implement analytics hook logic

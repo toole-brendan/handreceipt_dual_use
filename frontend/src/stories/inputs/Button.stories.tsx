@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from '@/shared/components/inputs';
-import { ChevronRight, Plus, Trash2, Download, Settings, Search } from 'lucide-react';
+import { Button } from '@/components/forms/button';
+import { ChevronRight } from 'lucide-react';
 
 const meta = {
   title: 'UI/Inputs/Button',
@@ -22,7 +22,7 @@ export const Default: Story = {
 
 export const Primary: Story = {
   args: {
-    variant: 'primary',
+    variant: 'contained',
     children: 'Primary Button',
   },
 };
@@ -30,14 +30,14 @@ export const Primary: Story = {
 export const WithIcon: Story = {
   args: {
     children: 'With Icon',
-    icon: <ChevronRight className="w-4 h-4" />,
+    iconRight: <ChevronRight className="w-4 h-4" />,
   },
 };
 
 export const Loading: Story = {
   args: {
     children: 'Loading',
-    loading: true,
+    isLoading: true,
   },
 };
 
@@ -46,4 +46,4 @@ export const Disabled: Story = {
     children: 'Disabled',
     disabled: true,
   },
-}; 
+};

@@ -1,48 +1,35 @@
-import { BaseEntity } from './shared';
+export type UserRole = 'ADMIN' | 'COMMANDER' | 'SOLDIER' | 'SUPPLY' | 'MAINTENANCE' | 'OFFICER';
 
-export interface User extends BaseEntity {
-  email: string;
-  username: string;
-  firstName: string;
-  lastName: string;
+export interface User {
+  id: string;
   rank?: string;
+  name?: string;
+  email: string;
   role: UserRole;
   unit?: string;
-  permissions: string[];
+  dutyPosition?: string;
   classification: string;
-  isActive: boolean;
+  permissions: string[];
   lastLogin?: string;
+  preferences?: {
+    theme: 'light' | 'dark' | 'system';
+    language: string;
+    timezone: string;
+    dateFormat: string;
+    notifications: {
+      email: boolean;
+      push: boolean;
+      transferRequests: boolean;
+      securityAlerts: boolean;
+      systemUpdates: boolean;
+      assetChanges: boolean;
+    };
+  };
 }
-
-export type UserRole = 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'NCO' | 'SOLDIER';
 
 export interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
 }
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-}
-
-export interface MFAConfig {
-  enabled: boolean;
-  method: 'app' | 'sms' | 'email';
-  verified: boolean;
-}
-
-export interface SecuritySettings {
-  mfa: MFAConfig;
-  lastPasswordChange: string;
-  passwordExpiresIn: number;
-  sessionTimeout: number;
-} 

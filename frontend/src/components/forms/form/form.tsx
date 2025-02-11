@@ -1,15 +1,15 @@
 import React from 'react';
-import { Box, Paper, styled, Theme, alpha, LinearProgress } from '@mui/material';
+import { Box, Paper, styled, alpha, LinearProgress } from '@mui/material';
 
 // Type definitions
-interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
+export interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
   loading?: boolean;
   error?: string;
   success?: string;
   onSubmit?: (data: Record<string, any>) => Promise<void> | void;
 }
 
-interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   name?: string;
   label?: string;
   error?: string;
@@ -18,7 +18,7 @@ interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   hint?: string;
 }
 
-interface FormSectionProps {
+export interface FormSectionProps {
   title?: string;
   description?: string;
   collapsible?: boolean;
@@ -27,12 +27,12 @@ interface FormSectionProps {
   children?: React.ReactNode;
 }
 
-interface FormActionsProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface FormActionsProps extends React.HTMLAttributes<HTMLDivElement> {
   align?: 'left' | 'right' | 'center';
   sticky?: boolean;
 }
 
-const StyledForm = styled('form')(({ theme }: { theme: Theme }) => ({
+const StyledForm = styled('form')(() => ({
   position: 'relative',
   width: '100%',
   '&.form-loading': {
@@ -43,7 +43,7 @@ const StyledForm = styled('form')(({ theme }: { theme: Theme }) => ({
 
 const StyledFormSection = styled(Paper, {
   shouldForwardProp: (prop) => prop !== 'component',
-})<{ component?: React.ElementType }>(({ theme }: { theme: Theme }) => ({
+})<{ component?: React.ElementType }>(({ theme }) => ({
   backgroundColor: 'rgba(255, 255, 255, 0.03)',
   backdropFilter: 'blur(12px)',
   border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -114,7 +114,7 @@ const StyledFormSection = styled(Paper, {
   },
 }));
 
-const StyledFormField = styled(Box)(({ theme }: { theme: Theme }) => ({
+const StyledFormField = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
   '& .form-label': {
     display: 'block',
@@ -161,7 +161,7 @@ const StyledFormField = styled(Box)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-const StyledFormActions = styled(Box)(({ theme }: { theme: Theme }) => ({
+const StyledFormActions = styled(Box)(({ theme }) => ({
   display: 'flex',
   gap: theme.spacing(2),
   marginTop: theme.spacing(4),
@@ -185,7 +185,7 @@ const StyledFormActions = styled(Box)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-const StyledMessage = styled(Box)(({ theme }: { theme: Theme }) => ({
+const StyledMessage = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
   marginBottom: theme.spacing(3),
   borderRadius: 0,
@@ -396,4 +396,4 @@ export const Form = React.forwardRef<HTMLFormElement, FormProps>(({
   );
 });
 
-Form.displayName = 'Form'; 
+Form.displayName = 'Form';

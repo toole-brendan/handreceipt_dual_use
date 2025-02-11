@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSensitiveItems } from './useSensitiveItems';
-import { SensitiveItem } from '../types/SensitiveItem';
+import { VerificationStatus } from '@/types/property';
 
 interface VerificationSchedule {
   nextVerificationTime: Date;
@@ -11,24 +11,24 @@ interface VerificationSchedule {
 }
 
 export const useVerificationSchedule = (): VerificationSchedule => {
-  const items = useSensitiveItems();
+  const { items } = useSensitiveItems();
   
   return useMemo(() => {
     const now = new Date();
     const itemsDue = items.filter(item => {
-      const nextVerification = new Date(item.nextVerification);
-      return nextVerification <= now && item.status === 'needs_verification';
+      const nextVerification = new Date(item.verificationSchedule.nextVerification);
+      return nextVerification <= now && item.verificationStatus === 'NEEDS_VERIFICATION' as VerificationStatus;
     });
     
     const itemsOverdue = itemsDue.filter(item => {
-      const nextVerification = new Date(item.nextVerification);
+      const nextVerification = new Date(item.verificationSchedule.nextVerification);
       const overdueDays = Math.floor((now.getTime() - nextVerification.getTime()) / (1000 * 60 * 60 * 24));
-      return item.status === 'overdue' || overdueDays > 0;
+      return item.verificationStatus === 'OVERDUE' as VerificationStatus || overdueDays > 0;
     });
 
     // Find the next required verification time
     const nextVerification = items
-      .map(item => new Date(item.nextVerification))
+      .map(item => new Date(item.verificationSchedule.nextVerification))
       .sort((a, b) => a.getTime() - b.getTime())
       .find(date => date > now) || now;
 
@@ -40,4 +40,4 @@ export const useVerificationSchedule = (): VerificationSchedule => {
       itemsOverdueCount: itemsOverdue.length
     };
   }, [items]);
-}; 
+};

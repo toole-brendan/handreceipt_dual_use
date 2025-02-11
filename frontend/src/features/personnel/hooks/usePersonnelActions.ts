@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
-import { Personnel } from '../types';
 
 interface UsePersonnelActionsResult {
   generateHandReceipt: (personnelId: string) => Promise<void>;
@@ -53,4 +52,4 @@ export const usePersonnelActions = (): UsePersonnelActionsResult => {
     isLoading,
     error
   };
-}; 
+};

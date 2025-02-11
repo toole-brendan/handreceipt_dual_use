@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '../../../../store/store';
 import { FiEdit2, FiUserPlus, FiUserX, FiX } from 'react-icons/fi';
 
 interface User {
@@ -29,12 +29,12 @@ export const UserManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<UserFilters>({});
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, classificationLevel]);
+  }, [filters, user?.classification]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -42,7 +42,7 @@ export const UserManagement: React.FC = () => {
       const queryParams = new URLSearchParams(filters as Record<string, string>);
       const response = await fetch(`/api/admin/users?${queryParams}`, {
         headers: {
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
       });
 
@@ -65,7 +65,7 @@ export const UserManagement: React.FC = () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -86,7 +86,7 @@ export const UserManagement: React.FC = () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
         body: JSON.stringify({ clearanceLevel: newClearance }),
       });

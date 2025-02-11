@@ -49,7 +49,8 @@ export const typography: TypographyOptions = {
     letterSpacing: '0.1em',
     lineHeight: 1.2,
     textTransform: 'uppercase',
-    marginLeft: '-1rem'
+    marginTop: 0,
+    marginBottom: '24px',
   },
   h5: {
     fontSize: '1.25rem',
@@ -119,4 +120,4 @@ export const typography: TypographyOptions = {
     lineHeight: 2.5,
     textTransform: 'uppercase',
   },
-}; 
+};

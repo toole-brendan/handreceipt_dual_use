@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import '@/styles/components/pages/network/nodes.css';
 
-interface NetworkNode {
+interface NetworkNode extends d3.SimulationNodeDatum {
   id: number;
   name: string;
   status: 'online' | 'offline' | 'error';
@@ -19,11 +19,13 @@ interface NetworkNode {
   };
 }
 
-interface NetworkLink {
-  source: number;
-  target: number;
+interface NetworkLink extends d3.SimulationLinkDatum<NetworkNode> {
+  source: NetworkNode;
+  target: NetworkNode;
   strength: number;
 }
+
+type DragEvent = d3.D3DragEvent<SVGGElement, NetworkNode, NetworkNode>;
 
 const Nodes: React.FC = () => {
   const [nodes, setNodes] = useState<NetworkNode[]>([]);
@@ -81,8 +83,8 @@ const Nodes: React.FC = () => {
     // Create links data from node connections
     const links: NetworkLink[] = nodes.flatMap(node =>
       node.connections.map(targetId => ({
-        source: node.id,
-        target: targetId,
+        source: node,
+        target: nodes.find(n => n.id === targetId) as NetworkNode,
         strength: 1
       }))
     );
@@ -92,9 +94,9 @@ const Nodes: React.FC = () => {
       .force('link', d3.forceLink<NetworkNode, NetworkLink>(links)
         .id(d => d.id)
         .distance(100))
-      .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(50));
+      .force('charge', d3.forceManyBody<NetworkNode>().strength(-300))
+      .force('center', d3.forceCenter<NetworkNode>(width / 2, height / 2))
+      .force('collision', d3.forceCollide<NetworkNode>().radius(50));
 
     // Create link elements
     const link = svg.append('g')
@@ -122,7 +124,7 @@ const Nodes: React.FC = () => {
     node.append('circle')
       .attr('r', 20)
       .attr('class', d => `node-circle status-${d.status}`)
-      .on('click', (event, d) => handleNodeClick(d));
+      .on('click', (_event, d) => handleNodeClick(d));
 
     // Add labels
     node.append('text')
@@ -134,32 +136,35 @@ const Nodes: React.FC = () => {
     // Update positions on simulation tick
     simulation.on('tick', () => {
       link
-        .attr('x1', d => (d.source as NetworkNode).x!)
-        .attr('y1', d => (d.source as NetworkNode).y!)
-        .attr('x2', d => (d.target as NetworkNode).x!)
-        .attr('y2', d => (d.target as NetworkNode).y!);
+        .attr('x1', d => (d.source as NetworkNode).x ?? 0)
+        .attr('y1', d => (d.source as NetworkNode).y ?? 0)
+        .attr('x2', d => (d.target as NetworkNode).x ?? 0)
+        .attr('y2', d => (d.target as NetworkNode).y ?? 0);
 
       node
-        .attr('transform', d => `translate(${d.x},${d.y})`);
+        .attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
     });
 
     simulationRef.current = simulation;
 
-    function dragStarted(event: d3.D3DragEvent<SVGGElement, NetworkNode, unknown>) {
+    function dragStarted(event: DragEvent) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
+      const node = event.subject;
+      node.fx = node.x;
+      node.fy = node.y;
     }
 
-    function dragged(event: d3.D3DragEvent<SVGGElement, NetworkNode, unknown>) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
+    function dragged(event: DragEvent) {
+      const node = event.subject;
+      node.fx = event.x;
+      node.fy = event.y;
     }
 
-    function dragEnded(event: d3.D3DragEvent<SVGGElement, NetworkNode, unknown>) {
+    function dragEnded(event: DragEvent) {
       if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
+      const node = event.subject;
+      node.fx = null;
+      node.fy = null;
     }
   };
 

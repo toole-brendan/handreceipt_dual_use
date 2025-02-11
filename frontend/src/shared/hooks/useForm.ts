@@ -1,5 +1,4 @@
 import * as React from "react"
-import { toast } from "@/features/useToast"
 import { debounce } from "@/features/lib/utils"
 
 export type ValidationRule<T> = {
@@ -36,23 +35,37 @@ export function useForm<T extends Record<string, any>>(config: FormConfig<T>) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isDirty, setIsDirty] = React.useState(false)
 
+  const [snackbar, setSnackbar] = React.useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const showMessage = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
   // Create a debounced autosave function
   const debouncedAutosave = React.useMemo(
     () =>
       debounce(async (valuesToSave: Partial<T>) => {
         try {
           await onAutosave?.(valuesToSave)
-          toast({
-            type: "success",
-            title: "Changes saved",
-            description: "Your changes have been automatically saved.",
-          })
+          showMessage("Your changes have been automatically saved.", "success")
         } catch (error) {
-          toast({
-            type: "error",
-            title: "Failed to save",
-            description: "There was an error saving your changes.",
-          })
+          showMessage("There was an error saving your changes.", "error")
         }
       }, autosaveDebounce),
     [onAutosave, autosaveDebounce]
@@ -112,11 +125,7 @@ export function useForm<T extends Record<string, any>>(config: FormConfig<T>) {
     e?.preventDefault()
 
     if (!validateForm()) {
-      toast({
-        type: "error",
-        title: "Validation Error",
-        description: "Please fix the errors in the form.",
-      })
+      showMessage("Please fix the errors in the form.", "error")
       return
     }
 
@@ -124,17 +133,9 @@ export function useForm<T extends Record<string, any>>(config: FormConfig<T>) {
     try {
       await onSubmit(values)
       setIsDirty(false)
-      toast({
-        type: "success",
-        title: "Success",
-        description: "Form submitted successfully.",
-      })
+      showMessage("Form submitted successfully.", "success")
     } catch (error) {
-      toast({
-        type: "error",
-        title: "Error",
-        description: "Failed to submit form. Please try again.",
-      })
+      showMessage("Failed to submit form. Please try again.", "error")
     } finally {
       setIsSubmitting(false)
     }
@@ -161,5 +162,11 @@ export function useForm<T extends Record<string, any>>(config: FormConfig<T>) {
     reset,
     validateField,
     validateForm,
+    snackbar: {
+      open: snackbar.open,
+      message: snackbar.message,
+      severity: snackbar.severity,
+      handleClose: handleCloseSnackbar
+    }
   }
-} 
+}

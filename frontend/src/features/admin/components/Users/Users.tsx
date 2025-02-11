@@ -37,6 +37,11 @@ const UserManagement: React.FC = () => {
     console.log(`User ID: ${userId}, New Role: ${newRole}`);
   };
 
+  const handleClearanceChange = (userId: number, newClearance: string) => {
+    // Update user clearance level
+    console.log(`User ID: ${userId}, New Clearance: ${newClearance}`);
+  };
+
   const handleStatusChange = (userId: number, newStatus: string) => {
     // Update user account status
     console.log(`User ID: ${userId}, New Status: ${newStatus}`);
@@ -92,7 +97,7 @@ const UserManagement: React.FC = () => {
                 <td>
                   <select
                     value={user.clearance}
-                    onChange={(e) => console.log('Clearance changed')}
+                    onChange={(e) => handleClearanceChange(user.id, e.target.value)}
                   >
                     <option value="Unclassified">Unclassified</option>
                     <option value="Confidential">Confidential</option>

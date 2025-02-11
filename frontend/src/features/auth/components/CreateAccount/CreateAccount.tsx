@@ -13,7 +13,7 @@ const StyledContainer = styled('div')(({ theme }: { theme: Theme }) => ({
   padding: theme.spacing(3),
 }));
 
-const StyledContent = styled('div')(({ theme }: { theme: Theme }) => ({
+const StyledContent = styled('div')(() => ({
   width: '100%',
   maxWidth: '420px',
   backgroundColor: 'rgba(255, 255, 255, 0.03)',
@@ -154,7 +154,7 @@ const StrengthSegment = styled('div')<{ filled?: boolean; strength: number }>(
   })
 );
 
-const StrengthText = styled('span')(({ theme }: { theme: Theme }) => ({
+const StrengthText = styled('span')(() => ({
   fontSize: '0.75rem',
   color: 'rgba(255, 255, 255, 0.5)',
   fontFamily: 'Inter, sans-serif',
@@ -206,7 +206,7 @@ const StyledLink = styled(Link)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-const LoadingSpinner = styled('div')(({ theme }: { theme: Theme }) => ({
+const LoadingSpinner = styled('div')(() => ({
   width: 20,
   height: 20,
   border: '2px solid rgba(255, 255, 255, 0.1)',
@@ -424,4 +424,4 @@ const CreateAccount: React.FC = () => {
   );
 };
 
-export default CreateAccount; 
+export default CreateAccount;

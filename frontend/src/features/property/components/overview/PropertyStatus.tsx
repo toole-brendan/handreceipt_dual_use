@@ -4,7 +4,7 @@ import { StatusIndicator } from '../shared/StatusIndicator';
 import { usePropertyStatus } from '../../hooks/usePropertyStatus';
 
 export const PropertyStatus: React.FC = () => {
-  const { loading, error, ...status } = usePropertyStatus();
+  const { loading, error } = usePropertyStatus();
 
   if (loading) return <div>Loading status...</div>;
   if (error) return <div>Error: {error}</div>;

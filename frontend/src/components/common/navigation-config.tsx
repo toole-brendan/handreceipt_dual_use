@@ -1,7 +1,5 @@
 // frontend/src/ui/components/common/navigation-config.ts
 
-import { lazy } from 'react';
-import type { ComponentType } from 'react';
 import { 
   Package2, 
   ArrowLeftRight, 
@@ -9,7 +7,7 @@ import {
   Users, 
   QrCode,
   History,
-  Settings
+  HelpCircle
 } from 'lucide-react';
 
 export interface NavItemConfig {
@@ -54,9 +52,10 @@ export const OFFICER_NAV_ITEMS: NavItemConfig[] = [
     text: 'History'
   },
   {
-    to: '/settings',
-    icon: <Settings className="h-5 w-5" />,
-    text: 'Settings'
+    to: '/utility/help',
+    icon: <HelpCircle className="h-5 w-5" />,
+    text: 'Help',
+    description: 'Get help and documentation'
   }
 ];
 
@@ -88,9 +87,10 @@ export const NCO_NAV_ITEMS: NavItemConfig[] = [
     text: 'History'
   },
   {
-    to: '/settings',
-    icon: <Settings className="h-5 w-5" />,
-    text: 'Settings'
+    to: '/utility/help',
+    icon: <HelpCircle className="h-5 w-5" />,
+    text: 'Help',
+    description: 'Get help and documentation'
   }
 ];
 
@@ -117,8 +117,9 @@ export const SOLDIER_NAV_ITEMS: NavItemConfig[] = [
     text: 'History'
   },
   {
-    to: '/settings',
-    icon: <Settings className="h-5 w-5" />,
-    text: 'Settings'
+    to: '/utility/help',
+    icon: <HelpCircle className="h-5 w-5" />,
+    text: 'Help',
+    description: 'Get help and documentation'
   }
-]; 
+];

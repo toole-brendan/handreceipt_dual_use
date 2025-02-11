@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { Download } from 'lucide-react';
 import { HistoricalPropertyList } from '../HistoricalTable/TableHeader';
-import { ExportButton } from '../ExportTools/ExportButton';
 import { useHistoricalProperty } from '../../hooks/useHistoricalData';
 
 export const HistoryPage: React.FC = () => {
@@ -15,12 +14,12 @@ export const HistoryPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 500 }}>
+      <Typography variant="h4" component="h4">
         Property History
       </Typography>
 
       <Box sx={{ 
-        display: 'flex', 
+        display: 'flex',
         justifyContent: 'flex-end',
         mb: 3
       }}>
@@ -49,4 +48,4 @@ export const HistoryPage: React.FC = () => {
       />
     </Box>
   );
-}; 
+};

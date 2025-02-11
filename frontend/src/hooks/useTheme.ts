@@ -8,7 +8,7 @@ export const useTheme = () => {
   }, []);
 
   // Theme toggle function (preserved for future compatibility)
-  const toggleTheme = useCallback((theme: PaletteMode) => {
+  const toggleTheme = useCallback((_: PaletteMode) => {
     const root = window.document.documentElement;
     
     // Ensure dark theme is always applied
@@ -26,4 +26,4 @@ export const useTheme = () => {
     getInitialTheme,
     toggleTheme,
   };
-}; 
+};

@@ -106,6 +106,13 @@ impl SawtoothVerification {
             .map(|transfer| self.create_blockchain_transaction(transfer, context))
             .collect::<Result<Vec<_>, _>>()?;
 
+        // Update Merkle tree with new transactions
+        {
+            let mut tree = self.current_batch_tree.write().await;
+            *tree = MerkleTree::new(&transactions)
+                .map_err(|e| CoreError::ValidationError(e.to_string()))?;
+        }
+
         // Submit batch to Sawtooth
         let futures: Vec<_> = payloads
             .chunks(MAX_BATCH_SIZE)

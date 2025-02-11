@@ -1,19 +1,36 @@
 /* Table Header Styles */
 
 .table thead {
-  background-color: var(--surface-subtle);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border-radius: 8px 8px 0 0;
 }
 
 .table th {
-  padding: var(--space-3) var(--space-4);
-  text-align: left;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-subtle);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semi-bold);
+  color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+/* Add subtle visual separator between header cells */
+.table th:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.table th:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Sticky Header */
@@ -26,4 +43,4 @@
   top: 0;
   z-index: var(--z-index-sticky);
   background-color: var(--surface-subtle);
-} 
+}

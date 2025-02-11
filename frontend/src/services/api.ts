@@ -1,6 +1,6 @@
 // frontend/src/services/api.ts
 
-import { ApiResponse } from '@/shared/types';
+import { ApiResponse } from '@/services/api/types';
 
 export class ApiClient {
   private baseUrl: string;
@@ -90,6 +90,10 @@ export class ApiClient {
   }
 
   // Health check
+  async getAssets<T>(): Promise<T> {
+    return this.get('/v1/assets');
+  }
+
   async testConnection(): Promise<boolean> {
     try {
       console.log('Testing API connection...');

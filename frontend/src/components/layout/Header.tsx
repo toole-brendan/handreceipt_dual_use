@@ -1,10 +1,10 @@
 /* frontend/src/components/layout/Header.tsx */
 
 import React from 'react';
-import { AppBar, styled, Theme } from '@mui/material';
+import { AppBar, styled } from '@mui/material';
 import { AppBarContent } from './mui/AppBarContent';
 
-const StyledAppBar = styled(AppBar)(({ theme }: { theme: Theme }) => ({
+const StyledAppBar = styled(AppBar)(() => ({
   backgroundColor: 'rgba(0, 0, 0, 0.9)',
   backdropFilter: 'blur(12px)',
   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -35,4 +35,4 @@ const Header: React.FC = () => {
   );
 };
 
-export default Header; 
+export default Header;

@@ -1,5 +1,4 @@
 import { api } from '@/services/api';
-import { ApiResponse } from '@/services/api/types';
 
 export interface AnalyticsConfig {
   enabled: boolean;
@@ -87,4 +86,4 @@ export class AnalyticsService {
 // Create singleton instance with default config
 export const analyticsService = new AnalyticsService({
   enabled: process.env.NODE_ENV === 'production'
-}); 
+});

@@ -1,7 +1,6 @@
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../store';
-import { Personnel, Unit, HandReceipt } from '@/features/personnel/types';
 
 // Memoized base selectors
 const selectPersonnel = (state: RootState) => state.personnel.personnel;
@@ -14,7 +13,7 @@ export const selectFilteredPersonnel = createSelector(
   [selectPersonnel, selectFilters],
   (personnel, filters) => {
     return personnel.filter((person) => {
-      const matchesUnit = !filters.unit || person.unitId === filters.unit;
+      const matchesUnit = !filters.unit || person.unit === filters.unit;
       const matchesStatus = !filters.status || person.status === filters.status;
       const matchesSearch = !filters.searchQuery || 
         `${person.firstName} ${person.lastName} ${person.rank}`.toLowerCase()
@@ -26,7 +25,7 @@ export const selectFilteredPersonnel = createSelector(
 
 export const selectPersonnelByUnit = createSelector(
   [selectPersonnel, (_, unitId: string) => unitId],
-  (personnel, unitId) => personnel.filter((p) => p.unitId === unitId)
+  (personnel, unitId) => personnel.filter((p) => p.unit === unitId)
 );
 
 export const selectUnitWithPersonnel = createSelector(
@@ -36,7 +35,7 @@ export const selectUnitWithPersonnel = createSelector(
     if (!unit) return null;
     return {
       ...unit,
-      personnel: personnel.filter((p) => p.unitId === unitId),
+      personnel: personnel.filter((p) => p.unit === unitId),
     };
   }
 );
@@ -62,8 +61,8 @@ export const usePersonnelSearch = (searchTerm: string) => {
   return useSelector(createSelector(
     [selectPersonnel],
     (personnel) => personnel.filter((p) => 
-      `${p.firstName} ${p.lastName} ${p.rank} ${p.dodId}`.toLowerCase()
+      `${p.firstName} ${p.lastName} ${p.rank} ${p.militaryId}`.toLowerCase()
         .includes(searchTerm.toLowerCase())
     )
   ));
-}; 
+};

@@ -7,17 +7,18 @@ import { UserSettings } from './UserSettings';
 import { AppearanceSettings } from './AppearanceSettings';
 import { NotificationSettings } from './NotificationSettings';
 import { DataManagement } from './DataManagement';
-import { UserProfile, User } from '../types/settings.types';
+import { UserProfile } from '../types/settings.types';
+import type { User } from '@/types/auth';
 
 export const Settings: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth) as { user: User | null };
   const settings = useSettings();
 
   const userProfile: UserProfile = {
-    rank: (user as User)?.rank || '',
-    fullName: (user as User)?.name || '',
-    unit: (user as User)?.unit || '',
-    dutyPosition: (user as User)?.dutyPosition || ''
+    rank: user?.rank ?? '',
+    fullName: user?.name ?? '',
+    unit: user?.unit ?? '',
+    dutyPosition: user?.dutyPosition ?? ''
   };
 
   const {
@@ -76,9 +77,18 @@ export const Settings: React.FC = () => {
             border: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
             <NotificationSettings
-              emailNotifications={emailNotifications}
-              pushNotifications={pushNotifications}
-              mobileSettings={mobileSettings}
+              emailNotifications={{
+                enabled: true,
+                ...emailNotifications
+              }}
+              pushNotifications={{
+                enabled: true,
+                ...pushNotifications
+              }}
+              mobileSettings={{
+                enabled: true,
+                ...mobileSettings
+              }}
               toggleEmailNotification={toggleEmailNotification}
               togglePushNotification={togglePushNotification}
               toggleMobileSetting={toggleMobileSetting}
@@ -99,4 +109,4 @@ export const Settings: React.FC = () => {
       </Grid>
     </Box>
   );
-}; 
+};

@@ -1,183 +1,109 @@
-/* frontend/src/pages/blockchain/transactions.tsx */
-
 import React, { useState, useEffect } from 'react';
-import '@/styles/components/blockchain/transactions.css';
-import LoadingFallback from '@/shared/components/components/common/LoadingFallback';
-import { PropertyTransaction, fetchPropertyTransactions, exportPropertyTransactions, TransactionError } from '@/services/transactions';
+import '../../../../styles/components/blockchain/transactions.css';
+import LoadingFallback from '../../../../shared/components/common/LoadingFallback';
+import { PropertyTransaction, fetchPropertyTransactions, exportPropertyTransactions } from '../../../../services/transactions';
+import { Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Download } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 10;
-
-const Transactions: React.FC = () => {
+export const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<PropertyTransaction[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadTransactions = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetchPropertyTransactions();
-        setTransactions(response.data);
-        setTotalCount(response.totalCount);
-      } catch (error) {
-        console.error('Error loading transactions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     loadTransactions();
   }, []);
 
-  const handleExport = async () => {
+  const loadTransactions = async () => {
     try {
-      const blob = await exportPropertyTransactions('csv');
+      const data = await fetchPropertyTransactions();
+      setTransactions(data);
+    } catch (error) {
+      console.error('Failed to load transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'pdf' | 'xlsx') => {
+    try {
+      const blob = await exportPropertyTransactions(format);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `property-transactions-${new Date().toISOString()}.csv`;
+      a.download = `transactions.${format}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Export error:', error);
+      console.error('Failed to export transactions:', error);
     }
   };
 
-  const filteredTransactions = transactions.filter((tx) => {
-    const matchesStatus = filterStatus === 'all' || tx.status === filterStatus;
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
-      tx.fromSoldier.name.toLowerCase().includes(searchLower) ||
-      tx.toSoldier.name.toLowerCase().includes(searchLower) ||
-      tx.propertyItem.name.toLowerCase().includes(searchLower) ||
-      tx.propertyItem.serialNumber.toLowerCase().includes(searchLower);
-    return matchesStatus && matchesSearch;
-  });
-
-  // Pagination calculation
-  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  
-  const currentTransactions = filteredTransactions.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
-
-  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  if (isLoading) {
-    return <LoadingFallback />;
+  if (loading) {
+    return <LoadingFallback message="Loading transactions..." />;
   }
 
   return (
-    <div className="secure-container">
-      <div className="palantir-panel transactions-page">
-        <div className="transactions-header">
-          <h2>Property Transactions</h2>
-          <button 
-            className="btn btn-secondary" 
-            onClick={handleExport}
-            disabled={isLoading || transactions.length === 0}
+    <div className="transactions-container">
+      <div className="header">
+        <h2>Property Transactions</h2>
+        <div className="actions">
+          <Button
+            variant="outlined"
+            startIcon={<Download />}
+            onClick={() => handleExport('csv')}
           >
-            Export Transactions
-          </button>
+            Export CSV
+          </Button>
         </div>
-
-        <div className="transactions-filters">
-          <div className="filter-group">
-            <input
-              type="text"
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input search-input"
-              aria-label="Search transactions"
-            />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="form-input"
-              aria-label="Filter by status"
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Item</th>
-                <th>Serial Number</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>No transactions found.</td>
-                </tr>
-              ) : (
-                currentTransactions.map((tx) => (
-                  <tr key={tx.id}>
-                    <td>{new Date(tx.timestamp).toLocaleDateString()}</td>
-                    <td>{`${tx.fromSoldier.rank} ${tx.fromSoldier.name}`}<br/>
-                        <small>{tx.fromSoldier.unit}</small>
-                    </td>
-                    <td>{`${tx.toSoldier.rank} ${tx.toSoldier.name}`}<br/>
-                        <small>{tx.toSoldier.unit}</small>
-                    </td>
-                    <td>{tx.propertyItem.name}</td>
-                    <td>{tx.propertyItem.serialNumber}</td>
-                    <td className={`status ${tx.status}`}>{tx.status}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Add pagination controls */}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="btn btn-sm"
-            >
-              Previous
-            </button>
-            <span className="page-info">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="btn btn-sm"
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Asset</TableCell>
+              <TableCell>From</TableCell>
+              <TableCell>To</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Date</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {transactions.map((transaction) => (
+              <TableRow key={transaction.id}>
+                <TableCell>{transaction.id}</TableCell>
+                <TableCell>
+                  <span className={`transaction-type ${transaction.type}`}>
+                    {transaction.type}
+                  </span>
+                </TableCell>
+                <TableCell>{transaction.asset.name}</TableCell>
+                <TableCell>{transaction.fromUser || '-'}</TableCell>
+                <TableCell>{transaction.toUser || '-'}</TableCell>
+                <TableCell>
+                  <span className={`transaction-status ${transaction.status}`}>
+                    {transaction.status}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {new Date(transaction.timestamp).toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))}
+            {transactions.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  No transactions found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </div>
   );
 };
-
-export default Transactions;

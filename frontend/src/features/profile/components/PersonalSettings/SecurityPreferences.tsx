@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import { UserProfile } from '@/types/user';
 
-interface SecuritySettingsProps {
-  profile: UserProfile;
-}
-
-const SecuritySettings: React.FC<SecuritySettingsProps> = ({ profile }) => {
+const SecuritySettings: React.FC = () => {
   const [mfaEnabled, setMfaEnabled] = useState(false);
-  const [showMfaSetup, setShowMfaSetup] = useState(false);
 
   const handleEnableMfa = async () => {
     try {
@@ -17,7 +11,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ profile }) => {
       const data = await response.json();
       if (data.success) {
         setMfaEnabled(true);
-        setShowMfaSetup(true);
       }
     } catch (error) {
       console.error('Error enabling MFA:', error);
@@ -82,4 +75,4 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ profile }) => {
   );
 };
 
-export default SecuritySettings; 
+export default SecuritySettings;

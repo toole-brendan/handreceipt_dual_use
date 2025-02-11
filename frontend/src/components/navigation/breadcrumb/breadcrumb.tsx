@@ -1,4 +1,3 @@
-import * as React from "react"
 import { ChevronRight, Home } from "lucide-react"
 import { cn } from "@/features/lib/utils"
 import { Link, useLocation } from "react-router-dom"
@@ -28,7 +27,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
             <Home className="h-4 w-4" />
           </Link>
         </li>
-        {items.map((item, index) => (
+        {items.map((item) => (
           <li key={item.href} className="flex items-center">
             <ChevronRight className="h-4 w-4 text-[var(--text-secondary)]" aria-hidden="true" />
             <Link
@@ -48,4 +47,4 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
       </ol>
     </nav>
   )
-} 
+}

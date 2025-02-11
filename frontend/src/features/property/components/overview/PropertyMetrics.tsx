@@ -5,8 +5,6 @@ import {
   Typography,
   Box,
   styled,
-  useTheme,
-  alpha,
 } from '@mui/material';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 
@@ -18,7 +16,7 @@ interface MetricsCardProps {
   icon?: React.ReactNode;
 }
 
-const StyledCard = styled(Card)(({ theme }) => ({
+const StyledCard = styled(Card)(() => ({
   height: '100%',
   backgroundColor: '#000000',
   border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -30,7 +28,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-const IconWrapper = styled(Box)(({ theme }) => ({
+const IconWrapper = styled(Box)(() => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -40,7 +38,7 @@ const IconWrapper = styled(Box)(({ theme }) => ({
   backgroundColor: 'transparent',
   border: '1px solid rgba(255, 255, 255, 0.2)',
   color: '#FFFFFF',
-  marginBottom: theme.spacing(2),
+  marginBottom: '16px',
 }));
 
 export const MetricsCard: React.FC<MetricsCardProps> = ({
@@ -50,7 +48,6 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
   timeframe = 'vs last period',
   icon
 }) => {
-  const theme = useTheme();
   const isPositiveChange = change !== undefined && change >= 0;
   const changeColor = isPositiveChange ? '#4CAF50' : '#FF3B3B';
 
@@ -124,7 +121,7 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
       </CardContent>
     </StyledCard>
   );
-}; 
+};
 
 export const PropertyMetrics: React.FC = () => {
   return (
@@ -148,4 +145,4 @@ export const PropertyMetrics: React.FC = () => {
   );
 };
 
-export default PropertyMetrics; 
+export default PropertyMetrics;

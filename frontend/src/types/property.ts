@@ -1,75 +1,86 @@
-import { BaseEntity } from './shared';
-import { User } from './auth';
+export type PropertyStatus = 'SERVICEABLE' | 'UNSERVICEABLE' | 'DESTROYED' | 'MISSING' | 'IN_TRANSIT';
+export type VerificationStatus = 'VERIFIED' | 'NEEDS_VERIFICATION' | 'OVERDUE' | 'IN_PROGRESS';
 
-export interface Property extends BaseEntity {
+export interface Property {
+  id: string;
   name: string;
   description?: string;
   serialNumber: string;
-  nsn: string;
-  category: string;
-  status: PropertyStatus;
+  nsn?: string;
   value: number;
+  status: PropertyStatus;
   location?: string;
-  assignedTo?: User;
+  assignedTo?: string;
+  isSensitive: boolean;
+  category: string;
+  lastVerified?: string;
+  nextVerification?: string;
+  verificationStatus?: VerificationStatus;
   lastInventoryCheck?: string;
   nextInventoryCheck?: string;
-  isSensitive: boolean;
-  notes?: string;
-  attachments?: string[];
-  maintenanceHistory?: MaintenanceRecord[];
-  transferHistory?: TransferRecord[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type PropertyStatus = 'SERVICEABLE' | 'UNSERVICEABLE' | 'IN_MAINTENANCE' | 'DISPOSED' | 'TRANSFERRED';
-
-export interface MaintenanceRecord extends BaseEntity {
+export interface PropertyTransfer {
+  id: string;
   propertyId: string;
-  type: MaintenanceType;
-  description: string;
-  performedBy: User;
-  date: string;
-  cost?: number;
-  status: MaintenanceStatus;
+  fromPersonId: string;
+  toPersonId: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+  reason?: string;
   notes?: string;
-}
-
-export type MaintenanceType = 'PREVENTIVE' | 'CORRECTIVE' | 'INSPECTION';
-export type MaintenanceStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-
-export interface TransferRecord extends BaseEntity {
-  propertyId: string;
-  fromUser: User;
-  toUser: User;
-  date: string;
-  reason: string;
-  status: TransferStatus;
-  approvedBy?: User;
+  createdAt: string;
+  updatedAt: string;
+  approvedBy?: string;
   approvedAt?: string;
-  notes?: string;
 }
 
-export type TransferStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export interface SensitiveItem extends Property {
+  isSensitive: true;
+  verificationSchedule: {
+    frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    lastVerification: string;
+    nextVerification: string;
+    verifiedBy?: string;
+  };
+  securityLevel: 'SECRET' | 'TOP_SECRET' | 'CONFIDENTIAL';
+  handReceipt?: string;
+  propertyStatus?: PropertyStatus;
+  verificationStatus?: VerificationStatus;
+  lastInventoryCheck?: string;
+  nextInventoryCheck?: string;
+}
 
-export interface PropertyState {
-  items: Property[];
-  selectedItem: Property | null;
-  isLoading: boolean;
-  error: string | null;
-  filters: PropertyFilters;
+export interface Verification {
+  id: string;
+  propertyId: string;
+  verifiedBy: string;
+  status: VerificationStatus;
+  notes?: string;
+  location?: string;
+  condition?: string;
+  timestamp: string;
+  nextVerificationDue?: string;
+  attachments?: string[];
 }
 
 export interface PropertyFilters {
-  category?: string;
-  status?: PropertyStatus;
-  location?: string;
-  assignedTo?: string;
+  status?: PropertyStatus[];
+  category?: string[];
+  location?: string[];
+  assignedTo?: string[];
+  verificationStatus?: VerificationStatus[];
+  sensitive?: boolean;
   search?: string;
-  isSensitive?: boolean;
 }
 
-export interface SensitiveItem extends Omit<Property, 'status'> {
-  propertyStatus: PropertyStatus;
-  verificationStatus: 'verified' | 'needs_verification' | 'missing';
-  lastVerified: string;
-  verifiedBy?: User;
-} 
+export interface PropertyStats {
+  total: number;
+  serviceable: number;
+  unserviceable: number;
+  sensitive: number;
+  value: number;
+  needsVerification: number;
+  overdue: number;
+}

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Property, PropertyTransfer, SensitiveItem, Verification } from '@/features/property/types';
+import { Property, PropertyTransfer, SensitiveItem, Verification } from '@/types/property';
 import { RootState } from '@/store/store';
 
 interface PropertyState {
@@ -67,7 +67,7 @@ const propertySlice = createSlice({
       state.selectedItem = action.payload;
     },
     updatePropertyStatus: (state, action: PayloadAction<{ id: string; status: Property['status'] }>) => {
-      const property = state.items.find(item => item.id === action.payload.id);
+      const property = state.items.find((item: Property) => item.id === action.payload.id);
       if (property) {
         property.status = action.payload.status;
       }
@@ -75,7 +75,7 @@ const propertySlice = createSlice({
     addVerification: (state, action: PayloadAction<Verification>) => {
       state.verifications.push(action.payload);
     },
-    clearError: (state) => {
+    clearPropertyError: (state) => {
       state.error = null;
     },
   },
@@ -122,5 +122,5 @@ export const selectSensitiveItems = (state: RootState) => state.property.sensiti
 export const selectPropertyLoading = (state: RootState) => state.property.loading;
 export const selectPropertyError = (state: RootState) => state.property.error;
 
-export const { setSelectedItem, updatePropertyStatus, addVerification, clearError } = propertySlice.actions;
-export default propertySlice.reducer; 
+export const { setSelectedItem, updatePropertyStatus, addVerification, clearPropertyError } = propertySlice.actions;
+export default propertySlice.reducer;

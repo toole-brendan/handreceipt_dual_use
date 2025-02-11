@@ -1,3 +1,2 @@
-export * from './FilterSection';
-export * from './RecentVerifications';
-export * from './SensitiveItemsTable'; 
+export * from './tables/SensitiveItemsTable';
+export * from './SensitiveItemsPage/SensitiveItemsPage';

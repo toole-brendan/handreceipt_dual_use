@@ -1,12 +1,12 @@
 # Hand Receipt UI Component Library
 
-A modern, accessible, and type-safe UI component library for the Hand Receipt Management System.
+A modern, accessible, and type-safe UI component library for the Hand Receipt Management System, built on Material-UI.
 
 ## Component Categories
 
 ### Inputs
 Components for user input and form handling:
-- `Button` - Primary action buttons with variants
+- `Button` - Material-UI based buttons with variants (contained, outlined, text) and colors
 - `Checkbox` - Form checkboxes with labels
 - `Form` - Form handling with validation
 - `Input` - Text input fields
@@ -23,12 +23,11 @@ Components for user feedback and notifications:
 
 ### Layout
 Components for page and content structure:
-- `Card` - Content containers with variants:
+- `Card` - Material-UI card components:
   - `CardContent` - Main content area
-  - `CardDescription` - Secondary text
-  - `CardFooter` - Action area
-  - `CardHeader` - Title area
-  - `CardTitle` - Primary text
+  - `CardHeader` - Title and subheader area
+  - `Box` - Action area (footer)
+  - `Typography` - Text elements
 - `Sheet` - Modal and dialog containers
 - `Table` - Data table layouts
 
@@ -40,16 +39,18 @@ Components for user navigation:
 ## Usage Guidelines
 
 ### Installation
-All components are available through the main UI export:
+All components are available through their respective imports:
 ```typescript
-import { Button, Input, Card } from '@/ui';
+import { Button } from '@/components/forms/button';
+import { Card, CardContent, CardHeader } from '@mui/material';
 ```
 
 ### Styling
-Components use a consistent styling approach:
-- Tailwind CSS for base styles
-- CSS variables for theming
-- CSS modules for component-specific styles
+Components use Material-UI's styling system:
+- MUI theme customization
+- Styled components
+- CSS-in-JS with emotion
+- System props for spacing and layout
 
 ### Accessibility
 All components follow WCAG 2.1 guidelines:
@@ -71,27 +72,27 @@ Each component follows a consistent documentation structure:
 
 ### Props Interface
 ```typescript
-interface ComponentProps {
-  // Required props
-  label: string;
-  // Optional props with defaults
-  variant?: 'primary' | 'secondary';
-  // Event handlers
-  onChange?: (value: string) => void;
+interface ButtonProps extends Omit<MuiButtonProps, 'startIcon' | 'endIcon'> {
+  // Additional props
+  isLoading?: boolean;
+  isIcon?: boolean;
+  iconLeft?: ReactNode;
+  iconRight?: ReactNode;
 }
 ```
 
 ### Examples
 ```tsx
 // Basic usage
-<Button>Click Me</Button>
+<Button variant="contained">Click Me</Button>
 
-// With variants
-<Button variant="secondary">Cancel</Button>
+// With variants and colors
+<Button variant="text" color="inherit">Cancel</Button>
+<Button variant="contained" color="primary">Submit</Button>
 
-// With event handlers
-<Button onClick={() => console.log('Clicked!')}>
-  Submit
+// With icons
+<Button iconLeft={<Icon />}>
+  With Icon
 </Button>
 ```
 
@@ -122,4 +123,4 @@ interface ComponentProps {
 - Follow accessibility guidelines
 - Add proper documentation
 - Add tests
-- Update examples 
+- Update examples

@@ -1,4 +1,4 @@
-import React from 'react';
+// We still need React in scope for JSX, but as a type-only import
 import type { Meta, StoryObj } from '@storybook/react';
 import { Button } from './button';
 
@@ -18,49 +18,54 @@ type Story = StoryObj<typeof Button>;
 export const Default: Story = {
   args: {
     children: 'Default Button',
-    variant: 'default',
+    variant: 'contained',
   },
 };
 
 export const Primary: Story = {
   args: {
     children: 'Primary Button',
-    variant: 'primary',
+    variant: 'contained',
+    color: 'primary',
   },
 };
 
 export const Secondary: Story = {
   args: {
     children: 'Secondary Button',
-    variant: 'secondary',
+    variant: 'contained',
+    color: 'secondary',
   },
 };
 
 export const Ghost: Story = {
   args: {
     children: 'Ghost Button',
-    variant: 'ghost',
+    variant: 'text',
+    color: 'inherit',
   },
 };
 
 export const Destructive: Story = {
   args: {
     children: 'Destructive Button',
-    variant: 'destructive',
+    variant: 'contained',
+    color: 'error',
   },
 };
 
 export const Outline: Story = {
   args: {
     children: 'Outline Button',
-    variant: 'outline',
+    variant: 'outlined',
   },
 };
 
 export const Link: Story = {
   args: {
     children: 'Link Button',
-    variant: 'link',
+    variant: 'text',
+    color: 'primary',
   },
 };
 
@@ -68,21 +73,21 @@ export const Link: Story = {
 export const Small: Story = {
   args: {
     children: 'Small Button',
-    size: 'sm',
+    size: 'small',
   },
 };
 
 export const Medium: Story = {
   args: {
     children: 'Medium Button',
-    size: 'md',
+    size: 'medium',
   },
 };
 
 export const Large: Story = {
   args: {
     children: 'Large Button',
-    size: 'lg',
+    size: 'large',
   },
 };
 
@@ -166,4 +171,4 @@ export const IconOnly: Story = {
       </svg>
     ),
   },
-}; 
+};

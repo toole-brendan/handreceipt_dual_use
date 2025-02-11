@@ -5,7 +5,6 @@ import {
   styled,
   Theme,
 } from '@mui/material';
-import { CustomTheme } from '../../../styles/theme';
 
 export interface ContainerProps extends MuiContainerProps {
   fluid?: boolean;
@@ -21,8 +20,6 @@ interface StyledContainerProps extends ContainerProps {
 const StyledContainer = styled(MuiContainer, {
   shouldForwardProp: (prop: string) => !['fluid', 'narrow', 'glassEffect', 'noBorder'].includes(prop),
 })<StyledContainerProps>(({ theme, fluid, narrow, glassEffect, noBorder }) => {
-  const customTheme = theme as CustomTheme;
-  
   return {
     width: '100%',
     marginLeft: 'auto',
@@ -68,4 +65,4 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
   ({ glassEffect = false, noBorder = false, ...props }, ref) => {
     return <StyledContainer ref={ref} glassEffect={glassEffect} noBorder={noBorder} {...props} />;
   }
-); 
+);

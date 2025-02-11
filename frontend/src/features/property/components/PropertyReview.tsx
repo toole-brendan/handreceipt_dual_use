@@ -11,7 +11,6 @@ import {
   Tooltip,
   styled,
   Theme,
-  alpha,
 } from '@mui/material';
 import {
   Check as CheckIcon,
@@ -91,11 +90,7 @@ export const PropertyReview: React.FC<PropertyReviewProps> = ({
   onAddNote,
 }) => {
   const [activeStep, setActiveStep] = useState(0);
-  const [notes, setNotes] = useState('');
-
-  const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
-  };
+  const [notes] = useState('');
 
   const handleBack = () => {
     setActiveStep((prevStep) => prevStep - 1);

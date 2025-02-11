@@ -1,8 +1,8 @@
 import React from 'react';
 import { Paper as MuiPaper, PaperProps as MuiPaperProps, styled } from '@mui/material';
-import { CustomTheme } from '../../../styles/theme';
 
 type CustomVariant = 'outlined' | 'contained';
+type MuiVariant = 'outlined' | 'elevation';
 
 export interface PaperProps extends Omit<MuiPaperProps, 'variant'> {
   variant?: CustomVariant;
@@ -10,11 +10,15 @@ export interface PaperProps extends Omit<MuiPaperProps, 'variant'> {
   noHover?: boolean;
 }
 
+interface StyledPaperProps extends Omit<MuiPaperProps, 'variant'> {
+  variant?: MuiVariant;
+  emphasis?: 'low' | 'medium' | 'high';
+  noHover?: boolean;
+}
+
 const StyledPaper = styled(MuiPaper, {
   shouldForwardProp: (prop) => !['variant', 'emphasis', 'noHover'].includes(prop as string),
-})<PaperProps>(({ theme, variant = 'outlined', emphasis = 'medium', noHover }) => {
-  const customTheme = theme as CustomTheme;
-  
+})<StyledPaperProps>(({ theme, variant = 'outlined', emphasis = 'medium', noHover }) => {
   const getBackgroundColor = () => {
     switch (emphasis) {
       case 'high':
@@ -67,10 +71,10 @@ const StyledPaper = styled(MuiPaper, {
 
 export const Paper = React.forwardRef<HTMLDivElement, PaperProps>((props, ref) => {
   const { children, variant = 'outlined', ...rest } = props;
-  const muiProps = {
+  const muiProps: StyledPaperProps = {
     ...rest,
     ref,
-    variant: variant === 'contained' ? 'elevation' : 'outlined' as const,
+    variant: variant === 'contained' ? 'elevation' : 'outlined',
   };
 
   return <StyledPaper {...muiProps}>{children}</StyledPaper>;
@@ -95,4 +99,4 @@ export const SubtlePanel = React.forwardRef<HTMLDivElement, Omit<PaperProps, 'va
   <Paper ref={ref} variant="contained" emphasis="low" {...props} />
 ));
 
-SubtlePanel.displayName = 'SubtlePanel'; 
+SubtlePanel.displayName = 'SubtlePanel';

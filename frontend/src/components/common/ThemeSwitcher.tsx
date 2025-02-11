@@ -2,11 +2,8 @@
 
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { useThemeContext } from '../../contexts/ThemeContext';
 
 export const ThemeSwitcher: React.FC = () => {
-  const { isDark } = useThemeContext();
-
   return (
     <Box
       sx={{

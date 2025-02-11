@@ -4,6 +4,7 @@ pub mod merkle;
 pub mod consensus;
 pub mod types;
 pub mod sawtooth;
+pub mod poet;
 
 pub use authority::{AuthorityNode, MilitaryCertificate, PropertyTransfer, TransferSignature, SignerRole};
 pub use verification::{BlockchainVerification, TransferVerification, VerificationResult, TransactionBatch};
@@ -17,6 +18,8 @@ pub use sawtooth::{
 
 use crate::error::blockchain::BlockchainError;
 use crate::types::security::SecurityContext;
+use crate::infrastructure::blockchain::consensus::poet::{PoETConfig, PoETConsensus};
+use std::time::Duration;
 
 /// Trait for blockchain operations
 #[async_trait::async_trait]
@@ -51,10 +54,17 @@ pub struct BlockchainConfig {
     pub max_validators: usize,
     pub validator_url: String,
     pub validator_private_key: String,
+    pub consensus: ConsensusEngine,
 }
 
 impl Default for BlockchainConfig {
     fn default() -> Self {
+        let poet_config = PoETConfig {
+            initial_wait_time: Duration::from_secs(10),
+            target_wait_time: Duration::from_secs(20),
+            wait_time_fluctuation: 0.1, // 10% fluctuation
+        };
+
         Self {
             node_id: uuid::Uuid::new_v4().to_string(),
             is_authority: false,
@@ -62,28 +72,46 @@ impl Default for BlockchainConfig {
             batch_timeout: std::time::Duration::from_secs(30),
             min_validators: 1,
             max_validators: 10,
-            validator_url: "tcp://localhost:4004".to_string(),
+            validator_url: "tcp://localhost:4004".to_string(), // Default Sawtooth URL
             validator_private_key: String::new(), // Should be provided
+            consensus: ConsensusEngine::PoET(poet_config),
         }
     }
 }
 
 /// Creates a new blockchain service instance
 pub fn create_blockchain_service(
-    mut config: BlockchainConfig,
+    config: BlockchainConfig,
 ) -> Result<Box<dyn BlockchainService>, BlockchainError> {
     use sawtooth::service::SawtoothService;
-    
-    let validator_url = config.validator_url.clone();
-    let validator_key = config.validator_private_key.clone();
-    
-    let service = SawtoothService::new(
-        validator_url,
-        validator_key,
-        config,
-    )?;
-    
-    Ok(Box::new(service))
+
+    match config.consensus {
+        ConsensusEngine::Sawtooth => {
+            let validator_url = config.validator_url.clone();
+            let validator_key = config.validator_private_key.clone();
+
+            let service = SawtoothService::new(
+                validator_url,
+                validator_key,
+                config.clone(), // Pass a clone of the config
+            )?;
+
+            Ok(Box::new(service))
+        },
+        ConsensusEngine::PoET(poet_config) => {
+            // Placeholder for PoET service.  For now, return Sawtooth.
+            let validator_url = config.validator_url.clone();
+            let validator_key = config.validator_private_key.clone();
+
+            let service = SawtoothService::new(
+                validator_url,
+                validator_key,
+                config.clone(), // Pass a clone of the config
+            )?;
+
+            Ok(Box::new(service))
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,11 @@
 import { api } from '@/services/api';
 import { wsService } from '@/services/websocket';
 
+interface ApiResponse {
+  success: boolean;
+  data: unknown;
+}
+
 export const testApiConnections = async () => {
   console.group('API Connection Tests');
   
@@ -12,7 +17,7 @@ export const testApiConnections = async () => {
 
     // Test assets endpoint
     console.log('Testing assets endpoint...');
-    const assets = await api.getAssets();
+    const assets = await api.getAssets<ApiResponse>();
     console.log('Assets retrieved:', assets.success ? '✅' : '❌');
 
     // Test WebSocket
@@ -52,4 +57,4 @@ export const testEndpoint = async (endpoint: string) => {
     console.error(`Endpoint ${endpoint} failed:`, error);
     return null;
   }
-}; 
+};

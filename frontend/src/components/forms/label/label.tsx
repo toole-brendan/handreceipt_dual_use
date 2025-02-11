@@ -1,5 +1,5 @@
 import React from 'react';
-import { LabelProps } from '../../types';
+import { LabelProps } from '@/types/common';
 import './label.css';
 
 export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({
@@ -29,4 +29,4 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(({
   );
 });
 
-Label.displayName = 'Label'; 
+Label.displayName = 'Label';

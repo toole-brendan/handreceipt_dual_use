@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useCommandPalette } from "@/features/hooks/useCommandPalette"
+import { useCommandPalette } from "../hooks/useCommandPalette"
 import {
   Command,
   CommandDialog,
@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from "@/features/shared/components/command"
+} from "./command"
 
 export function CommandPaletteProvider({
   children,
@@ -29,8 +29,8 @@ export function CommandPaletteProvider({
             {["Navigation", "Actions"].map((section) => (
               <CommandGroup key={section} heading={section}>
                 {commands
-                  .filter((command) => command.section === section)
-                  .map((command) => (
+                  .filter((command: CommandItem) => command.section === section)
+                  .map((command: CommandItem) => (
                     <CommandItem
                       key={command.id}
                       onSelect={() => {
@@ -51,4 +51,4 @@ export function CommandPaletteProvider({
       </CommandDialog>
     </>
   )
-} 
+}

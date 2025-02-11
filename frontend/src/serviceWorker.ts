@@ -1,5 +1,3 @@
-import { SW_CONFIG } from './config/serviceWorkerConfig';
-
 interface ServiceWorkerConfig {
   onSuccess?: (registration: ServiceWorkerRegistration) => void;
   onUpdate?: (registration: ServiceWorkerRegistration) => void;
@@ -55,4 +53,4 @@ export function unregister() {
         console.error(error.message);
       });
   }
-} 
+}

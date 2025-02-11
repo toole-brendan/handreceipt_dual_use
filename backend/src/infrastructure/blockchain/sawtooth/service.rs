@@ -10,7 +10,9 @@ use crate::{
         merkle::{MerkleTree, MerkleProof},
         types::ChainStatus,
         verification::{TransferVerification, VerificationService},
+        ConsensusEngine,
     },
+    consensus::poet::PoETConsensus,
 };
 
 use super::{
@@ -25,6 +27,7 @@ pub struct SawtoothService {
     handler: Arc<HandReceiptTransactionHandler>,
     current_batch: Arc<RwLock<Option<MerkleTree>>>,
     verification_service: Arc<VerificationService>,
+    poet_consensus: Option<PoETConsensus>,
 }
 
 impl SawtoothService {
@@ -33,14 +36,17 @@ impl SawtoothService {
         private_key: String,
         config: BlockchainConfig,
     ) -> Result<Self, BlockchainError> {
-        let client = Arc::new(
-            SawtoothClient::new(validator_url.clone(), private_key)?
-        );
-
+        let client = Arc::new(SawtoothClient::new(validator_url, private_key)?);
         let handler = Arc::new(HandReceiptTransactionHandler::new());
         let current_batch = Arc::new(RwLock::new(None));
         let verification = Arc::new(SawtoothVerification::new(client.clone()));
         let verification_service = Arc::new(VerificationService::new(verification));
+
+        let poet_consensus = match &config.consensus {
+            ConsensusEngine::PoET(poet_config) => Some(PoETConsensus::new(poet_config.clone())),
+            _ => None,
+        };
+
 
         Ok(Self {
             client,
@@ -48,6 +54,7 @@ impl SawtoothService {
             handler,
             current_batch,
             verification_service,
+            poet_consensus,
         })
     }
 
@@ -184,4 +191,4 @@ tp_handreceipt = "tcp://localhost:4004"
             self.maximum_peer_connectivity,
         )
     }
-} 
+}

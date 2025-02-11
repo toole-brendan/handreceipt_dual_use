@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '../../../../store/store';
 import { FiEye, FiX } from 'react-icons/fi';
-import { DateRange, createEmptyDateRange } from '../../../types/common';
+import { DateRange, createEmptyDateRange } from '@/types/common';
 
 interface VerificationRecord {
   id: string;
@@ -50,20 +50,20 @@ export const VerificationHistory: React.FC = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<VerificationRecord | null>(null);
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     fetchVerificationHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, classificationLevel]);
+  }, [filters, user?.classification]);
 
   const fetchVerificationHistory = async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
       if (filters.dateRange) {
-        queryParams.append('startDate', filters.dateRange.start);
-        queryParams.append('endDate', filters.dateRange.end);
+        queryParams.append('startDate', filters.dateRange.startDate);
+        queryParams.append('endDate', filters.dateRange.endDate);
       }
       if (filters.status) queryParams.append('status', filters.status);
       if (filters.type) queryParams.append('type', filters.type);
@@ -73,7 +73,7 @@ export const VerificationHistory: React.FC = () => {
 
       const response = await fetch(`/api/verifications/history?${queryParams}`, {
         headers: {
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
       });
 
@@ -101,7 +101,7 @@ export const VerificationHistory: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
         body: JSON.stringify({ filters, searchTerm }),
       });
@@ -165,14 +165,14 @@ export const VerificationHistory: React.FC = () => {
             <div className="date-inputs">
               <input
                 type="date"
-                value={filters.dateRange.start}
-                onChange={(e) => handleDateRangeChange('start', e.target.value)}
+                value={filters.dateRange.startDate}
+                onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
               />
               <span>to</span>
               <input
                 type="date"
-                value={filters.dateRange.end}
-                onChange={(e) => handleDateRangeChange('end', e.target.value)}
+                value={filters.dateRange.endDate}
+                onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
               />
             </div>
           </div>

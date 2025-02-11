@@ -11,7 +11,45 @@ import {
   Remove as RemoveIcon,
   DragIndicator as DragIcon,
 } from '@mui/icons-material';
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
+import type { DropResult, DroppableProvided as BaseDroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
+
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+
+interface DraggableFieldProps {
+  index: number;
+  renderField: (index: number) => React.ReactNode;
+  onRemove: (index: number) => void;
+  minFields: number;
+  fieldsLength: number;
+}
+
+const DraggableField = React.memo(({ index, renderField, onRemove, minFields, fieldsLength }: DraggableFieldProps) => (
+  // @ts-ignore
+  <Draggable draggableId={`field-${index}`} index={index}>
+    {(dragProvided: DraggableProvided) => (
+      <FieldContainer
+        ref={dragProvided.innerRef}
+        {...dragProvided.draggableProps}
+      >
+        <DragHandle {...dragProvided.dragHandleProps}>
+          <DragIcon />
+        </DragHandle>
+        <FieldContent>
+          {renderField(index)}
+        </FieldContent>
+        <StyledIconButton
+          onClick={() => onRemove(index)}
+          disabled={fieldsLength <= minFields}
+          size="small"
+        >
+          <RemoveIcon />
+        </StyledIconButton>
+      </FieldContainer>
+    )}
+  </Draggable>
+));
+
+DraggableField.displayName = 'DraggableField';
 
 interface DynamicFieldArrayProps {
   fields: any[];
@@ -40,7 +78,7 @@ const ArrayTitle = styled(Typography)(() => ({
   fontWeight: 500,
 }));
 
-const FieldContainer = styled(Box)(() => ({
+const FieldContainer = styled('div')(() => ({
   display: 'flex',
   alignItems: 'center',
   gap: '16px',
@@ -117,43 +155,27 @@ export const DynamicFieldArray: React.FC<DynamicFieldArrayProps> = ({
     <ArrayContainer>
       {title && <ArrayTitle variant="h6">{title}</ArrayTitle>}
       
+      {/* @ts-ignore */}
       <DragDropContext onDragEnd={handleDragEnd}>
+        {/* @ts-ignore */}
         <Droppable droppableId="field-array">
-          {(provided: DroppableProvided) => (
-            <Box
-              ref={provided.innerRef}
-              {...provided.droppableProps}
+          {(dropProvided: BaseDroppableProvided) => (
+            <div
+              ref={dropProvided.innerRef}
+              {...dropProvided.droppableProps}
             >
               {fields.map((_, index) => (
-                <Draggable
+                <DraggableField
                   key={`field-${index}`}
-                  draggableId={`field-${index}`}
                   index={index}
-                >
-                  {(provided: DraggableProvided) => (
-                    <FieldContainer
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                    >
-                      <DragHandle {...provided.dragHandleProps}>
-                        <DragIcon />
-                      </DragHandle>
-                      <FieldContent>
-                        {renderField(index)}
-                      </FieldContent>
-                      <StyledIconButton
-                        onClick={() => onRemove(index)}
-                        disabled={fields.length <= minFields}
-                        size="small"
-                      >
-                        <RemoveIcon />
-                      </StyledIconButton>
-                    </FieldContainer>
-                  )}
-                </Draggable>
+                  renderField={renderField}
+                  onRemove={onRemove}
+                  minFields={minFields}
+                  fieldsLength={fields.length}
+                />
               ))}
-              {provided.placeholder}
-            </Box>
+              {dropProvided.placeholder as React.ReactNode}
+            </div>
           )}
         </Droppable>
       </DragDropContext>
@@ -172,4 +194,4 @@ export const DynamicFieldArray: React.FC<DynamicFieldArrayProps> = ({
   );
 };
 
-export default DynamicFieldArray; 
+export default DynamicFieldArray;

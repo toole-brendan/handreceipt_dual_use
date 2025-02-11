@@ -13,7 +13,7 @@ import {
   Lock as LockIcon,
   RefreshCcw as RefreshIcon,
 } from 'lucide-react';
-import { StatusChip } from './mui/StatusChip';
+import { StatusChip, StatusType } from './mui/StatusChip';
 
 type SecurityLevel = 'normal' | 'elevated' | 'critical';
 
@@ -42,16 +42,16 @@ const IconWrapper = styled(Box)(({ theme }) => ({
   marginRight: theme.spacing(2),
 }));
 
-const getStatusVariant = (level: SecurityLevel) => {
+const getStatusVariant = (level: SecurityLevel): StatusType => {
   switch (level) {
     case 'normal':
-      return 'success';
+      return 'verified';
     case 'elevated':
-      return 'warning';
+      return 'pending';
     case 'critical':
-      return 'error';
+      return 'sensitive';
     default:
-      return 'default';
+      return 'inactive';
   }
 };
 
@@ -103,4 +103,4 @@ const SecurityStatus: React.FC<SecurityStatusProps> = ({ level = 'normal' }) => 
   );
 };
 
-export default SecurityStatus; 
+export default SecurityStatus;

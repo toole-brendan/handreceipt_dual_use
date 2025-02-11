@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Property } from '@/types/property';
 import { PropertyTransfer } from '@/features/history/types/history.types';
 import {
   Table,
@@ -14,7 +13,7 @@ import {
   TextField,
   InputAdornment
 } from '@mui/material';
-import { Search, Settings } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export interface HistoricalPropertyListProps {
   history: PropertyTransfer[];
@@ -128,4 +127,4 @@ export function HistoricalPropertyList({ history, loading, error }: HistoricalPr
       </TableContainer>
     </Box>
   );
-} 
+}

@@ -224,7 +224,7 @@ const TransfersTable: React.FC<TransfersTableProps> = ({ transfers = MOCK_TRANSF
     setSelected(newSelected);
   };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 

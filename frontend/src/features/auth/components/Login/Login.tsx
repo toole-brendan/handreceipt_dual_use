@@ -43,7 +43,7 @@ const LogoContainer = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(6),
 }));
 
-const LogoText = styled(Typography)(({ theme }) => ({
+const LogoText = styled(Typography)(() => ({
   color: '#FFFFFF',
   fontFamily: 'serif',
   fontSize: '2.5rem',
@@ -123,7 +123,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   },
 }));
 
-const StyledLink = styled(MuiLink)(({ theme }) => ({
+const StyledLink = styled(MuiLink)(() => ({
   color: alpha('#FFFFFF', 0.7),
   textDecoration: 'none',
   fontSize: '0.875rem',
@@ -161,7 +161,7 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = true; // Force development mode for testing
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

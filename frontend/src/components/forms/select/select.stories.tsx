@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Select } from './select';
 
@@ -66,7 +65,7 @@ export const WithError: Story = {
 export const Small: Story = {
   args: {
     label: 'Small select',
-    size: 'sm',
+    size: 'small',
     options: defaultOptions,
   },
 };
@@ -74,7 +73,7 @@ export const Small: Story = {
 export const Medium: Story = {
   args: {
     label: 'Medium select',
-    size: 'md',
+    size: 'medium',
     options: defaultOptions,
   },
 };
@@ -82,7 +81,7 @@ export const Medium: Story = {
 export const Large: Story = {
   args: {
     label: 'Large select',
-    size: 'lg',
+    size: 'medium',
     options: defaultOptions,
   },
 };
@@ -131,4 +130,4 @@ export const WithGroups: Story = {
       </optgroup>
     </Select>
   ),
-}; 
+};

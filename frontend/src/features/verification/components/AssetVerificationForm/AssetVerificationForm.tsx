@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { RootState } from '../../../../store/store';
 import { FiX, FiUpload } from 'react-icons/fi';
 
 interface VerificationFormProps {
@@ -32,7 +32,7 @@ export const AssetVerificationForm: React.FC<VerificationFormProps> = ({
   onComplete,
   onCancel,
 }) => {
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verificationData, setVerificationData] = useState<VerificationData>({
@@ -106,7 +106,7 @@ export const AssetVerificationForm: React.FC<VerificationFormProps> = ({
       const response = await fetch(`/api/assets/${assetId}/verify`, {
         method: 'POST',
         headers: {
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
         body: formData,
       });

@@ -12,7 +12,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const AppLayout = styled(Box)(({ theme }: { theme: Theme }) => ({
+const AppLayout = styled(Box)(() => ({
   display: 'flex',
   flexDirection: 'column',
   minHeight: '100vh',
@@ -36,7 +36,7 @@ const AppBody = styled(Box)(({ theme }: { theme: Theme }) => ({
   paddingTop: theme.mixins.toolbar.minHeight,
 }));
 
-const MainContent = styled(Box)(({ theme }: { theme: Theme }) => ({
+const MainContent = styled(Box)(() => ({
   flex: 1,
   minHeight: '100vh',
   backgroundColor: 'transparent',
@@ -93,4 +93,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout; 
+export default Layout;

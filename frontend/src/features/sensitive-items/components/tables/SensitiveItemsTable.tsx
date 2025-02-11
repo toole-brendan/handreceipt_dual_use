@@ -1,5 +1,6 @@
 import React from 'react';
 import type { SensitiveItem } from '@/types/property';
+import '@/styles/components/sensitive-items/sensitive-table.css';
 
 interface SensitiveItemsTableProps {
   items: SensitiveItem[];
@@ -16,17 +17,17 @@ export const SensitiveItemsTable: React.FC<SensitiveItemsTableProps> = ({
 }) => {
   return (
     <div className="sensitive-table-container">
-      <table className="sensitive-table">
+      <table className="table sensitive-table">
         <thead>
           <tr>
-            <th>Item Name</th>
-            <th>Serial Number</th>
-            <th>Category</th>
-            <th>Last Verification</th>
-            <th>Next Verification</th>
-            <th>Location</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th style={{ minWidth: '180px' }}>ITEM</th>
+            <th style={{ minWidth: '100px' }}>SERIAL #</th>
+            <th style={{ minWidth: '80px' }}>TYPE</th>
+            <th style={{ minWidth: '100px' }}>LAST CHECK</th>
+            <th style={{ minWidth: '100px' }}>NEXT CHECK</th>
+            <th style={{ minWidth: '100px' }}>LOCATION</th>
+            <th style={{ minWidth: '90px' }}>STATUS</th>
+            <th style={{ minWidth: '320px' }}>ACTIONS</th>
           </tr>
         </thead>
         <tbody>
@@ -39,34 +40,64 @@ export const SensitiveItemsTable: React.FC<SensitiveItemsTableProps> = ({
                 </div>
               </td>
               <td>
-                <span className="serial-number">{item.serialNumber}</span>
+                <span className="serial-number table-cell-monospace">{item.serialNumber}</span>
               </td>
               <td>{item.category}</td>
-              <td>{new Date(item.lastVerification).toLocaleDateString()}</td>
-              <td>{new Date(item.nextVerification).toLocaleDateString()}</td>
-              <td>{item.location}</td>
+              <td>{new Date(item.verificationSchedule.lastVerification).toLocaleDateString()}</td>
+              <td>{new Date(item.verificationSchedule.nextVerification).toLocaleDateString()}</td>
+              <td>{item.location || 'N/A'}</td>
               <td>
-                <span className={`sensitive-status sensitive-status--${item.status}`}>
-                  {item.status}
+                <span className={`sensitive-status sensitive-status--${item.verificationStatus?.toLowerCase()}`}>
+                  {item.verificationStatus}
                 </span>
               </td>
               <td>
                 <div className="sensitive-actions">
                   <button
-                    className="sensitive-action-button sensitive-action-button--primary"
                     onClick={() => onVerify(item.id)}
+                    className="verify-button"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      backgroundColor: 'var(--color-primary)',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease'
+                    }}
                   >
                     Verify Now
                   </button>
                   <button
-                    className="sensitive-action-button sensitive-action-button--secondary"
                     onClick={() => onViewDetails(item.id)}
+                    className="details-button"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-default)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease'
+                    }}
                   >
                     Details
                   </button>
                   <button
-                    className="sensitive-action-button sensitive-action-button--danger"
                     onClick={() => onReportIssue(item.id)}
+                    className="report-button"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      backgroundColor: 'transparent',
+                      color: 'var(--status-error)',
+                      border: '1px solid var(--status-error)',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease'
+                    }}
                   >
                     Report Issue
                   </button>
@@ -80,4 +111,4 @@ export const SensitiveItemsTable: React.FC<SensitiveItemsTableProps> = ({
   );
 };
 
-export default SensitiveItemsTable; 
+export default SensitiveItemsTable;

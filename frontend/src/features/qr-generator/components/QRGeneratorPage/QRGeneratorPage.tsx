@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Box, Typography, CardContent, TextField, Select, MenuItem, FormControl, InputLabel, Stack, SelectChangeEvent } from '@mui/material';
 import { Card } from '@/components/common/mui/Card';
 import { SingleItemGenerator } from '../GeneratorOptions/SingleItemGenerator';
-import { NewItemForm } from '../GeneratorOptions/NewItemForm';
 import { RosterUpload } from '../RosterManagement/RosterUpload';
 import { NewItemFormData } from '../../types/qr.types';
 
@@ -46,12 +45,12 @@ export const QRGeneratorPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3, maxWidth: '1600px', margin: '0 auto' }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 500 }}>
+      <Typography variant="h4" component="h4">
         QR Code Generator
       </Typography>
 
       <Box sx={{ 
-        display: 'grid', 
+        display: 'grid',
         gap: 3, 
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
         alignItems: 'stretch',
@@ -212,4 +211,4 @@ export const QRGeneratorPage: React.FC = () => {
       </Box>
     </Box>
   );
-}; 
+};

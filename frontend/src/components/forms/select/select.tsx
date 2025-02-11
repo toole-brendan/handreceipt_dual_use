@@ -1,28 +1,15 @@
-/* frontend/src/ui/select.tsx */
+ /* frontend/src/ui/select.tsx */
 
 import React from 'react';
 import {
   Select as MuiSelect,
   MenuItem,
-  SelectProps as MuiSelectProps,
   styled,
   SxProps,
 } from '@mui/material';
 import { BaseFormField } from '../common/BaseFormField';
 
-export interface SelectOption {
-  value: string | number;
-  label: string;
-  disabled?: boolean;
-}
-
-export interface SelectProps extends Omit<MuiSelectProps, 'error'> {
-  label?: string;
-  error?: string;
-  hint?: string;
-  options?: SelectOption[];
-  placeholder?: string;
-}
+import type { SelectProps } from '@/types/common';
 
 const StyledSelect = styled(MuiSelect)(() => ({
   '& .MuiSelect-select': {
@@ -182,4 +169,4 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(({
   );
 });
 
-Select.displayName = 'Select'; 
+Select.displayName = 'Select';

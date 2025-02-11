@@ -7,6 +7,10 @@ import { BaseFormField } from '../common/BaseFormField';
 export interface InputProps extends Omit<TextFieldProps, 'error'> {
   error?: string;
   hint?: string;
+  accept?: string;
+  min?: number;
+  max?: number;
+  type?: string;
 }
 
 const StyledTextField = styled(TextField)(() => ({

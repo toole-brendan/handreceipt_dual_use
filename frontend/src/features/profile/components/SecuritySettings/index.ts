@@ -1,1 +1,1 @@
-export * from './SecuritySettings'; 
+export { default } from './SecuritySettings';

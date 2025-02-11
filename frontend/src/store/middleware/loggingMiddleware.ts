@@ -1,9 +1,9 @@
 import { Middleware } from '@reduxjs/toolkit';
-import { RootState } from '../store';
 
-export const loggingMiddleware: Middleware<{}, RootState> = (store) => (next) => (action) => {
+export const loggingMiddleware: Middleware = (store) => (next) => (action) => {
   if (process.env.NODE_ENV === 'development') {
-    console.group(`Action: ${action.type}`);
+    const actionType = action && typeof action === 'object' && 'type' in action ? action.type : 'Unknown Action';
+    console.group(`Action: ${actionType}`);
     console.log('Previous State:', store.getState());
     console.log('Action:', action);
     const result = next(action);
@@ -12,4 +12,4 @@ export const loggingMiddleware: Middleware<{}, RootState> = (store) => (next) =>
     return result;
   }
   return next(action);
-}; 
+};

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Checkbox } from './checkbox';
 
@@ -87,4 +86,4 @@ export const Group: Story = {
       <Checkbox label="Option 3" name="group" value="3" />
     </div>
   ),
-}; 
+};

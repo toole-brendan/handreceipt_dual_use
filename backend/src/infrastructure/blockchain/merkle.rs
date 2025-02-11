@@ -7,6 +7,12 @@ use crate::{
     types::blockchain::BlockchainTransaction,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Side {
+    Left,
+    Right,
+}
+
 /// Represents a node in the Merkle tree
 #[derive(Debug, Clone)]
 pub struct MerkleNode {
@@ -15,19 +21,48 @@ pub struct MerkleNode {
     right: Option<Box<MerkleNode>>,
 }
 
+impl MerkleNode {
+    fn new(hash: String) -> Self {
+        Self {
+            hash,
+            left: None,
+            right: None,
+        }
+    }
+
+    fn leaf(transaction: &BlockchainTransaction) -> Result<Self, BlockchainError> {
+        Ok(Self::new(MerkleTree::hash_transaction(transaction)?))
+    }
+
+    fn parent(left: MerkleNode, right_opt: Option<&MerkleNode>) -> Result<Self, BlockchainError> {
+        let right_hash = right_opt.map(|r| r.hash.clone())
+            .unwrap_or_else(|| left.hash.clone());
+        
+        let parent_hash = MerkleTree::hash_pair(&left.hash, &right_hash);
+        let mut parent = Self::new(parent_hash);
+        
+        parent.left = Some(Box::new(left));
+        parent.right = right_opt.cloned().map(Box::new);
+        
+        Ok(parent)
+    }
+}
+
 /// Represents a Merkle tree for transaction verification
 #[derive(Debug, Clone)]
 pub struct MerkleTree {
     transactions: Vec<BlockchainTransaction>,
-    nodes: HashMap<String, String>,
-    root: Option<String>,
+    cached_hashes: Vec<String>,
+    tree_levels: Vec<Vec<String>>,
+    root: Option<MerkleNode>,
 }
 
 /// Represents a proof of inclusion in the Merkle tree
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MerkleProof {
-    pub root: String,
-    pub proof: Vec<String>,
+    pub leaf_hash: String,
+    pub sibling_hashes: Vec<(String, Side)>,
+    pub root_hash: String,
 }
 
 impl MerkleTree {
@@ -35,7 +70,8 @@ impl MerkleTree {
     pub fn new(transactions: &[BlockchainTransaction]) -> Result<Self, BlockchainError> {
         let mut tree = Self {
             transactions: transactions.to_vec(),
-            nodes: HashMap::new(),
+            cached_hashes: Vec::new(),
+            tree_levels: Vec::new(),
             root: None,
         };
         tree.build()?;
@@ -49,25 +85,52 @@ impl MerkleTree {
 
     /// Gets the root hash of the tree
     pub fn get_root(&self) -> Option<&str> {
-        self.root.as_deref()
+        self.root.as_ref().map(|node| node.hash.as_str())
     }
 
     /// Generates a proof of inclusion for a transaction
     pub fn generate_proof(&self, transaction: &BlockchainTransaction) -> Result<MerkleProof, BlockchainError> {
         let tx_hash = Self::hash_transaction(transaction)?;
-        let mut proof: Vec<String> = Vec::new();
+        let mut current_hash = tx_hash.clone();
+        let mut sibling_hashes = Vec::new();
         
-        // For now, return a simple proof with just the root
+        for level in &self.tree_levels {
+            let pos = level.iter().position(|h| h == &current_hash)
+                .ok_or_else(|| BlockchainError::ValidationError("Transaction not found in tree".into()))?;
+            
+            if pos % 2 == 0 {
+                if let Some(sibling) = level.get(pos + 1) {
+                    sibling_hashes.push((sibling.clone(), Side::Right));
+                    current_hash = Self::hash_pair(&current_hash, sibling);
+                } else {
+                    current_hash = Self::hash_pair(&current_hash, &current_hash);
+                }
+            } else {
+                let sibling = &level[pos - 1];
+                sibling_hashes.push((sibling.clone(), Side::Left));
+                current_hash = Self::hash_pair(sibling, &current_hash);
+            }
+        }
+        
         Ok(MerkleProof {
-            root: self.root.clone().unwrap_or_default(),
-            proof: vec![tx_hash],
+            leaf_hash: tx_hash,
+            sibling_hashes,
+            root_hash: self.get_root().unwrap_or_default().to_string(),
         })
     }
 
     /// Verifies a Merkle proof
     pub fn verify_proof(&self, proof: &MerkleProof) -> Result<bool, BlockchainError> {
-        // For now, just verify the root hash matches
-        Ok(Some(proof.root.as_str()) == self.root.as_deref())
+        let mut current_hash = proof.leaf_hash.clone();
+        
+        for (sibling_hash, side) in &proof.sibling_hashes {
+            current_hash = match side {
+                Side::Left => Self::hash_pair(sibling_hash, &current_hash),
+                Side::Right => Self::hash_pair(&current_hash, sibling_hash),
+            };
+        }
+        
+        Ok(current_hash == proof.root_hash)
     }
 
     /// Hashes a transaction
@@ -88,65 +151,43 @@ impl MerkleTree {
         format!("{:x}", hasher.finalize())
     }
 
-    /// Recursively builds a proof for a transaction
-    fn build_proof(
-        &self,
-        tx_hash: &str,
-        node: &MerkleNode,
-        proof: &mut Vec<(String, bool)>,
-    ) -> Result<bool, BlockchainError> {
-        // Check if we're at a leaf
-        if node.left.is_none() && node.right.is_none() {
-            return Ok(node.hash == tx_hash);
-        }
-
-        // Check left subtree
-        if let Some(left) = &node.left {
-            if self.build_proof(tx_hash, left, proof)? {
-                if let Some(right) = &node.right {
-                    proof.push((right.hash.clone(), false));
-                }
-                return Ok(true);
-            }
-        }
-
-        // Check right subtree
-        if let Some(right) = &node.right {
-            if self.build_proof(tx_hash, right, proof)? {
-                if let Some(left) = &node.left {
-                    proof.push((left.hash.clone(), true));
-                }
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
-    }
-
     fn build(&mut self) -> Result<(), BlockchainError> {
         if self.transactions.is_empty() {
             return Ok(());
         }
 
-        let mut current_level: Vec<String> = self.transactions
+        // Create leaf nodes
+        let mut current_level: Vec<MerkleNode> = self.transactions
             .iter()
-            .map(|tx| tx.id.to_string())
-            .collect();
+            .map(|tx| MerkleNode::leaf(tx))
+            .collect::<Result<Vec<_>, _>>()?;
 
+        // Store leaf hashes
+        self.cached_hashes = current_level.iter()
+            .map(|node| node.hash.clone())
+            .collect();
+        self.tree_levels.push(self.cached_hashes.clone());
+
+        // Build tree levels
         while current_level.len() > 1 {
             let mut next_level = Vec::new();
+            let mut next_hashes = Vec::new();
+
             for chunk in current_level.chunks(2) {
-                let combined = if chunk.len() == 2 {
-                    format!("{}{}", chunk[0], chunk[1])
+                let node = if chunk.len() == 2 {
+                    MerkleNode::parent(chunk[0].clone(), Some(&chunk[1]))?
                 } else {
-                    chunk[0].clone()
+                    MerkleNode::parent(chunk[0].clone(), None)?
                 };
-                next_level.push(combined);
+                next_hashes.push(node.hash.clone());
+                next_level.push(node);
             }
+
+            self.tree_levels.push(next_hashes);
             current_level = next_level;
         }
 
-        self.root = current_level.first().cloned();
+        self.root = current_level.pop();
         Ok(())
     }
 }
@@ -202,6 +243,32 @@ mod tests {
         let tree = MerkleTree::new(&transactions).unwrap();
         let proof = tree.generate_proof(&transactions[1]).unwrap();
         assert!(tree.verify_proof(&proof).unwrap());
+    }
+
+    #[test]
+    fn test_tampered_transaction() {
+        let tx = create_test_transaction(1);
+        let tree = MerkleTree::new(&[tx.clone()]).unwrap();
+        
+        let mut tampered_tx = tx;
+        tampered_tx.data.payload = b"tampered_data".to_vec();
+        
+        let proof = tree.generate_proof(&tampered_tx);
+        assert!(proof.is_err());
+    }
+
+    #[test]
+    fn test_incorrect_proof_order() {
+        let transactions = vec![
+            create_test_transaction(1),
+            create_test_transaction(2),
+        ];
+
+        let tree = MerkleTree::new(&transactions).unwrap();
+        let mut proof = tree.generate_proof(&transactions[0]).unwrap();
+        proof.sibling_hashes.reverse();
+        
+        assert!(!tree.verify_proof(&proof).unwrap());
     }
 
     #[test]

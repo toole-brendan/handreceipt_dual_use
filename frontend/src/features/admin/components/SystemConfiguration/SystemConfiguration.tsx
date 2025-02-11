@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
-import '../../../ui/styles/system-configuration.css';
+import { RootState } from '../../../../store/store';
+import '@/styles/components/admin/system-configuration.css';
 
 interface SystemConfig {
   security: SecurityConfig;
@@ -45,41 +45,24 @@ interface BackupConfig {
   encryptBackups: boolean;
 }
 
-// Add type guard functions
-const isSecurityConfig = (config: any): config is SecurityConfig => {
-  return 'mfaEnabled' in config;
-};
-
-const isNetworkConfig = (config: any): config is NetworkConfig => {
-  return 'maxConcurrentSessions' in config;
-};
-
-const isAuditConfig = (config: any): config is AuditConfig => {
-  return 'logRetentionDays' in config;
-};
-
-const isBackupConfig = (config: any): config is BackupConfig => {
-  return 'frequency' in config;
-};
-
 export const SystemConfiguration: React.FC = () => {
   const [config, setConfig] = useState<SystemConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const { classificationLevel } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     fetchConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classificationLevel]);
+  }, [user?.classification]);
 
   const fetchConfig = async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/system/config', {
         headers: {
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
       });
 
@@ -159,7 +142,7 @@ export const SystemConfiguration: React.FC = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Classification-Level': classificationLevel,
+          'Classification-Level': user?.classification || '',
         },
         body: JSON.stringify(config),
       });

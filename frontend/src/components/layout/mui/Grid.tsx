@@ -5,7 +5,6 @@ import {
   styled,
   Theme,
 } from '@mui/material';
-import { CustomTheme } from '../../../styles/theme';
 
 export interface GridProps extends MuiGridProps {
   noGutter?: boolean;
@@ -21,8 +20,6 @@ interface StyledGridProps extends GridProps {
 const StyledGrid = styled(MuiGrid, {
   shouldForwardProp: (prop: string) => !['noGutter', 'equalHeight', 'glassEffect', 'noBorder'].includes(prop),
 })<StyledGridProps>(({ theme, noGutter, equalHeight, glassEffect, noBorder }) => {
-  const customTheme = theme as CustomTheme;
-  
   const styles = {
     // Remove negative margins if noGutter is true
     ...(noGutter && {
@@ -91,4 +88,4 @@ export const Grid = React.forwardRef<HTMLDivElement, GridProps>(
       />
     );
   }
-); 
+);

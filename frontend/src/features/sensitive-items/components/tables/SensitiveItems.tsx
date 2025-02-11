@@ -1,30 +1,24 @@
-import React from 'react';
-import { useUnitInventory } from '../../hooks/useUnitInventory';
+import { useSensitiveItems } from '../../hooks/useSensitiveItems';
 import { DataTable } from '@/shared/components/data-table';
 
 export const SensitiveItems: React.FC = () => {
-  const { items, loading } = useUnitInventory();
-  const sensitiveItems = items.filter(item => item.sensitive);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const { items } = useSensitiveItems();
 
   return (
     <div className="space-y-4">
       <DataTable
-        data={sensitiveItems}
+        rows={items}
         columns={[
-          { header: 'NSN', accessorKey: 'nsn' },
-          { header: 'Name', accessorKey: 'name' },
-          { header: 'Serial #', accessorKey: 'serialNumber' },
-          { header: 'Location', accessorKey: 'location' },
-          { header: 'Assigned To', accessorKey: 'assignedTo' },
-          { header: 'Last Inventory', accessorKey: 'lastInventoryDate' },
+          { label: 'NSN', id: 'serialNumber' },
+          { label: 'Name', id: 'name' },
+          { label: 'Serial #', id: 'serialNumber' },
+          { label: 'Location', id: 'location' },
+          { label: 'Assigned To', id: 'assignedTo' },
+          { label: 'Last Verification', id: 'verificationSchedule.lastVerification' },
         ]}
       />
     </div>
   );
 };
 
-export default SensitiveItems; 
+export default SensitiveItems;

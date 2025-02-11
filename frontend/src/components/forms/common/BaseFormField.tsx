@@ -6,7 +6,6 @@ import {
   FormControlProps,
   styled,
   Theme,
-  alpha,
 } from '@mui/material';
 
 interface BaseFormFieldProps extends Omit<FormControlProps, 'error'> {
@@ -134,4 +133,4 @@ export const BaseFormField: React.FC<BaseFormFieldProps> = ({
       )}
     </StyledFormControl>
   );
-}; 
+};
