@@ -1,0 +1,128 @@
+.system-configuration {
+  padding: 2rem;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.admin-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.config-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.config-sections {
+  display: grid;
+  gap: 2rem;
+}
+
+.config-section {
+  background-color: var(--background-secondary);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.config-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.config-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.config-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.config-item label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.config-item input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.config-item input[type="number"],
+.config-item input[type="text"],
+.config-item select {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.config-item input[type="number"]:focus,
+.config-item input[type="text"]:focus,
+.config-item select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-alpha);
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.error-message {
+  padding: 1rem;
+  background-color: var(--error-background);
+  color: var(--error-text);
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-color-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

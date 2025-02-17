@@ -1,0 +1,41 @@
+.nco-dashboard {
+  display: grid;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+}
+
+.nco-dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+}
+
+.nco-dashboard__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.nco-dashboard__maintenance {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4);
+}
+
+.nco-dashboard__property {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-4);
+}
+
+.nco-dashboard__assignments {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4);
+}
+
+.nco-dashboard__timeline {
+  margin-top: var(--spacing-6);
+} 

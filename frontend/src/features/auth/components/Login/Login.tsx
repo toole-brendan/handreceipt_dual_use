@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { AppDispatch } from '@/store';
-import { login, clearError } from '@/store/slices/auth/authSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import type { ThunkDispatch } from '@reduxjs/toolkit';
+import type { AnyAction } from '@reduxjs/toolkit';
+import { RootState } from '@/store';
+import { login, clearError, setVersion, setError } from '@/store/slices/auth/authSlice';
+import { AppVersion } from '@/types/auth';
 import { 
   Box,
   Button,
@@ -17,6 +20,7 @@ import {
   useTheme,
   alpha,
   Select,
+  SelectChangeEvent,
   MenuItem,
   FormControl,
   InputLabel
@@ -150,56 +154,24 @@ const DevModeText = styled(Typography)(({ theme }) => ({
 }));
 
 const Login: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch<ThunkDispatch<RootState, unknown, AnyAction>>();
   const navigate = useNavigate();
   const theme = useTheme();
-  const [credentials, setCredentials] = useState({
-    username: '',
-    password: '',
-    role: 'Officer',
-  });
+  const version = useSelector((state: RootState) => state.auth.version);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setLocalError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const isDevelopment = true; // Force development mode for testing
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCredentials(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleRoleChange = (event: any) => {
-    setCredentials(prev => ({
-      ...prev,
-      role: event.target.value,
-    }));
-  };
-
-  const handleDevLogin = () => {
-    try {
-      const mockResponse = {
-        user: {
-          id: 'dev-user',
-          name: `Test ${credentials.role}`,
-          rank: credentials.role === 'Officer' ? 'CPT' : credentials.role === 'NCO' ? 'SSG' : 'SPC',
-          role: credentials.role.toUpperCase(),
-          classification: 'SECRET',
-          permissions: ['read', 'write'],
-        },
-        token: 'dev-token',
-      };
-      localStorage.setItem('token', mockResponse.token);
-      dispatch({ 
-        type: 'auth/login/fulfilled',
-        payload: mockResponse
-      });
-      navigate('/property');
-    } catch (err) {
-      console.error('Dev login failed:', err);
+  useEffect(() => {
+    // Set default version to Defense
+    if (!version) {
+      dispatch(setVersion('Defense' as AppVersion));
     }
+  }, [dispatch, version]);
+
+  const handleVersionChange = (event: SelectChangeEvent) => {
+    dispatch(setVersion(event.target.value as AppVersion));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,20 +179,23 @@ const Login: React.FC = () => {
     if (loading) return;
 
     setLoading(true);
-    setError(null);
+    setLocalError(null);
     dispatch(clearError());
 
     try {
-      if (isDevelopment) {
-        handleDevLogin();
-        return;
-      }
+      const result = await dispatch(login({
+        email: 'test@example.com',
+        password: 'test123'
+      })).unwrap();
 
-      await dispatch(login(credentials)).unwrap();
-      navigate('/dashboard');
+      // Navigate based on version
+      const basePath = version === 'Defense' ? '/defense' : '/civilian';
+      const defaultPath = version === 'Defense' ? '/property' : '/dashboard';
+      navigate(`${basePath}${defaultPath}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
-      setError(message);
+      setLocalError(message);
+      dispatch(setError(message));
     } finally {
       setLoading(false);
     }
@@ -250,13 +225,13 @@ const Login: React.FC = () => {
 
           {isDevelopment && (
             <StyledFormControl>
-              <InputLabel id="role-select-label">Role</InputLabel>
+              <InputLabel id="version-select-label">Select Dual-Use Version</InputLabel>
               <Select
-                labelId="role-select-label"
-                id="role-select"
-                value={credentials.role}
-                label="Role"
-                onChange={handleRoleChange}
+                labelId="version-select-label"
+                id="version-select"
+                value={version || 'Defense'}
+                label="Select Dual-Use Version"
+                onChange={handleVersionChange}
                 sx={{
                   color: '#FFFFFF',
                   '& .MuiSelect-icon': {
@@ -264,52 +239,10 @@ const Login: React.FC = () => {
                   },
                 }}
               >
-                <MenuItem value="Officer">Officer</MenuItem>
-                <MenuItem value="NCO">NCO</MenuItem>
-                <MenuItem value="Soldier">Soldier</MenuItem>
+                <MenuItem value="Defense">Defense Version</MenuItem>
+                <MenuItem value="Civilian">Civilian Version</MenuItem>
               </Select>
             </StyledFormControl>
-          )}
-
-          {!isDevelopment && (
-            <>
-              <StyledTextField
-                required
-                fullWidth
-                id="username"
-                label="Username"
-                name="username"
-                autoComplete="username"
-                value={credentials.username}
-                onChange={handleInputChange}
-              />
-
-              <StyledTextField
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                autoComplete="current-password"
-                value={credentials.password}
-                onChange={handleInputChange}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        sx={{ color: '#FFFFFF' }}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </>
           )}
 
           <StyledButton
@@ -320,26 +253,11 @@ const Login: React.FC = () => {
           >
             {loading ? 'Signing in...' : isDevelopment ? 'Dev Login' : 'Sign In'}
           </StyledButton>
-
-          {!isDevelopment && (
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-              <Link to="/forgot-password" style={{ textDecoration: 'none' }}>
-                <StyledLink>
-                  Forgot password?
-                </StyledLink>
-              </Link>
-              <Link to="/register" style={{ textDecoration: 'none' }}>
-                <StyledLink>
-                  Create an account
-                </StyledLink>
-              </Link>
-            </Box>
-          )}
         </Box>
 
         {isDevelopment && (
           <DevModeText>
-            Development Mode: Click "Dev Login" to sign in with the selected role
+            Development Mode: Click "Dev Login" to sign in with the selected version
           </DevModeText>
         )}
 

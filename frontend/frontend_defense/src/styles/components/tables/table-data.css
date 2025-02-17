@@ -1,0 +1,96 @@
+/* Table Data Styles */
+
+.table td {
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-default);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* Specific alignments for certain cells */
+.table td:first-child {
+  text-align: left; /* Keep item name left-aligned */
+}
+
+.table td:last-child {
+  text-align: left; /* Keep actions left-aligned */
+}
+
+.table td:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+/* Table Row States */
+.table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:active {
+  background-color: var(--surface-active);
+}
+
+.table-row-selected {
+  background-color: var(--surface-selected) !important;
+}
+
+.table-row-success {
+  background-color: var(--status-success-subtle);
+}
+
+.table-row-warning {
+  background-color: var(--status-warning-subtle);
+}
+
+.table-row-error {
+  background-color: var(--status-error-subtle);
+}
+
+/* Table Cell Types */
+.table-cell-monospace {
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  letter-spacing: -0.5px;
+}
+
+.table-cell-truncate {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Table Cell Alignments */
+.table-cell-start {
+  text-align: left;
+}
+
+.table-cell-center {
+  text-align: center;
+}
+
+.table-cell-end {
+  text-align: right;
+}
+
+/* Table Footer */
+.table tfoot {
+  background-color: var(--surface-subtle);
+}
+
+.table tfoot td {
+  font-weight: var(--font-weight-medium);
+  border-top: 2px solid var(--border-default);
+}

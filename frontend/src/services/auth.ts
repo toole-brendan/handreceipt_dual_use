@@ -1,36 +1,74 @@
-export interface User {
-  id: string;
-  name: string;
-  rank: string;
-  role: 'officer' | 'nco' | 'soldier';
-  classification: string;
-  permissions: string[];
-}
+import { User, LoginCredentials, LoginResponse, AppVersion } from '@/types/auth';
 
-interface AuthResponse {
-  token: string;
-  user: User;
-}
+class AuthService {
+  private tokenKey = 'token';
+  private versionKey = 'selectedVersion';
 
-export const authService = {
-  async login(credentials: { username: string; password: string }): Promise<AuthResponse> {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Authentication failed');
-    }
-    
-    return response.json();
-  },
-
-  setAuthHeader(token: string) {
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    // In a real app, this would make an API call
+    // For now, we'll simulate a successful login with mock data
+    const mockUser: User = {
+      id: 'dev-user',
+      name: 'Test Officer',
+      email: credentials.email || 'test@example.com',
+      rank: 'CPT',
+      role: 'OFFICER',
+      classification: 'SECRET',
+      permissions: ['read', 'write'],
+      unit: 'Test Unit',
+      dutyPosition: 'Test Position',
+      lastLogin: new Date().toISOString(),
+      preferences: {
+        theme: 'dark',
+        language: 'en',
+        timezone: 'America/New_York',
+        dateFormat: 'MM/DD/YYYY',
+        notifications: {
+          email: true,
+          push: true,
+          transferRequests: true,
+          securityAlerts: true,
+          systemUpdates: true,
+          assetChanges: true,
+        },
+      },
     };
+
+    const mockResponse: LoginResponse = {
+      user: mockUser,
+      token: 'mock-jwt-token',
+    };
+
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    return mockResponse;
   }
-}; 
+
+  logout(): void {
+    localStorage.removeItem(this.tokenKey);
+    // Don't remove version on logout
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  setToken(token: string): void {
+    localStorage.setItem(this.tokenKey, token);
+  }
+
+  getVersion(): AppVersion | null {
+    return localStorage.getItem(this.versionKey) as AppVersion | null;
+  }
+
+  setVersion(version: AppVersion): void {
+    localStorage.setItem(this.versionKey, version);
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  }
+}
+
+export const authService = new AuthService();

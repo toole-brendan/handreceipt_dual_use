@@ -1,76 +1,25 @@
-/* frontend/src/index.css */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
 
-@import '@styles/base/reset.css';
-@import '@styles/base/base.css';
-@import '@styles/base/colors.css';
-@import '@styles/base/utilities.css';
-@import '@styles/base/effects.css';
-@import '@styles/base/global.css';
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
 
-/* Theme-specific styles */
-@import '@styles/base/light.css';
-@import '@styles/base/dark.css';
-
-/* Layout */
-@import '@styles/layout/breakpoints.css';
-@import '@styles/layout/container.css';
-@import '@styles/layout/grid.css';
-@import '@styles/layout/spacing.css';
-
-/* Components */
-@import '@styles/components/buttons/button.css';
-@import '@styles/components/forms/form-layout.css';
-@import '@styles/components/layout/content.css';
-@import '@styles/components/layout/header.css';
-@import '@styles/components/layout/sidebar.css';
-
-/* Features */
-@import '@styles/features/dashboard/dashboard.css';
-@import '@styles/features/auth/login.css';
-
-/* Base Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background-color: var(--background-default);
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
-/* Focus Styles */
-:focus-visible {
-  outline: 2px solid var(--border-focused);
-  outline-offset: 2px;
-}
-
-/* Selection */
-::selection {
-  background-color: var(--brand-default);
-  color: var(--text-inverse);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background-subtle);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--surface-contrast);
-  border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--surface-emphasis);
+#root {
+  width: 100%;
+  height: 100vh;
 }

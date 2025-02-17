@@ -1,40 +1,33 @@
-// tsconfig.json
-
 {
-    "compilerOptions": {
-      "target": "ESNext",
-      "lib": ["DOM", "DOM.Iterable", "ESNext"],
-      "module": "ESNext",
-      "skipLibCheck": true,
-      "moduleResolution": "bundler",
-      "allowImportingTsExtensions": true,
-      "resolveJsonModule": true,
-      "isolatedModules": true,
-      "noEmit": true,
-      "jsx": "react-jsx",
-      "strict": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noFallthroughCasesInSwitch": true,
-      "baseUrl": ".",
-      "paths": {
-        "@/*": ["src/*"],
-        "@app/*": ["src/app/*"],
-        "@auth/*": ["src/auth/*"],
-        "@components/*": ["src/components/*"],
-        "@contexts/*": ["src/contexts/*"],
-        "@features/*": ["src/features/*"],
-        "@hooks/*": ["src/hooks/*"],
-        "@pages/*": ["src/pages/*"],
-        "@services/*": ["src/services/*"],
-        "@shared/*": ["src/shared/*"],
-        "@store/*": ["src/store/*"],
-        "@styles/*": ["src/styles/*"],
-        "@types/*": ["src/types/*"],
-        "@utils/*": ["src/utils/*"],
-        "@ui/*": ["src/ui/*"]
-      }
-    },
-    "include": ["src"],
-    "references": [{ "path": "./tsconfig.node.json" }]
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@features/*": ["src/features/*"],
+      "@pages/*": ["src/pages/*"],
+      "@store/*": ["src/store/*"],
+      "@utils/*": ["src/utils/*"],
+      "@shared": ["shared/src"],
+      "@frontend_defense/*": ["frontend_defense/src/*"],
+      "@frontend_civilian/*": ["frontend_civilian/src/*"]
+    }
+  },
+  "include": ["src", "shared/src", "frontend_defense/src", "frontend_civilian/src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

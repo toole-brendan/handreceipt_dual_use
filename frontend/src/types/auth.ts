@@ -1,4 +1,5 @@
 export type UserRole = 'ADMIN' | 'COMMANDER' | 'SOLDIER' | 'SUPPLY' | 'MAINTENANCE' | 'OFFICER';
+export type AppVersion = 'Defense' | 'Civilian';
 
 export interface User {
   id: string;
@@ -29,7 +30,28 @@ export interface User {
 
 export interface AuthState {
   user: User | null;
+  token: string | null;
+  version: AppVersion;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  version: AppVersion;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  setVersion: (version: AppVersion) => void;
 }
