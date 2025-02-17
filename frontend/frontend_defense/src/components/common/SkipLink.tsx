@@ -1,29 +1,36 @@
 import React from 'react';
+import { styled } from '@mui/material/styles';
+
+const StyledSkipLink = styled('a')(({ theme }) => ({
+  position: 'absolute',
+  left: -9999,
+  top: 'auto',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  zIndex: theme.zIndex.modal + 1,
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+  padding: theme.spacing(2),
+  textDecoration: 'none',
+  fontWeight: 500,
+  '&:focus': {
+    position: 'fixed',
+    top: theme.spacing(1),
+    left: theme.spacing(1),
+    width: 'auto',
+    height: 'auto',
+    outline: `2px solid ${theme.palette.primary.main}`,
+    outlineOffset: 2,
+  },
+}));
 
 const SkipLink: React.FC = () => {
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const main = document.querySelector('main');
-    if (main) {
-      main.tabIndex = -1;
-      main.focus();
-      // Remove tabIndex after focus to prevent outline on click
-      setTimeout(() => {
-        main.removeAttribute('tabindex');
-      }, 100);
-    }
-  };
-
   return (
-    <a
-      href="#main"
-      className="skip-link"
-      onClick={handleClick}
-      onKeyDown={(e) => e.key === 'Enter' && handleClick(e as any)}
-    >
+    <StyledSkipLink href="#main">
       Skip to main content
-    </a>
+    </StyledSkipLink>
   );
 };
 
-export default SkipLink; 
+export default SkipLink;

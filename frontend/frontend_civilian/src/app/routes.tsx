@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { CircularProgress } from '@mui/material';
 import { Login, User } from '@handreceipt/shared';
-import Layout from '@/pages/layout';
+import AppLayout from '@/components/layout/AppLayout';
 
 const LoadingFallback = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -20,12 +20,14 @@ const routes = createBrowserRouter([
   {
     path: '/login',
     element: <Login onLogin={(user: User) => {
+      // Set mock token since this is a dev environment
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('user', JSON.stringify(user));
     }} />,
   },
   {
     path: '/',
-    element: <Layout />,
+    element: <AppLayout />,
     children: [
       {
         path: 'dashboard',

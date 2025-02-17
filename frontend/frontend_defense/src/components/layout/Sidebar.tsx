@@ -17,13 +17,22 @@ import {
 import {
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import { RootState } from '@/store/store';
+import { RootState } from '../../store/store';
 import {
   OFFICER_NAV_ITEMS,
   NCO_NAV_ITEMS,
   SOLDIER_NAV_ITEMS,
-  type NavItemConfig,
-} from '@/components/common/navigation-config';
+} from '../common/navigation-config';
+import type { NavItemConfig } from '../../types/navigation';
+
+interface UserState {
+  id: string;
+  name: string;
+  rank: string;
+  role: 'officer' | 'nco' | 'soldier';
+  classification: string;
+  permissions: string[];
+}
 
 const DRAWER_WIDTH = 240;
 
@@ -34,14 +43,6 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-interface UserState {
-  id: string;
-  name: string;
-  rank: string;
-  role: 'officer' | 'nco' | 'soldier';
-  classification: string;
-  permissions: string[];
-}
 
 const StyledDrawer = styled(Drawer)(({ theme }: { theme: Theme }) => ({
   width: DRAWER_WIDTH,
@@ -162,7 +163,9 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose }) => {
                 aria-current={location.pathname === item.to.replace(/^\//, '') ? 'page' : undefined}
                 aria-describedby={item.description ? `nav-desc-${item.to.replace(/\//g, '-')}` : undefined}
               >
-                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemIcon>
+                  {React.cloneElement(item.icon, { fontSize: 'small' })}
+                </ListItemIcon>
                 <ListItemText 
                   primary={item.text}
                   secondary={item.description && (

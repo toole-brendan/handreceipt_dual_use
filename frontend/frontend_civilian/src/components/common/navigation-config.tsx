@@ -15,7 +15,7 @@ import {
   Plus,
   Building2,
 } from 'lucide-react';
-import { ROUTES } from '@/constants/routes';
+import { ROUTES } from '../../constants/routes';
 
 export interface NavItemConfig {
   text: string;

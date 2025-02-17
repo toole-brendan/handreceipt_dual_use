@@ -19,12 +19,12 @@ import {
   Logout as LogoutIcon,
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
-import { RootState } from '@/store/store';
+import { RootState } from '../../store/store';
 import {
   MAIN_NAV_ITEMS,
   HELP_NAV_ITEMS,
   type NavItemConfig,
-} from '@/components/common/navigation-config';
+} from '../common/navigation-config';
 
 const DRAWER_WIDTH = 240;
 
@@ -38,7 +38,7 @@ interface SidebarProps {
 interface UserState {
   id: string;
   name: string;
-  role: string;
+  role: 'civilian';
   permissions: string[];
 }
 

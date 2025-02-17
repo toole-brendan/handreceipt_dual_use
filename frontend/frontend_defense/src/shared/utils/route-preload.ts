@@ -1,9 +1,9 @@
 import { 
   OFFICER_NAV_ITEMS, 
   NCO_NAV_ITEMS, 
-  SOLDIER_NAV_ITEMS,
-  type NavItemConfig 
-} from '@components/common/navigation-config';
+  SOLDIER_NAV_ITEMS
+} from '@/components/common/navigation-config';
+import type { NavItemConfig } from '@/types/navigation';
 import type { LazyExoticComponent, ComponentType } from 'react';
 
 interface PreloadableComponent extends LazyExoticComponent<ComponentType<any>> {

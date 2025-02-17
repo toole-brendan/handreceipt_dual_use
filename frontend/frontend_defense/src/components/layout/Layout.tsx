@@ -1,16 +1,14 @@
 /* frontend/src/shared/components/Layout/Layout.tsx */
 
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Outlet, Navigate } from 'react-router-dom';
 import { Box, styled, useTheme, useMediaQuery } from '@mui/material';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import Header from './Header';
-import Navigation from './Navigation';
+import Navigation from './Sidebar';
 import SkipLink from '../common/SkipLink';
 import { Container } from './mui/Container';
-
-interface LayoutProps {
-  children: React.ReactNode;
-}
 
 const AppLayout = styled(Box)(() => ({
   display: 'flex',
@@ -59,6 +57,10 @@ const MainContent = styled(Box)(({ theme }) => ({
   },
 }));
 
+interface LayoutProps {
+  children?: React.ReactNode;
+}
+
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const theme = useTheme();
@@ -71,9 +73,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Don't show navigation on login page
   const isLoginPage = location.pathname === '/login';
+  const authState = useSelector((state: RootState) => state.auth);
   
   if (isLoginPage) {
-    return <>{children}</>;
+    return <Outlet />;
+  }
+
+  // Redirect to login if not authenticated
+  if (!authState.isAuthenticated) {
+    return <Navigate to="/login" />;
   }
 
   return (
@@ -81,7 +89,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <SkipLink />
       <Header isMobile={isMobile} onDrawerToggle={handleDrawerToggle} />
       <AppBody>
-        <Navigation isMobile={isMobile} mobileOpen={mobileOpen} onDrawerToggle={handleDrawerToggle} />
+        <Navigation 
+          variant={isMobile ? 'temporary' : 'permanent'}
+          isMobile={isMobile}
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+        />
         <MainContent
           id="main"
           tabIndex={-1}
@@ -97,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {location.pathname.split('/').pop()?.replace('-', ' ')} page loaded
           </Box>
           <Container fluid noBorder>
-            {children}
+            {children || <Outlet />}
           </Container>
         </MainContent>
       </AppBody>

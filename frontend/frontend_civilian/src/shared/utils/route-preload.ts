@@ -1,9 +1,8 @@
-import { 
-  OFFICER_NAV_ITEMS, 
-  NCO_NAV_ITEMS, 
-  SOLDIER_NAV_ITEMS,
-  type NavItemConfig 
-} from '@components/common/navigation-config';
+import {
+  MAIN_NAV_ITEMS,
+  HELP_NAV_ITEMS,
+  type NavItemConfig
+} from '@components/common/navigation-config.tsx';
 import type { LazyExoticComponent, ComponentType } from 'react';
 
 interface PreloadableComponent extends LazyExoticComponent<ComponentType<any>> {
@@ -12,9 +11,8 @@ interface PreloadableComponent extends LazyExoticComponent<ComponentType<any>> {
 
 // Combine all navigation items
 const navigationConfig = [
-  { items: OFFICER_NAV_ITEMS },
-  { items: NCO_NAV_ITEMS },
-  { items: SOLDIER_NAV_ITEMS }
+  { items: MAIN_NAV_ITEMS },
+  { items: HELP_NAV_ITEMS }
 ];
 
 interface NavSection {

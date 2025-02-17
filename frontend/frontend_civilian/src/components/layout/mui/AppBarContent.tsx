@@ -27,17 +27,12 @@ import {
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { RootState } from '@/store/store';
-import {
-  OFFICER_SEARCH_SCOPE,
-  NCO_SEARCH_SCOPE,
-  SOLDIER_SEARCH_SCOPE,
-} from '@/shared/types/navigation';
+import { CIVILIAN_SEARCH_SCOPE } from '../../../types/navigation';
 
 interface UserState {
   id: string;
   name: string;
-  rank: string;
-  role: 'officer' | 'nco' | 'soldier';
+  role: 'civilian';
   classification: string;
   permissions: string[];
 }
@@ -210,18 +205,7 @@ export const AppBarContent: React.FC<AppBarContentProps> = ({ isMobile, onDrawer
   const user = authState.user as UserState | null;
 
   const getSearchScope = () => {
-    if (!user?.role) return SOLDIER_SEARCH_SCOPE;
-    
-    switch (user.role) {
-      case 'officer':
-        return OFFICER_SEARCH_SCOPE;
-      case 'nco':
-        return NCO_SEARCH_SCOPE;
-      case 'soldier':
-        return SOLDIER_SEARCH_SCOPE;
-      default:
-        return SOLDIER_SEARCH_SCOPE;
-    }
+    return CIVILIAN_SEARCH_SCOPE;
   };
 
   const getSearchPlaceholder = () => {
@@ -253,20 +237,7 @@ export const AppBarContent: React.FC<AppBarContentProps> = ({ isMobile, onDrawer
       navigate('/login');
       return;
     }
-    
-    switch (user.role) {
-      case 'officer':
-        navigate('/officer/dashboard');
-        break;
-      case 'nco':
-        navigate('/nco/dashboard');
-        break;
-      case 'soldier':
-        navigate('/soldier/dashboard');
-        break;
-      default:
-        navigate('/login');
-    }
+    navigate('/dashboard');
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -278,8 +249,8 @@ export const AppBarContent: React.FC<AppBarContentProps> = ({ isMobile, onDrawer
   };
 
   const getUserDisplayName = () => {
-    if (!user?.rank || !user?.name) return 'User';
-    return `${user.rank} ${user.name}`;
+    if (!user?.name) return 'User';
+    return user.name;
   };
 
   const getUserRole = () => {
@@ -345,15 +316,15 @@ export const AppBarContent: React.FC<AppBarContentProps> = ({ isMobile, onDrawer
 
       <UserInfo onClick={handleMenuOpen}>
         <Avatar
-          src={user?.rank ? `/ranks/${user.rank.toLowerCase()}.png` : undefined}
-          alt={user?.rank ? `${user.rank} Insignia` : 'User Avatar'}
+          alt="User Avatar"
           sx={{
             width: 32,
             height: 32,
             border: (theme) => `1px solid ${theme.palette.divider}`,
+            backgroundColor: 'primary.main'
           }}
         >
-          {!user?.rank && 'U'}
+          {user?.name ? user.name[0].toUpperCase() : 'U'}
         </Avatar>
         <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
           <Typography

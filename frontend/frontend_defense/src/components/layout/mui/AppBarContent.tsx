@@ -26,12 +26,13 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
-import { RootState } from '@/store/store';
+import { RootState } from '../../../store/store';
 import {
   OFFICER_SEARCH_SCOPE,
   NCO_SEARCH_SCOPE,
   SOLDIER_SEARCH_SCOPE,
-} from '@/shared/types/navigation';
+  type SearchScope
+} from '../../../types/navigation';
 
 interface UserState {
   id: string;

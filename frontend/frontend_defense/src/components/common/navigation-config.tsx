@@ -1,125 +1,134 @@
-// frontend/src/ui/components/common/navigation-config.ts
-
-import { 
-  Package2, 
-  ArrowLeftRight, 
-  Shield, 
-  Users, 
-  QrCode,
-  History,
-  HelpCircle
-} from 'lucide-react';
-
-export interface NavItemConfig {
-  to: string;
-  text: string;
-  icon: React.ReactNode;
-  description?: string; // Optional description for accessibility
-  end?: boolean; // Optional end property for route matching
-  component?: React.LazyExoticComponent<React.ComponentType<any>>;
-}
+import React from 'react';
+import {
+  Inventory2 as Inventory2Icon,
+  People as PeopleIcon,
+  SwapHoriz as SwapHorizIcon,
+  Security as SecurityIcon,
+  QrCode as QrCodeIcon,
+  History as HistoryIcon,
+  Help as HelpIcon,
+  Assignment as AssignmentIcon,
+  Dashboard as DashboardIcon,
+  FactCheck as FactCheckIcon,
+  Build as BuildIcon,
+  Receipt as ReceiptIcon,
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
+import type { NavItemConfig } from '../../types/navigation';
 
 export const OFFICER_NAV_ITEMS: NavItemConfig[] = [
   {
-    to: '/property',
-    icon: <Package2 className="h-5 w-5" />,
-    text: 'My Property',
+    to: '/dashboard',
+    icon: <DashboardIcon />,
+    text: 'Command Dashboard',
     end: true
   },
   {
+    to: '/property-book',
+    icon: <Inventory2Icon />,
+    text: 'Unit Property Book'
+  },
+  {
     to: '/personnel',
-    icon: <Users className="h-5 w-5" />,
-    text: 'Personnel'
+    icon: <PeopleIcon />,
+    text: 'Personnel View'
   },
   {
-    to: '/transfers',
-    icon: <ArrowLeftRight className="h-5 w-5" />,
-    text: 'Transfer Requests'
+    to: '/maintenance',
+    icon: <BuildIcon />,
+    text: 'Maintenance'
   },
   {
-    to: '/sensitive-items',
-    icon: <Shield className="h-5 w-5" />,
-    text: 'Sensitive Items'
+    to: '/inventory',
+    icon: <Inventory2Icon />,
+    text: 'Inventory Management'
   },
   {
-    to: '/qr',
-    icon: <QrCode className="h-5 w-5" />,
-    text: 'QR Generator'
+    to: '/reports',
+    icon: <AssignmentIcon />,
+    text: 'Reports & Analytics'
+  },
+  {
+    to: '/my-property',
+    icon: <AssignmentIcon />,
+    text: 'My Property'
   },
   {
     to: '/history',
-    icon: <History className="h-5 w-5" />,
+    icon: <HistoryIcon />,
     text: 'History'
   },
   {
-    to: '/utility/help',
-    icon: <HelpCircle className="h-5 w-5" />,
-    text: 'Help',
-    description: 'Get help and documentation'
+    to: '/settings',
+    icon: <SettingsIcon />,
+    text: 'Settings'
   }
 ];
 
 export const NCO_NAV_ITEMS: NavItemConfig[] = [
   {
-    to: '/property',
-    icon: <Package2 className="h-5 w-5" />,
-    text: 'My Property',
+    to: '/dashboard',
+    icon: <DashboardIcon />,
+    text: 'Squad Dashboard',
     end: true
   },
   {
-    to: '/personnel',
-    icon: <Users className="h-5 w-5" />,
-    text: 'Personnel'
+    to: '/inventory',
+    icon: <Inventory2Icon />,
+    text: 'Inventory Management'
   },
   {
-    to: '/transfers',
-    icon: <ArrowLeftRight className="h-5 w-5" />,
-    text: 'Transfer Requests'
+    to: '/property-status',
+    icon: <FactCheckIcon />,
+    text: 'Property Status'
   },
   {
-    to: '/sensitive-items',
-    icon: <Shield className="h-5 w-5" />,
-    text: 'Sensitive Items'
+    to: '/maintenance',
+    icon: <BuildIcon />,
+    text: 'Maintenance'
+  },
+  {
+    to: '/hand-receipts',
+    icon: <ReceiptIcon />,
+    text: 'Hand Receipt Management'
+  },
+  {
+    to: '/my-property',
+    icon: <AssignmentIcon />,
+    text: 'My Property'
   },
   {
     to: '/history',
-    icon: <History className="h-5 w-5" />,
+    icon: <HistoryIcon />,
     text: 'History'
   },
   {
-    to: '/utility/help',
-    icon: <HelpCircle className="h-5 w-5" />,
-    text: 'Help',
-    description: 'Get help and documentation'
+    to: '/settings',
+    icon: <SettingsIcon />,
+    text: 'Settings'
   }
 ];
 
 export const SOLDIER_NAV_ITEMS: NavItemConfig[] = [
   {
-    to: '/property',
-    icon: <Package2 className="h-5 w-5" />,
+    to: '/my-property',
+    icon: <AssignmentIcon />,
     text: 'My Property',
     end: true
   },
   {
-    to: '/transfers',
-    icon: <ArrowLeftRight className="h-5 w-5" />,
-    text: 'Transfer Requests'
-  },
-  {
-    to: '/sensitive-items',
-    icon: <Shield className="h-5 w-5" />,
-    text: 'Sensitive Items'
+    to: '/maintenance',
+    icon: <BuildIcon />,
+    text: 'Maintenance'
   },
   {
     to: '/history',
-    icon: <History className="h-5 w-5" />,
+    icon: <HistoryIcon />,
     text: 'History'
   },
   {
-    to: '/utility/help',
-    icon: <HelpCircle className="h-5 w-5" />,
-    text: 'Help',
-    description: 'Get help and documentation'
+    to: '/settings',
+    icon: <SettingsIcon />,
+    text: 'Settings'
   }
 ];
