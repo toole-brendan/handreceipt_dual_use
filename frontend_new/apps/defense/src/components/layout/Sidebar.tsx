@@ -8,37 +8,66 @@ import {
   ListItemText,
   ListItemButton,
   styled,
-  Drawer
+  Drawer,
+  Divider
 } from '@mui/material';
 import {
   LayoutDashboard,
   Box as BoxIcon,
+  Warehouse,
   ArrowLeftRight,
-  Archive,
   Wrench,
   BarChart2,
-  Bell,
   Users,
-  HelpCircle,
   Settings,
-  HelpCircle as QuestionIcon
+  HelpCircle
 } from 'lucide-react';
 import { DEFENSE_ROUTES } from '../../constants/routes';
 
+const StyledDrawer = styled(Drawer)(({ theme }) => ({
+  width: 280,
+  flexShrink: 0,
+  '& .MuiDrawer-paper': {
+    width: 280,
+    boxSizing: 'border-box',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(12px)',
+    top: theme.mixins.toolbar.minHeight,
+    height: `calc(100% - ${theme.mixins.toolbar.minHeight}px)`,
+  }
+}));
+
 const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
+  margin: theme.spacing(0.5, 1),
+  padding: theme.spacing(1, 2),
   borderRadius: theme.spacing(1),
-  marginBottom: theme.spacing(0.5),
+  color: 'rgba(255, 255, 255, 0.7)',
+  '&:hover': {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    color: '#FFFFFF',
+  },
   '&.Mui-selected': {
-    backgroundColor: theme.palette.action.selected,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    color: '#FFFFFF',
+    borderLeft: '2px solid #FFFFFF',
     '&:hover': {
-      backgroundColor: theme.palette.action.selected
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    '& .MuiListItemIcon-root': {
+      color: '#FFFFFF',
     }
   }
 }));
 
-const StyledListItemIcon = styled(ListItemIcon)(({ theme }) => ({
-  minWidth: '40px',
-  color: theme.palette.text.primary
+const StyledListItemIcon = styled(ListItemIcon)(() => ({
+  minWidth: 40,
+  color: 'rgba(255, 255, 255, 0.7)',
+}));
+
+const StyledDivider = styled(Divider)(() => ({
+  borderColor: 'rgba(255, 255, 255, 0.1)',
+  margin: '8px 0',
 }));
 
 interface NavItem {
@@ -59,39 +88,29 @@ const navItems: NavItem[] = [
     icon: <BoxIcon size={24} />
   },
   {
+    title: 'Unit Inventory',
+    path: DEFENSE_ROUTES.UNIT_INVENTORY,
+    icon: <Warehouse size={24} />
+  },
+  {
     title: 'Transfers',
     path: DEFENSE_ROUTES.TRANSFERS,
     icon: <ArrowLeftRight size={24} />
   },
   {
-    title: 'Inventory Management',
-    path: DEFENSE_ROUTES.INVENTORY,
-    icon: <Archive size={24} />
-  },
-  {
-    title: 'Maintenance & Inspections',
+    title: 'Maintenance',
     path: DEFENSE_ROUTES.MAINTENANCE,
     icon: <Wrench size={24} />
   },
   {
-    title: 'Reports & Analytics',
+    title: 'Reports',
     path: DEFENSE_ROUTES.REPORTS,
     icon: <BarChart2 size={24} />
-  },
-  {
-    title: 'Alerts & Tasks',
-    path: DEFENSE_ROUTES.ALERTS,
-    icon: <Bell size={24} />
   },
   {
     title: 'User Management',
     path: DEFENSE_ROUTES.USERS,
     icon: <Users size={24} />
-  },
-  {
-    title: 'Support',
-    path: DEFENSE_ROUTES.SUPPORT,
-    icon: <HelpCircle size={24} />
   },
   {
     title: 'Settings',
@@ -101,7 +120,7 @@ const navItems: NavItem[] = [
   {
     title: 'Help',
     path: DEFENSE_ROUTES.HELP,
-    icon: <QuestionIcon size={24} />
+    icon: <HelpCircle size={24} />
   }
 ];
 
@@ -116,35 +135,27 @@ const Sidebar: FC<SidebarProps> = ({ variant = 'permanent', open = true, onClose
   const location = useLocation();
 
   const sidebarContent = (
-    <Box
-      sx={{
-        width: '280px',
-        height: '100%',
-        backgroundColor: '#1C1C1C',
-        pt: 8 // Add padding top to account for AppBar
-      }}
-    >
-      <List sx={{ p: 2 }}>
+    <Box>
+      <StyledDivider />
+      <List sx={{ px: 2 }}>
         {navItems.map((item) => (
-          <ListItem key={item.path} disablePadding sx={{ mb: 1 }}>
+          <ListItem key={item.path} disablePadding>
             <StyledListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
                 navigate(item.path);
                 if (onClose) onClose();
               }}
-              sx={{
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)'
-                },
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.12)'
-                }
-              }}
             >
-              <StyledListItemIcon sx={{ color: 'white' }}>{item.icon}</StyledListItemIcon>
-              <ListItemText primary={item.title} />
+              <StyledListItemIcon>{item.icon}</StyledListItemIcon>
+              <ListItemText 
+                primary={item.title}
+                primaryTypographyProps={{
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.02em',
+                }}
+              />
             </StyledListItemButton>
           </ListItem>
         ))}
@@ -154,42 +165,32 @@ const Sidebar: FC<SidebarProps> = ({ variant = 'permanent', open = true, onClose
 
   if (variant === 'temporary') {
     return (
-      <Drawer
+      <StyledDrawer
         variant="temporary"
         open={open}
         onClose={onClose}
         ModalProps={{
-          keepMounted: true // Better mobile performance
+          keepMounted: true
         }}
         sx={{
           display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
-            width: '280px',
-            backgroundColor: '#1C1C1C'
-          }
         }}
       >
         {sidebarContent}
-      </Drawer>
+      </StyledDrawer>
     );
   }
 
   return (
-    <Drawer
+    <StyledDrawer
       variant="permanent"
       sx={{
         display: { xs: 'none', sm: 'block' },
-        '& .MuiDrawer-paper': {
-          boxSizing: 'border-box',
-          width: '280px',
-          backgroundColor: '#1C1C1C'
-        }
       }}
       open
     >
       {sidebarContent}
-    </Drawer>
+    </StyledDrawer>
   );
 };
 

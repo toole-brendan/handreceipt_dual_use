@@ -1,0 +1,1 @@
+export { BlockchainRecordModal } from './BlockchainRecordModal'; 

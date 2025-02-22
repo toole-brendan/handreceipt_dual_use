@@ -1,180 +1,205 @@
 /* frontend/src/features/transfer/components/TransferFilters.tsx */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Select,
+  Box,
+  TextField,
   MenuItem,
   Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
+  IconButton,
+  InputAdornment,
   FormControl,
   InputLabel,
+  Select,
+  Chip,
+  OutlinedInput,
 } from '@mui/material';
-import { 
-  RotateCcw,
-  BookmarkPlus,
-} from 'lucide-react';
-import type { FiltersState } from '../../types';
+import { DatePicker } from '@mui/x-date-pickers';
+import { Search as SearchIcon, X as ClearIcon } from 'lucide-react';
+import type { FiltersState, TransferStatus } from '../../types';
+
+const STATUS_OPTIONS: { value: TransferStatus; label: string }[] = [
+  { value: 'pending_approval', label: 'Pending Approval' },
+  { value: 'awaiting_confirmation', label: 'Awaiting Confirmation' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 interface TransferFiltersProps {
   filters: FiltersState;
-  onFilterChange: (filters: FiltersState) => void;
+  onFiltersChange: (filters: FiltersState) => void;
+  personnel: Array<{
+    id: string;
+    name: string;
+    rank: string;
+    unit: string;
+  }>;
 }
 
-const TransferFilters: React.FC<TransferFiltersProps> = ({ 
-  filters, 
-  onFilterChange 
+export const TransferFilters: React.FC<TransferFiltersProps> = ({
+  filters,
+  onFiltersChange,
+  personnel,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onFiltersChange({ ...filters, search: event.target.value });
+  };
 
-  const handleReset = () => {
-    onFilterChange({
-      search: '',
-      type: undefined,
-      priority: undefined,
-      category: undefined,
-      status: undefined
+  const handleDateChange = (field: 'start' | 'end', value: Date | null) => {
+    onFiltersChange({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        [field]: value?.toISOString() || '',
+      },
     });
-    setIsOpen(false);
-  };
-
-  const handleTypeChange = (event: any) => {
-    onFilterChange({ ...filters, type: event.target.value || undefined });
-  };
-
-  const handlePriorityChange = (event: any) => {
-    onFilterChange({ ...filters, priority: event.target.value ? [event.target.value] : undefined });
-  };
-
-  const handleCategoryChange = (event: any) => {
-    onFilterChange({ ...filters, category: event.target.value ? [event.target.value] : undefined });
   };
 
   const handleStatusChange = (event: any) => {
-    onFilterChange({ ...filters, status: event.target.value ? [event.target.value] : undefined });
+    onFiltersChange({
+      ...filters,
+      status: event.target.value as TransferStatus[],
+    });
   };
 
-  const saveAsPreset = () => {
-    // TODO: Implement save preset functionality
-    console.log('Saving current filters as preset:', filters);
+  const handlePersonnelChange = (event: any) => {
+    onFiltersChange({
+      ...filters,
+      personnel: event.target.value as string[],
+    });
+  };
+
+  const handleClearFilters = () => {
+    onFiltersChange({
+      search: '',
+      dateRange: { start: '', end: '' },
+      status: [],
+      personnel: [],
+    });
   };
 
   return (
-    <div className="space-y-4">
-      <Dialog open={isOpen} onClose={() => setIsOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Filter Transfers</DialogTitle>
-        <DialogContent>
-          <div className="mt-6 space-y-6">
-            {/* Type Filter */}
-            <FormControl fullWidth>
-              <InputLabel>Type</InputLabel>
-              <Select
-                value={filters.type || ''}
-                onChange={handleTypeChange}
-                label="Type"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="incoming">Incoming</MenuItem>
-                <MenuItem value="outgoing">Outgoing</MenuItem>
-              </Select>
-            </FormControl>
+    <Box sx={{ 
+      p: 2, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: 2,
+      backgroundColor: 'background.paper',
+      borderRadius: 1,
+      boxShadow: 1,
+    }}>
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+        {/* Search Field */}
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search by Transfer ID, Item, or Personnel..."
+          value={filters.search}
+          onChange={handleSearchChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon size={20} />
+              </InputAdornment>
+            ),
+            endAdornment: filters.search && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => onFiltersChange({ ...filters, search: '' })}
+                >
+                  <ClearIcon size={16} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
 
-            {/* Priority Filter */}
-            <FormControl fullWidth>
-              <InputLabel>Priority</InputLabel>
-              <Select
-                value={filters.priority?.[0] || ''}
-                onChange={handlePriorityChange}
-                label="Priority"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="high">High</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="low">Low</MenuItem>
-              </Select>
-            </FormControl>
+        {/* Date Range Pickers */}
+        <DatePicker
+          label="From Date"
+          value={filters.dateRange?.start ? new Date(filters.dateRange.start) : null}
+          onChange={(date) => handleDateChange('start', date)}
+          slotProps={{ textField: { size: 'small' } }}
+        />
+        <DatePicker
+          label="To Date"
+          value={filters.dateRange?.end ? new Date(filters.dateRange.end) : null}
+          onChange={(date) => handleDateChange('end', date)}
+          slotProps={{ textField: { size: 'small' } }}
+        />
+      </Box>
 
-            {/* Category Filter */}
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={filters.category?.[0] || ''}
-                onChange={handleCategoryChange}
-                label="Category"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="weapons">Weapons</MenuItem>
-                <MenuItem value="ammunition">Ammunition</MenuItem>
-                <MenuItem value="equipment">Equipment</MenuItem>
-                <MenuItem value="vehicles">Vehicles</MenuItem>
-                <MenuItem value="communications">Communications</MenuItem>
-                <MenuItem value="medical">Medical</MenuItem>
-              </Select>
-            </FormControl>
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+        {/* Status Filter */}
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            multiple
+            value={filters.status || []}
+            onChange={handleStatusChange}
+            input={<OutlinedInput label="Status" />}
+            renderValue={(selected) => (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {selected.map((value) => (
+                  <Chip
+                    key={value}
+                    label={STATUS_OPTIONS.find((opt) => opt.value === value)?.label}
+                    size="small"
+                  />
+                ))}
+              </Box>
+            )}
+          >
+            {STATUS_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-            {/* Status Filter */}
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filters.status?.[0] || ''}
-                onChange={handleStatusChange}
-                label="Status"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="needs_approval">Needs Approval</MenuItem>
-                <MenuItem value="pending_other">Pending Other</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-              </Select>
-            </FormControl>
+        {/* Personnel Filter */}
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Personnel</InputLabel>
+          <Select
+            multiple
+            value={filters.personnel || []}
+            onChange={handlePersonnelChange}
+            input={<OutlinedInput label="Personnel" />}
+            renderValue={(selected) => (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {selected.map((id) => {
+                  const person = personnel.find((p) => p.id === id);
+                  return (
+                    <Chip
+                      key={id}
+                      label={person ? `${person.rank} ${person.name}` : id}
+                      size="small"
+                    />
+                  );
+                })}
+              </Box>
+            )}
+          >
+            {personnel.map((person) => (
+              <MenuItem key={person.id} value={person.id}>
+                {`${person.rank} ${person.name} - ${person.unit}`}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-            {/* Actions */}
-            <div className="flex justify-between pt-4">
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={saveAsPreset}
-                startIcon={<BookmarkPlus className="h-4 w-4" />}
-              >
-                Save Preset
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleReset}
-                startIcon={<RotateCcw className="h-4 w-4" />}
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Active Filters Display */}
-      {((filters.priority && filters.priority.length > 0) || 
-        (filters.category && filters.category.length > 0) || 
-        (filters.status && filters.status.length > 0)) && (
-        <div className="flex flex-wrap gap-2">
-          {filters.priority?.map(priority => (
-            <div key={priority} className="rounded-full bg-primary/10 px-3 py-1 text-xs">
-              {priority}
-            </div>
-          ))}
-          {filters.category?.map(category => (
-            <div key={category} className="rounded-full bg-primary/10 px-3 py-1 text-xs">
-              {category}
-            </div>
-          ))}
-          {filters.status?.map(status => (
-            <div key={status} className="rounded-full bg-primary/10 px-3 py-1 text-xs">
-              {status.replace('_', ' ')}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+        {/* Clear Filters Button */}
+        <Button
+          variant="outlined"
+          onClick={handleClearFilters}
+          startIcon={<ClearIcon size={16} />}
+        >
+          Clear Filters
+        </Button>
+      </Box>
+    </Box>
   );
 };
-
-export default TransferFilters;

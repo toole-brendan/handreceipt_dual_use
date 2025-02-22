@@ -1,1 +1,1 @@
-export * from './TransferMetrics'; 
+export { TransferMetrics } from './TransferMetrics'; 

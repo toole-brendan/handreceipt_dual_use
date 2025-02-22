@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 interface RouteConfig {
   path: string;
@@ -11,15 +11,30 @@ import { DEFENSE_ROUTES } from '../constants/routes';
 
 import { LoginPage } from '@shared/components/auth';
 import Layout from '../components/layout/Layout';
-const DashboardPage = React.lazy(() => import('../pages/dashboard/Dashboard'));
+import ErrorBoundary from '@shared/components/feedback/ErrorBoundary';
+import { ProtectedRoute } from '@shared/components/common';
+
+// Loading fallback component
+const LoadingFallback: React.FC = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    backgroundColor: '#000',
+    color: '#fff' 
+  }}>
+    Loading...
+  </div>
+);
+
+const DashboardPage = React.lazy(() => import('../pages/dashboard'));
 const MaintenancePage = React.lazy(() => import('../pages/maintenance'));
 const PropertyPage = React.lazy(() => import('../pages/property'));
+const UnitInventoryPage = React.lazy(() => import('../pages/unit-inventory'));
 const TransfersPage = React.lazy(() => import('../pages/transfers'));
-const InventoryPage = React.lazy(() => import('../pages/inventory'));
 const ReportsPage = React.lazy(() => import('../pages/reports'));
-const AlertsPage = React.lazy(() => import('../pages/alerts'));
 const UserManagementPage = React.lazy(() => import('../pages/users'));
-const SupportPage = React.lazy(() => import('../pages/support'));
 const SettingsPage = React.lazy(() => import('../pages/settings'));
 const HelpPage = React.lazy(() => import('../pages/help'));
 
@@ -41,47 +56,101 @@ export const defenseRoutes: RouteConfig[] = [
       },
       {
         path: 'dashboard',
-        element: <DashboardPage />,
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ErrorBoundary>
+                <DashboardPage />
+              </ErrorBoundary>
+            </Suspense>
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'property',
-        element: <PropertyPage />,
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ErrorBoundary>
+                <PropertyPage />
+              </ErrorBoundary>
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'unit-inventory',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ErrorBoundary>
+                <UnitInventoryPage />
+              </ErrorBoundary>
+            </Suspense>
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'transfers',
-        element: <TransfersPage />,
-      },
-      {
-        path: 'inventory',
-        element: <InventoryPage />,
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ErrorBoundary>
+                <TransfersPage />
+              </ErrorBoundary>
+            </Suspense>
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'maintenance',
-        element: <MaintenancePage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ErrorBoundary>
+              <MaintenancePage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
       },
       {
         path: 'reports',
-        element: <ReportsPage />,
-      },
-      {
-        path: 'alerts',
-        element: <AlertsPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ErrorBoundary>
+              <ReportsPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
       },
       {
         path: 'users',
-        element: <UserManagementPage />,
-      },
-      {
-        path: 'support',
-        element: <SupportPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ErrorBoundary>
+              <UserManagementPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ErrorBoundary>
+              <SettingsPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
       },
       {
         path: 'help',
-        element: <HelpPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ErrorBoundary>
+              <HelpPage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
       }
     ],
   },

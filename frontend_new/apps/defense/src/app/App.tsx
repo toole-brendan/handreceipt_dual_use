@@ -3,6 +3,8 @@ import { Provider } from 'react-redux';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { RouterProvider, createBrowserRouter, Navigate, useRouteError } from 'react-router-dom';
 import { CssBaseline } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ThemeProvider } from '@shared/contexts/ThemeContext';
 import { ProtectedRoute } from '@shared/components/common';
 import { LoginPage } from '@shared/components/auth';
@@ -13,10 +15,10 @@ import { store } from '../store';
 import { DEFENSE_ROUTES } from '../constants/routes';
 
 // Lazy load pages
-const DashboardPage = React.lazy(() => import('../pages/dashboard/Dashboard'));
+const DashboardPage = React.lazy(() => import('../pages/dashboard'));
 const PropertyPage = React.lazy(() => import('../pages/property'));
 const TransfersPage = React.lazy(() => import('../pages/transfers'));
-const InventoryPage = React.lazy(() => import('../pages/inventory'));
+const UnitInventoryPage = React.lazy(() => import('../pages/unit-inventory'));
 const MaintenancePage = React.lazy(() => import('../pages/maintenance'));
 const ReportsPage = React.lazy(() => import('../pages/reports'));
 const AlertsPage = React.lazy(() => import('../pages/alerts'));
@@ -108,11 +110,11 @@ const router = createBrowserRouter([
         errorElement: <RouteErrorElement />
       },
       {
-        path: 'inventory',
+        path: 'unit-inventory',
         element: (
           <Suspense fallback={<LoadingFallback />}>
             <ErrorBoundary>
-              <InventoryPage />
+              <UnitInventoryPage />
             </ErrorBoundary>
           </Suspense>
         ),
@@ -210,8 +212,10 @@ const App: React.FC = () => {
       <ErrorBoundary>
         <ThemeProvider>
           <MuiThemeProvider theme={defenseTheme}>
-            <CssBaseline />
-            <RouterProvider router={router} />
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <CssBaseline />
+              <RouterProvider router={router} />
+            </LocalizationProvider>
           </MuiThemeProvider>
         </ThemeProvider>
       </ErrorBoundary>

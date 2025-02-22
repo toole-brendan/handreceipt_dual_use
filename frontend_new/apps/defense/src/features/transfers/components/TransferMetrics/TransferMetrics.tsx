@@ -1,129 +1,142 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-import type { MetricsData } from '@/features/transfers/types';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  useTheme,
+} from '@mui/material';
+import {
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  BarChart2,
+} from 'lucide-react';
+import type { MetricsData, MetricItem } from '../../types';
 
-const MetricsGrid = styled(Box)(({ theme }) => ({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: theme.spacing(3),
-  marginBottom: theme.spacing(3),
-}));
+interface MetricCardProps {
+  title: string;
+  metric: MetricItem;
+  icon: React.ReactNode;
+  color: string;
+}
 
-const MetricBox = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: theme.spacing(1),
-  padding: theme.spacing(2),
-  background: 'rgba(255, 255, 255, 0.02)',
-  borderRadius: theme.shape.borderRadius,
-  border: '1px solid rgba(255, 255, 255, 0.05)',
-}));
+const MetricCard: React.FC<MetricCardProps> = ({
+  title,
+  metric,
+  icon,
+  color,
+}) => {
+  const theme = useTheme();
 
-const StatusBadge = styled('span')<{ color?: string }>(({ color = '#4CAF50' }) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '4px 8px',
-  borderRadius: '4px',
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  color: color,
-  border: `1px solid ${color}`,
-  textTransform: 'uppercase',
-  letterSpacing: '0.1em',
-}));
-
-const TransferMetrics: React.FC<MetricsData> = (props) => {
   return (
-    <MetricsGrid>
-      <MetricBox>
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Pending Approvals
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="h3" sx={{ fontSize: '2rem', fontWeight: 400, color: '#FFFFFF', letterSpacing: '0.02em' }}>
-            {props.pendingApprovals.value}
+    <Card
+      sx={{
+        height: '100%',
+        backgroundColor: 'background.paper',
+        borderRadius: 1,
+        boxShadow: 1,
+      }}
+    >
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box
+            sx={{
+              p: 1,
+              borderRadius: 1,
+              backgroundColor: `${color}15`,
+              color: color,
+              mr: 2,
+            }}
+          >
+            {icon}
+          </Box>
+          <Typography variant="subtitle2" color="text.secondary">
+            {title}
           </Typography>
-          <StatusBadge sx={{ backgroundColor: 'rgba(255, 215, 0, 0.1)', color: '#FFD700', borderColor: '#FFD700' }}>
-            ACTION REQUIRED
-          </StatusBadge>
         </Box>
-        {props.pendingApprovals.change && (
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            {props.pendingApprovals.change.value} {props.pendingApprovals.change.timeframe}
-          </Typography>
-        )}
-      </MetricBox>
 
-      <MetricBox>
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Processing Time
+        <Typography variant="h4" sx={{ mb: 1 }}>
+          {metric.value}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="h3" sx={{ fontSize: '2rem', fontWeight: 400, color: '#FFFFFF', letterSpacing: '0.02em' }}>
-            {props.processingTime.value}
-          </Typography>
-          <StatusBadge sx={{ backgroundColor: 'rgba(76, 175, 80, 0.1)' }}>
-            TRACKED
-          </StatusBadge>
-        </Box>
-        {props.processingTime.change && (
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            {props.processingTime.change.value} {props.processingTime.change.timeframe}
-          </Typography>
-        )}
-      </MetricBox>
 
-      <MetricBox>
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Completed Today
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="h3" sx={{ fontSize: '2rem', fontWeight: 400, color: '#FFFFFF', letterSpacing: '0.02em' }}>
-            {props.completedToday.value}
-          </Typography>
-          {props.completedToday.change && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: props.completedToday.change.isPositive ? '#4CAF50' : '#FF3B3B' }}>
-              {props.completedToday.change.isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              <Typography variant="caption">
-                {props.completedToday.change.value}
-              </Typography>
-            </Box>
-          )}
-        </Box>
-        {props.completedToday.change && (
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            {props.completedToday.change.timeframe}
-          </Typography>
+        {metric.change && (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {metric.change.isPositive ? (
+              <TrendingUp
+                size={16}
+                color={theme.palette.success.main}
+                style={{ marginRight: 4 }}
+              />
+            ) : (
+              <TrendingDown
+                size={16}
+                color={theme.palette.error.main}
+                style={{ marginRight: 4 }}
+              />
+            )}
+            <Typography
+              variant="body2"
+              color={metric.change.isPositive ? 'success.main' : 'error.main'}
+              sx={{ mr: 1 }}
+            >
+              {metric.change.value}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {metric.change.timeframe}
+            </Typography>
+          </Box>
         )}
-      </MetricBox>
-
-      <MetricBox>
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Approval Rate
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="h3" sx={{ fontSize: '2rem', fontWeight: 400, color: '#FFFFFF', letterSpacing: '0.02em' }}>
-            {props.approvalRate.value}
-          </Typography>
-          {props.approvalRate.change && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: props.approvalRate.change.isPositive ? '#4CAF50' : '#FF3B3B' }}>
-              {props.approvalRate.change.isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              <Typography variant="caption">
-                {props.approvalRate.change.value}
-              </Typography>
-            </Box>
-          )}
-        </Box>
-        {props.approvalRate.change && (
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            {props.approvalRate.change.timeframe}
-          </Typography>
-        )}
-      </MetricBox>
-    </MetricsGrid>
+      </CardContent>
+    </Card>
   );
 };
 
-export default TransferMetrics;
+export const TransferMetrics: React.FC<MetricsData> = ({
+  pendingApprovals,
+  processingTime,
+  completedToday,
+  approvalRate,
+}) => {
+  const theme = useTheme();
+
+  return (
+    <Grid container spacing={3}>
+      <Grid item xs={12} sm={6} md={3}>
+        <MetricCard
+          title="Pending Approvals"
+          metric={pendingApprovals}
+          icon={<AlertCircle size={24} />}
+          color={theme.palette.warning.main}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={3}>
+        <MetricCard
+          title="Processing Time"
+          metric={processingTime}
+          icon={<Clock size={24} />}
+          color={theme.palette.info.main}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={3}>
+        <MetricCard
+          title="Completed Today"
+          metric={completedToday}
+          icon={<CheckCircle size={24} />}
+          color={theme.palette.success.main}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={3}>
+        <MetricCard
+          title="Approval Rate"
+          metric={approvalRate}
+          icon={<BarChart2 size={24} />}
+          color={theme.palette.primary.main}
+        />
+      </Grid>
+    </Grid>
+  );
+};

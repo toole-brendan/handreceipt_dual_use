@@ -11,7 +11,7 @@ export default (env: ConfigEnv): UserConfig => {
     
     resolve: {
       alias: {
-        '@app': resolve(__dirname, './src'),
+        '@': resolve(__dirname, './src'),
         '@shared': resolve(__dirname, '../../shared'),
         '@assets': resolve(__dirname, './src/assets'),
         '@components': resolve(__dirname, './src/components'),

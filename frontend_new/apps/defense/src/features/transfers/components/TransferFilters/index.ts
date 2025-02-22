@@ -1,1 +1,1 @@
-export * from './TransferFilters'; 
+export { TransferFilters } from './TransferFilters'; 

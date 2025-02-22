@@ -1,0 +1,1 @@
+export { TransferDetailsModal } from './TransferDetailsModal'; 

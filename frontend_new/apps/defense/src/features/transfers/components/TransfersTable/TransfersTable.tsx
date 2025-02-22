@@ -102,7 +102,7 @@ const formatDate = (date: string | Date): string => {
   });
 };
 
-const TransfersTable: React.FC<TransfersTableProps> = ({ 
+export const TransfersTable: React.FC<TransfersTableProps> = ({ 
   transfers = MOCK_TRANSFERS,
   onEdit,
   onDelete,
@@ -223,5 +223,3 @@ const TransfersTable: React.FC<TransfersTableProps> = ({
     </StyledTableContainer>
   );
 };
-
-export default TransfersTable;
