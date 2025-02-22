@@ -1,1 +1,0 @@
-export { QRGeneratorPage } from './QRGeneratorPage'; 

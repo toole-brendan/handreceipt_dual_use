@@ -1,0 +1,15 @@
+export const CIVILIAN_ROUTES = {
+  ROOT: '/',
+  LOGIN: '/login',
+  CIVILIAN: '/civilian',
+  DASHBOARD: '/civilian/dashboard',
+  INVENTORY: '/civilian/inventory',
+  ORDERS: '/civilian/orders',
+  SUPPLY_CHAIN: '/civilian/supply-chain',
+  CONTRACTS: '/civilian/contracts',
+  WALLET: '/civilian/wallet',
+  REPORTS: '/civilian/reports',
+  USERS: '/civilian/users',
+  SETTINGS: '/civilian/settings',
+  SUPPORT: '/civilian/support',
+} as const;

@@ -1,0 +1,80 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-civilian:
+    runs-on: ubuntu-latest
+    environment: production-civilian
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build civilian app
+      run: npm run build:civilian
+      env:
+        NODE_ENV: production
+        VITE_API_URL: ${{ secrets.CIVILIAN_API_URL }}
+    
+    - name: Deploy civilian app
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'handreceipt-civilian'
+        publish-profile: ${{ secrets.CIVILIAN_PUBLISH_PROFILE }}
+        package: './apps/civilian/dist'
+
+  deploy-defense:
+    runs-on: ubuntu-latest
+    environment: production-defense
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build defense app
+      run: npm run build:defense
+      env:
+        NODE_ENV: production
+        VITE_API_URL: ${{ secrets.DEFENSE_API_URL }}
+        VITE_BLOCKCHAIN_URL: ${{ secrets.BLOCKCHAIN_URL }}
+    
+    - name: Deploy defense app
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'handreceipt-defense'
+        publish-profile: ${{ secrets.DEFENSE_PUBLISH_PROFILE }}
+        package: './apps/defense/dist'
+
+  notify:
+    needs: [deploy-civilian, deploy-defense]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send deployment notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always()

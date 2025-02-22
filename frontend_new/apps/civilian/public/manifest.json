@@ -1,0 +1,33 @@
+{
+  "name": "Hand Receipt Management System - Civilian",
+  "short_name": "HandReceipt",
+  "description": "Manage and track property records digitally",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View your dashboard"
+    },
+    {
+      "name": "Inventory",
+      "url": "/inventory",
+      "description": "Manage inventory"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "prefer_related_applications": false,
+  "related_applications": []
+}

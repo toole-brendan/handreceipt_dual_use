@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - Hand Receipt</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+        text-align: center;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .icon {
+        font-size: 64px;
+        margin-bottom: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        font-size: 1.1rem;
+        line-height: 1.5;
+        color: #666;
+        margin-bottom: 2rem;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: #2196f3;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      .button:hover {
+        background-color: #1976d2;
+      }
+
+      .cached-content {
+        margin-top: 2rem;
+        padding: 1rem;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .cached-content h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .cached-content ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        text-align: left;
+      }
+
+      .cached-content li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .cached-content li:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">📡</div>
+      <h1>You're Offline</h1>
+      <p>
+        It looks like you've lost your internet connection. Some features may be
+        limited, but you can still access cached content.
+      </p>
+      <a href="/" class="button">Try Again</a>
+
+      <div class="cached-content">
+        <h2>Available Offline</h2>
+        <ul>
+          <li>View cached inventory items</li>
+          <li>Access saved hand receipts</li>
+          <li>Review recent transactions</li>
+          <li>Check local property status</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Check connection status periodically
+      function checkConnection() {
+        if (navigator.onLine) {
+          window.location.reload();
+        }
+      }
+
+      // Check every 5 seconds
+      setInterval(checkConnection, 5000);
+
+      // Also check when online status changes
+      window.addEventListener('online', checkConnection);
+    </script>
+  </body>
+</html>

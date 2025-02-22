@@ -1,0 +1,65 @@
+/* Global dark theme styles */
+:root {
+  color-scheme: dark;
+}
+
+.dark-theme {
+  /* Ensure smooth scrolling and prevent background color showing during overscroll */
+  background-color: #000000;
+  min-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: none;
+}
+
+/* Scrollbar styling for dark theme */
+.dark-theme ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: #1E1E1E;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: #383838;
+  border-radius: 5px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #4d4d4d;
+}
+
+/* Selection styling */
+.dark-theme ::selection {
+  background-color: rgba(138, 138, 138, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Focus outline styling */
+.dark-theme :focus {
+  outline-color: rgba(255, 255, 255, 0.23);
+}
+
+/* Smooth transitions for theme changes */
+.dark-theme * {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Remove transition for specific properties to prevent unwanted animations */
+.dark-theme *,
+.dark-theme *::before,
+.dark-theme *::after {
+  transition: none;
+}
+
+/* Ensure images and icons maintain proper contrast in dark mode */
+.dark-theme img,
+.dark-theme svg {
+  filter: brightness(0.9);
+}
+
+/* Ensure proper contrast for disabled elements */
+.dark-theme *:disabled {
+  opacity: 0.38;
+}
