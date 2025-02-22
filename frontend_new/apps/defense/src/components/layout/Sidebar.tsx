@@ -1,246 +1,195 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { FC } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Drawer,
+  Box,
   List,
   ListItem,
-  ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
-  Box,
-  useTheme,
+  ListItemButton,
   styled,
-  Theme,
-  Collapse,
+  Drawer
 } from '@mui/material';
 import {
-  ChevronRight as ChevronRightIcon,
-} from '@mui/icons-material';
-import {
-  DEFENSE_NAV_ITEMS,
-  HELP_NAV_ITEMS,
-} from '@shared/components/common/navigation-config';
-import { NavItemConfig } from '@shared/types/navigation/base';
+  LayoutDashboard,
+  Box as BoxIcon,
+  ArrowLeftRight,
+  Archive,
+  Wrench,
+  BarChart2,
+  Bell,
+  Users,
+  HelpCircle,
+  Settings,
+  HelpCircle as QuestionIcon
+} from 'lucide-react';
+import { DEFENSE_ROUTES } from '../../constants/routes';
 
-const DRAWER_WIDTH = 240;
+const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
+  borderRadius: theme.spacing(1),
+  marginBottom: theme.spacing(0.5),
+  '&.Mui-selected': {
+    backgroundColor: theme.palette.action.selected,
+    '&:hover': {
+      backgroundColor: theme.palette.action.selected
+    }
+  }
+}));
+
+const StyledListItemIcon = styled(ListItemIcon)(({ theme }) => ({
+  minWidth: '40px',
+  color: theme.palette.text.primary
+}));
+
+interface NavItem {
+  title: string;
+  path: string;
+  icon: React.ReactNode;
+}
+
+const navItems: NavItem[] = [
+  {
+    title: 'Dashboard',
+    path: DEFENSE_ROUTES.DASHBOARD,
+    icon: <LayoutDashboard size={24} />
+  },
+  {
+    title: 'My Property',
+    path: DEFENSE_ROUTES.PROPERTY,
+    icon: <BoxIcon size={24} />
+  },
+  {
+    title: 'Transfers',
+    path: DEFENSE_ROUTES.TRANSFERS,
+    icon: <ArrowLeftRight size={24} />
+  },
+  {
+    title: 'Inventory Management',
+    path: DEFENSE_ROUTES.INVENTORY,
+    icon: <Archive size={24} />
+  },
+  {
+    title: 'Maintenance & Inspections',
+    path: DEFENSE_ROUTES.MAINTENANCE,
+    icon: <Wrench size={24} />
+  },
+  {
+    title: 'Reports & Analytics',
+    path: DEFENSE_ROUTES.REPORTS,
+    icon: <BarChart2 size={24} />
+  },
+  {
+    title: 'Alerts & Tasks',
+    path: DEFENSE_ROUTES.ALERTS,
+    icon: <Bell size={24} />
+  },
+  {
+    title: 'User Management',
+    path: DEFENSE_ROUTES.USERS,
+    icon: <Users size={24} />
+  },
+  {
+    title: 'Support',
+    path: DEFENSE_ROUTES.SUPPORT,
+    icon: <HelpCircle size={24} />
+  },
+  {
+    title: 'Settings',
+    path: DEFENSE_ROUTES.SETTINGS,
+    icon: <Settings size={24} />
+  },
+  {
+    title: 'Help',
+    path: DEFENSE_ROUTES.HELP,
+    icon: <QuestionIcon size={24} />
+  }
+];
 
 interface SidebarProps {
-  variant: 'permanent' | 'temporary';
-  isMobile: boolean;
+  variant?: 'permanent' | 'temporary';
   open?: boolean;
   onClose?: () => void;
 }
 
-const StyledDrawer = styled(Drawer)(({ theme }: { theme: Theme }) => ({
-  width: DRAWER_WIDTH,
-  flexShrink: 0,
-  '& .MuiDrawer-paper': {
-    width: DRAWER_WIDTH,
-    boxSizing: 'border-box',
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    borderRight: '1px solid rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(12px)',
-    top: theme.mixins.toolbar.minHeight,
-    height: `calc(100% - ${theme.mixins.toolbar.minHeight}px)`,
-    [theme.breakpoints.up('md')]: {
-      position: 'fixed',
-      left: 0,
-    },
-  },
-}));
-
-const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }) => ({
-  margin: theme.spacing(0.5, 1),
-  padding: theme.spacing(1, 2),
-  borderRadius: 0,
-  backgroundColor: 'transparent',
-  color: 'rgba(255, 255, 255, 0.7)',
-  transition: theme.transitions.create(
-    ['background-color', 'color', 'border-color', 'box-shadow'],
-    {
-      duration: theme.transitions.duration.shorter,
-      easing: theme.transitions.easing.easeInOut,
-    }
-  ),
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    color: '#FFFFFF',
-    boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.1)',
-  },
-  '&.Mui-selected': {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    color: '#FFFFFF',
-    borderLeft: '2px solid #FFFFFF',
-    '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    '& .MuiListItemIcon-root': {
-      color: '#FFFFFF',
-    },
-  },
-  '& .MuiListItemIcon-root': {
-    color: 'rgba(255, 255, 255, 0.7)',
-    minWidth: 40,
-    transition: theme.transitions.create('color'),
-  },
-  '& .MuiListItemText-primary': {
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    letterSpacing: '0.02em',
-    fontFamily: 'Inter, sans-serif',
-  },
-  '& .MuiListItemText-secondary': {
-    fontSize: '0.75rem',
-    color: 'rgba(255, 255, 255, 0.5)',
-    letterSpacing: '0.01em',
-    fontFamily: 'Inter, sans-serif',
-  },
-}));
-
-const StyledDivider = styled(Divider)(({ theme }: { theme: Theme }) => ({
-  borderColor: 'rgba(255, 255, 255, 0.1)',
-  margin: theme.spacing(1, 0),
-}));
-
-const ExpandIcon = styled(ChevronRightIcon, {
-  shouldForwardProp: (prop) => prop !== 'expanded',
-})<{ expanded?: boolean }>(({ expanded }) => ({
-  transition: 'transform 0.2s',
-  transform: expanded ? 'rotate(90deg)' : 'none',
-  marginLeft: 'auto',
-  fontSize: '1.25rem',
-  opacity: 0.7,
-}));
-
-const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose }) => {
-  const theme = useTheme();
+const Sidebar: FC<SidebarProps> = ({ variant = 'permanent', open = true, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-  const handleItemClick = (item: NavItemConfig) => {
-    if (item.children) {
-      setExpandedItems(prev => 
-        prev.includes(item.to) 
-          ? prev.filter(i => i !== item.to)
-          : [...prev, item.to]
-      );
-    } else {
-      navigate(item.to);
-    }
-  };
-
-  const isItemExpanded = (itemPath: string) => expandedItems.includes(itemPath);
-  const isItemSelected = (path: string) => location.pathname === path;
-  const isParentOfCurrentRoute = (item: NavItemConfig) => 
-    item.children?.some(subItem => isItemSelected(subItem.to));
-
-  const roleLabel = 'Navigation';
-
-  const drawerContent = (
-    <>
-      <Box
-        component="nav"
-        aria-label={`${roleLabel} Sidebar`}
-        sx={{ width: '100%' }}
-      >
-        <List>
-          {DEFENSE_NAV_ITEMS.map((item) => (
-            <React.Fragment key={item.to}>
-              <ListItem disablePadding>
-                <StyledListItemButton
-                  selected={isItemSelected(item.to) || isParentOfCurrentRoute(item)}
-                  onClick={() => handleItemClick(item)}
-                  aria-current={isItemSelected(item.to) ? 'page' : undefined}
-                  aria-describedby={item.description ? `nav-desc-${item.to.replace(/\//g, '-')}` : undefined}
-                  aria-expanded={item.children ? isItemExpanded(item.to) : undefined}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText 
-                    primary={item.text}
-                    secondary={item.description && (
-                      <span id={`nav-desc-${item.to.replace(/\//g, '-')}`} className="sr-only">
-                        {item.description}
-                      </span>
-                    )}
-                  />
-                  {item.children && (
-                    <ExpandIcon expanded={isItemExpanded(item.to)} />
-                  )}
-                </StyledListItemButton>
-              </ListItem>
-              {item.children && (
-                <Collapse in={isItemExpanded(item.to)} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {item.children.map((subItem) => (
-                      <ListItem key={subItem.to} disablePadding>
-                        <StyledListItemButton
-                          selected={isItemSelected(subItem.to)}
-                          onClick={() => navigate(subItem.to)}
-                          aria-current={isItemSelected(subItem.to) ? 'page' : undefined}
-                          aria-describedby={subItem.description ? `nav-desc-${subItem.to.replace(/\//g, '-')}` : undefined}
-                          sx={{ pl: 4 }}
-                        >
-                          <ListItemIcon>{subItem.icon}</ListItemIcon>
-                          <ListItemText 
-                            primary={subItem.text}
-                            secondary={subItem.description && (
-                              <span id={`nav-desc-${subItem.to.replace(/\//g, '-')}`} className="sr-only">
-                                {subItem.description}
-                              </span>
-                            )}
-                          />
-                        </StyledListItemButton>
-                      </ListItem>
-                    ))}
-                  </List>
-                </Collapse>
-              )}
-            </React.Fragment>
-          ))}
-          <StyledDivider />
-          {HELP_NAV_ITEMS.map((item) => (
-            <ListItem key={item.to} disablePadding>
-              <StyledListItemButton
-                selected={isItemSelected(item.to)}
-                onClick={() => navigate(item.to)}
-                aria-current={isItemSelected(item.to) ? 'page' : undefined}
-                aria-describedby={item.description ? `nav-desc-${item.to.replace(/\//g, '-')}` : undefined}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText 
-                  primary={item.text}
-                  secondary={item.description && (
-                    <span id={`nav-desc-${item.to.replace(/\//g, '-')}`} className="sr-only">
-                      {item.description}
-                    </span>
-                  )}
-                />
-              </StyledListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Box>
-    </>
-  );
-
-  return (
-    <StyledDrawer
-      variant={variant}
-      open={open}
-      anchor={theme.direction === 'rtl' ? 'right' : 'left'}
-      onClose={onClose}
-      ModalProps={{
-        keepMounted: true // Better mobile performance
-      }}
+  const sidebarContent = (
+    <Box
       sx={{
-        display: 'flex',
-        flexShrink: 0,
+        width: '280px',
+        height: '100%',
+        backgroundColor: '#1C1C1C',
+        pt: 8 // Add padding top to account for AppBar
       }}
     >
-      {drawerContent}
-    </StyledDrawer>
+      <List sx={{ p: 2 }}>
+        {navItems.map((item) => (
+          <ListItem key={item.path} disablePadding sx={{ mb: 1 }}>
+            <StyledListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => {
+                navigate(item.path);
+                if (onClose) onClose();
+              }}
+              sx={{
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                },
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.12)'
+                }
+              }}
+            >
+              <StyledListItemIcon sx={{ color: 'white' }}>{item.icon}</StyledListItemIcon>
+              <ListItemText primary={item.title} />
+            </StyledListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
+  if (variant === 'temporary') {
+    return (
+      <Drawer
+        variant="temporary"
+        open={open}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true // Better mobile performance
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: '280px',
+            backgroundColor: '#1C1C1C'
+          }
+        }}
+      >
+        {sidebarContent}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Drawer
+      variant="permanent"
+      sx={{
+        display: { xs: 'none', sm: 'block' },
+        '& .MuiDrawer-paper': {
+          boxSizing: 'border-box',
+          width: '280px',
+          backgroundColor: '#1C1C1C'
+        }
+      }}
+      open
+    >
+      {sidebarContent}
+    </Drawer>
   );
 };
 

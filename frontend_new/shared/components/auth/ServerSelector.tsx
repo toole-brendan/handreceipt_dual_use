@@ -1,28 +1,46 @@
 import React, { useState } from 'react';
+import { Box, Typography, ToggleButtonGroup, ToggleButton, Paper, styled, alpha } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, useTheme, alpha, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { StyledPaper } from './LoginPage.styles';
-import { AuthService } from '../../services/auth/authService';
-import { appConfig } from '../../config/app.config';
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  backgroundColor: '#000000',
+  padding: '48px',
+  maxWidth: '600px',
+  width: '90%',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: 0,
+  position: 'relative',
+  
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: -1,
+    left: -1,
+    right: -1,
+    bottom: -1,
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    pointerEvents: 'none',
+  }
+}));
 
 type Version = 'civilian' | 'defense';
 
-const LoginPage: React.FC = () => {
-  const theme = useTheme();
+const ServerSelector: React.FC = () => {
   const navigate = useNavigate();
-  const [version, setVersion] = useState<Version>(AuthService.getVersion());
+  const [version, setVersion] = useState<Version>();
 
-  const handleVersionChange = (
+  const handleVersionSelect = (
     _event: React.MouseEvent<HTMLElement>,
     newVersion: Version | null,
   ) => {
-    if (newVersion !== null) {
+    if (newVersion) {
       setVersion(newVersion);
-      AuthService.setVersion(newVersion);
-      
-      // Navigate to the appropriate landing page using appConfig
-      const config = newVersion === 'civilian' ? appConfig.civilian : appConfig.defense;
-      window.location.href = `${window.location.origin}${config.landingPage}`;
+      // Store the version in localStorage for persistence
+      localStorage.setItem('selectedVersion', newVersion);
+      // Navigate to the login page with the intended destination
+      navigate(`/${newVersion}/login`, {
+        state: { redirectTo: `/${newVersion}/dashboard` }
+      });
     }
   };
 
@@ -74,30 +92,30 @@ const LoginPage: React.FC = () => {
           <ToggleButtonGroup
             value={version}
             exclusive
-            onChange={handleVersionChange}
+            onChange={handleVersionSelect}
             aria-label="version selection"
             sx={{
               backgroundColor: alpha('#000000', 0.4),
-              padding: theme.spacing(2),
-              borderRadius: theme.shape.borderRadius,
+              padding: '16px',
+              borderRadius: 0,
               '& .MuiToggleButton-root': {
-                minWidth: 120,
-                padding: theme.spacing(2),
+                minWidth: 160,
+                padding: '16px 32px',
                 color: alpha('#fff', 0.7),
                 borderColor: alpha('#fff', 0.23),
                 fontSize: '1.1rem',
                 fontWeight: 500,
                 letterSpacing: '0.05em',
                 '&.Mui-selected': {
-                  color: theme.palette.primary.main,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  borderColor: theme.palette.primary.main,
+                  color: '#fff',
+                  backgroundColor: alpha('#fff', 0.1),
+                  borderColor: '#fff',
                 },
                 '&:hover': {
                   backgroundColor: alpha('#fff', 0.05),
                 },
                 '&:not(:first-of-type)': {
-                  marginLeft: theme.spacing(2),
+                  marginLeft: '16px',
                 },
               },
             }}
@@ -115,4 +133,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default ServerSelector; 

@@ -17,7 +17,7 @@ const devConfig: AppConfig = {
   },
   defense: {
     baseUrl: '/',
-    landingPage: '/defense/property',
+    landingPage: '/defense/dashboard',
   },
 };
 
@@ -29,7 +29,7 @@ const prodConfig: AppConfig = {
   },
   defense: {
     baseUrl: '/',
-    landingPage: '/defense/property',
+    landingPage: '/defense/dashboard',
   },
 };
 

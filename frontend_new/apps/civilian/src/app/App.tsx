@@ -7,6 +7,14 @@ import { ProtectedRoute } from '@shared/components/common';
 import { LoginPage } from '@shared/components/auth';
 import { DashboardPage } from '../pages/dashboard';
 import { InventoryPage } from '../pages/inventory';
+import { OrdersPage } from '../pages/orders';
+import { SupplyChainPage } from '../pages/supply-chain';
+import { ContractsPage } from '../pages/contracts';
+import { PaymentsPage } from '../pages/payments';
+import { ReportsPage } from '../pages/reports';
+import { UserManagementPage } from '../pages/users';
+import { SettingsPage } from '../pages/settings';
+import { SupportPage } from '../pages/support';
 import { civilianTheme } from '../styles/theme';
 import { CIVILIAN_ROUTES } from '../constants/routes';
 
@@ -42,35 +50,35 @@ const router = createBrowserRouter([
       },
       {
         path: 'orders/*',
-        element: <div>Orders</div>,
+        element: <OrdersPage />,
       },
       {
         path: 'supply-chain/*',
-        element: <div>Supply Chain</div>,
+        element: <SupplyChainPage />,
       },
       {
         path: 'contracts/*',
-        element: <div>Smart Contracts</div>,
+        element: <ContractsPage />,
       },
       {
         path: 'wallet/*',
-        element: <div>Payments/Wallet</div>,
+        element: <PaymentsPage />,
       },
       {
         path: 'reports/*',
-        element: <div>Reports</div>,
+        element: <ReportsPage />,
       },
       {
         path: 'users/*',
-        element: <div>User Management</div>,
+        element: <UserManagementPage />,
       },
       {
         path: 'settings/*',
-        element: <div>Settings</div>,
+        element: <SettingsPage />,
       },
       {
         path: 'support/*',
-        element: <div>Help/Support</div>,
+        element: <SupportPage />,
       },
     ],
   },

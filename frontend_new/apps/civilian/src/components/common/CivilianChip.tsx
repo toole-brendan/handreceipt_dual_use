@@ -5,6 +5,7 @@ export type CivilianChipColor = 'success' | 'warning' | 'error' | 'info';
 
 export interface CivilianChipProps extends Omit<ChipProps, 'color'> {
   color: CivilianChipColor;
+  loading?: boolean;
 }
 
 const getChipColor = (color: CivilianChipColor): string => {
@@ -46,7 +47,7 @@ const StyledChip = styled(Chip, {
   };
 });
 
-export const CivilianChip = React.forwardRef<HTMLDivElement, CivilianChipProps>((props, ref) => {
+export const CivilianChip = React.forwardRef<HTMLDivElement, CivilianChipProps>(({ loading, ...props }, ref) => {
   return <StyledChip ref={ref} {...props} />;
 });
 

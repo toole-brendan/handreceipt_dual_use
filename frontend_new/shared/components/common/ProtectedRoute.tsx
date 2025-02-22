@@ -3,44 +3,52 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { selectIsAuthenticated, selectUser } from '@shared/store/slices/auth';
+import { selectIsAuthenticated } from '@shared/store/slices/auth/slice';
+import ErrorBoundary from '@shared/components/feedback/ErrorBoundary';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  role?: string;
 }
 
-type RoleType = 'OFFICER' | 'NCO' | 'SOLDIER';
+// Loading fallback component
+const LoadingFallback: React.FC = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    backgroundColor: '#000',
+    color: '#fff' 
+  }}>
+    Loading Protected Route...
+  </div>
+);
 
-// Define role hierarchy - who can access what
-const roleHierarchy: Record<RoleType, RoleType[]> = {
-  'OFFICER': ['OFFICER'],
-  'NCO': ['OFFICER', 'NCO'],
-  'SOLDIER': ['OFFICER', 'NCO', 'SOLDIER']
-};
-
-const normalizeRole = (role: string): RoleType | null => {
-  try {
-    const upperRole = role.toUpperCase();
-    if (upperRole === 'OFFICER' || upperRole === 'NCO' || upperRole === 'SOLDIER') {
-      return upperRole as RoleType;
-    }
-  } catch (error) {
-    console.error('Error normalizing role:', error);
-  }
-  return null;
-};
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
-  const isAuthenticated = useSelector(selectIsAuthenticated);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  
+  // Get the version from the URL path
+  const version = location.pathname.split('/')[1]; // 'civilian' or 'defense'
 
-  // Only check authentication, no role checks for Defense version
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Redirect to the version-specific login page
+    return (
+      <Navigate 
+        to={`/${version}/login`} 
+        state={{ redirectTo: location.pathname }}
+        replace 
+      />
+    );
   }
 
-  return <React.Suspense fallback={null}>{children}</React.Suspense>;
+  return (
+    <ErrorBoundary>
+      <React.Suspense fallback={<LoadingFallback />}>
+        {children}
+      </React.Suspense>
+    </ErrorBoundary>
+  );
 };
 
-export default React.memo(ProtectedRoute);
+export default ProtectedRoute;

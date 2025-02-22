@@ -10,12 +10,18 @@ interface RouteConfig {
 import { DEFENSE_ROUTES } from '../constants/routes';
 
 import { LoginPage } from '@shared/components/auth';
-import { DefenseLayout } from '../components/layout';
+import Layout from '../components/layout/Layout';
 const DashboardPage = React.lazy(() => import('../pages/dashboard/Dashboard'));
 const MaintenancePage = React.lazy(() => import('../pages/maintenance'));
 const PropertyPage = React.lazy(() => import('../pages/property'));
+const TransfersPage = React.lazy(() => import('../pages/transfers'));
+const InventoryPage = React.lazy(() => import('../pages/inventory'));
+const ReportsPage = React.lazy(() => import('../pages/reports'));
+const AlertsPage = React.lazy(() => import('../pages/alerts'));
+const UserManagementPage = React.lazy(() => import('../pages/users'));
+const SupportPage = React.lazy(() => import('../pages/support'));
 const SettingsPage = React.lazy(() => import('../pages/settings'));
-const UtilityPage = React.lazy(() => import('../pages/utility'));
+const HelpPage = React.lazy(() => import('../pages/help'));
 
 export const defenseRoutes: RouteConfig[] = [
   // Root shows login/version selector
@@ -27,52 +33,56 @@ export const defenseRoutes: RouteConfig[] = [
   // Defense routes under /defense prefix with layout
   {
     path: '/defense',
-    element: <DefenseLayout />,
+    element: <Layout />,
     children: [
       {
         path: '',
-        element: <Navigate to={DEFENSE_ROUTES.DASHBOARD} replace />,
+        element: <Navigate to="/defense/dashboard" replace />,
       },
       {
         path: 'dashboard',
         element: <DashboardPage />,
       },
       {
-        path: 'maintenance-inspections',
-        element: <MaintenancePage />,
-      },
-      {
-        path: 'maintenance-inspections/scheduled-logs',
-        element: <MaintenancePage />,
-      },
-      {
-        path: 'maintenance-inspections/report-issue',
-        element: <MaintenancePage />,
-      },
-      {
-        path: 'maintenance-inspections/historical-records',
-        element: <MaintenancePage />,
-      },
-      {
-        path: 'my-property',
+        path: 'property',
         element: <PropertyPage />,
       },
       {
-        path: 'my-property/assigned-items',
-        element: <PropertyPage />,
+        path: 'transfers',
+        element: <TransfersPage />,
       },
       {
-        path: 'my-property/item-details',
-        element: <PropertyPage />,
+        path: 'inventory',
+        element: <InventoryPage />,
+      },
+      {
+        path: 'maintenance',
+        element: <MaintenancePage />,
+      },
+      {
+        path: 'reports',
+        element: <ReportsPage />,
+      },
+      {
+        path: 'alerts',
+        element: <AlertsPage />,
+      },
+      {
+        path: 'users',
+        element: <UserManagementPage />,
+      },
+      {
+        path: 'support',
+        element: <SupportPage />,
       },
       {
         path: 'settings',
         element: <SettingsPage />,
       },
       {
-        path: 'utility',
-        element: <UtilityPage />,
-      },
+        path: 'help',
+        element: <HelpPage />,
+      }
     ],
   },
 ];

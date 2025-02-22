@@ -2,12 +2,43 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { AuthState, AuthCredentials, AuthResponse } from './types';
 import type { BaseState, RootState } from '../../createStore';
 
+// Helper to get stored auth data
+const getStoredAuthData = (): { token: string | null; user: AuthResponse['user'] | null } => {
+  try {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    return { token, user };
+  } catch (error) {
+    return { token: null, user: null };
+  }
+};
+
+// Get initial state from localStorage
+const storedAuth = getStoredAuthData();
+
 // Initial state
 const initialState: AuthState = {
-  token: null,
-  user: null,
+  token: storedAuth.token,
+  user: storedAuth.user,
   loading: false,
   error: null,
+};
+
+// Mock login for development
+const mockLogin = async (credentials: AuthCredentials): Promise<AuthResponse> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Mock successful response
+  return {
+    token: 'mock-jwt-token',
+    user: {
+      id: '1',
+      email: credentials.email,
+      roles: ['USER'],
+      permissions: ['READ', 'WRITE']
+    }
+  };
 };
 
 // Async thunks
@@ -17,8 +48,14 @@ export const login = createAsyncThunk<
   { state: RootState<BaseState> }
 >('auth/login', async (credentials, { rejectWithValue }) => {
   try {
-    // Each app will implement its own API call
-    throw new Error('login must be implemented by each app');
+    // In development, use mock login
+    const response = await mockLogin(credentials);
+    
+    // Store auth data
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(response.user));
+    
+    return response;
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : 'Login failed');
   }
@@ -63,9 +100,6 @@ export const authSlice = createSlice({
         state.loading = false;
         state.token = payload.token;
         state.user = payload.user;
-        // Store in local storage
-        localStorage.setItem('token', payload.token);
-        localStorage.setItem('user', JSON.stringify(payload.user));
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;

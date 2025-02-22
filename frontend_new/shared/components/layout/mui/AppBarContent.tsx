@@ -25,6 +25,8 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
+import { AuthService } from '../../../services/auth/authService';
+import { appConfig } from '../../../config/app.config';
 
 interface AppBarContentProps {
   isMobile: boolean;
@@ -207,7 +209,9 @@ export const AppBarContent: React.FC<AppBarContentProps> = ({
   };
 
   const handleLogoClick = () => {
-    navigate('/dashboard');
+    const version = AuthService.getVersion();
+    const config = version === 'civilian' ? appConfig.civilian : appConfig.defense;
+    navigate(config.landingPage);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
