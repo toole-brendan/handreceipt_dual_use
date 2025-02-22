@@ -51,9 +51,9 @@ const StyledDrawer = styled(Drawer, {
   '& .MuiDrawer-paper': {
     width: DRAWER_WIDTH,
     boxSizing: 'border-box',
-    backgroundColor: themeOverrides?.backgroundColor || 'rgba(0, 0, 0, 0.9)',
-    borderRight: `1px solid ${themeOverrides?.borderColor || 'rgba(255, 255, 255, 0.1)'}`,
-    backdropFilter: 'blur(12px)',
+    backgroundColor: themeOverrides?.backgroundColor || 'rgba(18, 18, 18, 0.95)',
+    borderRight: `1px solid ${themeOverrides?.borderColor || 'rgba(255, 255, 255, 0.06)'}`,
+    backdropFilter: 'blur(20px)',
     top: theme.mixins.toolbar.minHeight,
     height: `calc(100% - ${theme.mixins.toolbar.minHeight}px)`,
     [theme.breakpoints.up('md')]: {
@@ -67,7 +67,7 @@ const StyledListItemButton = styled(ListItemButton, {
   shouldForwardProp: (prop) => prop !== 'themeOverrides'
 })<{ themeOverrides?: BaseSidebarProps['themeOverrides'] }>(({ theme, themeOverrides }) => ({
   margin: theme.spacing(0.5, 1),
-  padding: theme.spacing(1, 2),
+  padding: theme.spacing(1.25, 2),
   borderRadius: 0,
   backgroundColor: 'transparent',
   color: themeOverrides?.textColor || 'rgba(255, 255, 255, 0.7)',
@@ -79,16 +79,18 @@ const StyledListItemButton = styled(ListItemButton, {
     }
   ),
   '&:hover': {
-    backgroundColor: themeOverrides?.hoverColor || 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: themeOverrides?.hoverColor || 'rgba(255, 255, 255, 0.04)',
     color: '#FFFFFF',
-    boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.1)',
+    '& .MuiListItemIcon-root': {
+      color: '#FFFFFF',
+      transform: 'translateX(2px)',
+    },
   },
   '&.Mui-selected': {
-    backgroundColor: themeOverrides?.selectedColor || 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: themeOverrides?.selectedColor || '#1A1A1A',
     color: '#FFFFFF',
-    borderLeft: '2px solid #FFFFFF',
     '&:hover': {
-      backgroundColor: themeOverrides?.hoverColor || 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: themeOverrides?.hoverColor || '#202020',
     },
     '& .MuiListItemIcon-root': {
       color: '#FFFFFF',
@@ -97,27 +99,31 @@ const StyledListItemButton = styled(ListItemButton, {
   '& .MuiListItemIcon-root': {
     color: themeOverrides?.textColor || 'rgba(255, 255, 255, 0.7)',
     minWidth: 40,
-    transition: theme.transitions.create('color'),
+    transition: theme.transitions.create(['color', 'transform'], {
+      duration: theme.transitions.duration.shorter,
+      easing: theme.transitions.easing.easeInOut,
+    }),
   },
   '& .MuiListItemText-primary': {
     fontSize: '0.875rem',
     fontWeight: 500,
-    letterSpacing: '0.02em',
-    fontFamily: 'Inter, sans-serif',
+    letterSpacing: '-0.01em',
+    fontFamily: '"Helvetica Neue", sans-serif',
   },
   '& .MuiListItemText-secondary': {
     fontSize: '0.75rem',
     color: 'rgba(255, 255, 255, 0.5)',
-    letterSpacing: '0.01em',
-    fontFamily: 'Inter, sans-serif',
+    letterSpacing: '0.02em',
+    fontFamily: '"Helvetica Neue", sans-serif',
+    marginTop: 2,
   },
 }));
 
 const StyledDivider = styled(Divider, {
   shouldForwardProp: (prop) => prop !== 'themeOverrides'
 })<{ themeOverrides?: BaseSidebarProps['themeOverrides'] }>(({ theme, themeOverrides }) => ({
-  borderColor: themeOverrides?.borderColor || 'rgba(255, 255, 255, 0.1)',
-  margin: theme.spacing(1, 0),
+  borderColor: themeOverrides?.borderColor || 'rgba(255, 255, 255, 0.06)',
+  margin: theme.spacing(1.5, 0),
 }));
 
 export const BaseSidebar: React.FC<BaseSidebarProps> = ({

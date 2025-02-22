@@ -67,7 +67,7 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }
   backgroundColor: 'transparent',
   color: 'rgba(255, 255, 255, 0.7)',
   transition: theme.transitions.create(
-    ['background-color', 'color', 'border-color', 'box-shadow'],
+    ['background-color', 'color'],
     {
       duration: theme.transitions.duration.shorter,
       easing: theme.transitions.easing.easeInOut,
@@ -76,14 +76,12 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }
   '&:hover': {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     color: '#FFFFFF',
-    boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.1)',
   },
   '&.Mui-selected': {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#1A1A1A',
     color: '#FFFFFF',
-    borderLeft: '2px solid #FFFFFF',
     '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: '#202020',
     },
     '& .MuiListItemIcon-root': {
       color: '#FFFFFF',
@@ -95,16 +93,16 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }
     transition: theme.transitions.create('color'),
   },
   '& .MuiListItemText-primary': {
-    fontSize: '0.875rem',
+    fontSize: '1rem',
     fontWeight: 500,
     letterSpacing: '0.02em',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: '"Helvetica Neue", sans-serif',
   },
   '& .MuiListItemText-secondary': {
-    fontSize: '0.75rem',
+    fontSize: '1rem',
     color: 'rgba(255, 255, 255, 0.5)',
-    letterSpacing: '0.01em',
-    fontFamily: 'Inter, sans-serif',
+    letterSpacing: '0.02em',
+    fontFamily: '"Helvetica Neue", sans-serif',
   },
 }));
 

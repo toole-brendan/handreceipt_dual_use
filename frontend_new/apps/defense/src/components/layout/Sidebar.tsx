@@ -30,9 +30,9 @@ const StyledDrawer = styled(Drawer)(({ theme }) => ({
   '& .MuiDrawer-paper': {
     width: 280,
     boxSizing: 'border-box',
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    borderRight: '1px solid rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(12px)',
+    backgroundColor: 'rgba(18, 18, 18, 0.95)',
+    borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+    backdropFilter: 'blur(20px)',
     top: theme.mixins.toolbar.minHeight,
     height: `calc(100% - ${theme.mixins.toolbar.minHeight}px)`,
   }
@@ -40,19 +40,29 @@ const StyledDrawer = styled(Drawer)(({ theme }) => ({
 
 const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
   margin: theme.spacing(0.5, 1),
-  padding: theme.spacing(1, 2),
-  borderRadius: theme.spacing(1),
+  padding: theme.spacing(1.25, 2),
+  borderRadius: 0,
   color: 'rgba(255, 255, 255, 0.7)',
+  transition: theme.transitions.create(
+    ['background-color', 'color', 'transform', 'box-shadow'],
+    {
+      duration: theme.transitions.duration.shorter,
+      easing: theme.transitions.easing.easeInOut,
+    }
+  ),
   '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     color: '#FFFFFF',
+    '& .MuiListItemIcon-root': {
+      color: '#FFFFFF',
+      transform: 'translateX(2px)',
+    },
   },
   '&.Mui-selected': {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#1A1A1A',
     color: '#FFFFFF',
-    borderLeft: '2px solid #FFFFFF',
     '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: '#202020',
     },
     '& .MuiListItemIcon-root': {
       color: '#FFFFFF',
@@ -63,11 +73,12 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
 const StyledListItemIcon = styled(ListItemIcon)(() => ({
   minWidth: 40,
   color: 'rgba(255, 255, 255, 0.7)',
+  transition: 'all 0.2s ease-in-out',
 }));
 
 const StyledDivider = styled(Divider)(() => ({
-  borderColor: 'rgba(255, 255, 255, 0.1)',
-  margin: '8px 0',
+  borderColor: 'rgba(255, 255, 255, 0.06)',
+  margin: '12px 0',
 }));
 
 interface NavItem {

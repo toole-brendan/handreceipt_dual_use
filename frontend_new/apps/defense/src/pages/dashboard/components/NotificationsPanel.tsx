@@ -1,118 +1,181 @@
 import React from 'react';
+import { Box, Typography, IconButton, alpha } from '@mui/material';
 import {
-  Box,
-  Card,
-  IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import ErrorIcon from '@mui/icons-material/Error';
-import WarningIcon from '@mui/icons-material/Warning';
-import InfoIcon from '@mui/icons-material/Info';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { format } from 'date-fns';
-
-type NotificationType = 'critical' | 'warning' | 'info';
+  Notifications as NotificationsIcon,
+  Circle as CircleIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon,
+} from '@mui/icons-material';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
   id: string;
-  type: NotificationType;
+  type: 'high' | 'medium' | 'low';
   message: string;
   timestamp: string;
-  link?: string;
 }
 
 interface NotificationsPanelProps {
   notifications: Notification[];
 }
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  padding: theme.spacing(3),
-  height: '100%',
-}));
-
-const getNotificationColor = (theme: any, type: NotificationType) => {
-  const colors = {
-    critical: theme.palette.error.light,
-    warning: theme.palette.warning.light,
-    info: theme.palette.info.light,
-  };
-  return colors[type];
-};
-
-const getNotificationIcon = (type: NotificationType) => {
-  const icons = {
-    critical: <ErrorIcon color="error" />,
-    warning: <WarningIcon color="warning" />,
-    info: <InfoIcon color="info" />,
-  };
-  return icons[type];
+const getNotificationColor = (type: Notification['type']) => {
+  switch (type) {
+    case 'high':
+      return '#F44336';
+    case 'medium':
+      return '#FFC107';
+    case 'low':
+      return '#4CAF50';
+    default:
+      return '#9E9E9E';
+  }
 };
 
 export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ notifications }) => {
   return (
-    <StyledCard>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <NotificationsIcon color="primary" sx={{ mr: 1 }} />
-        <Typography variant="h6">
-          Notifications
-        </Typography>
-        <Typography
-          variant="subtitle2"
-          color="text.secondary"
-          sx={{ ml: 1 }}
-        >
-          ({notifications.length})
-        </Typography>
-      </Box>
-
-      <List>
-        {notifications.map((notification) => (
-          <ListItem
-            key={notification.id}
-            sx={(theme) => ({
-              borderRadius: theme.shape.borderRadius,
-              marginBottom: theme.spacing(1),
-              backgroundColor: getNotificationColor(theme, notification.type),
-              '&:hover': {
-                backgroundColor: theme.palette.action.hover,
-              },
-              cursor: 'pointer',
-            })}
-            onClick={() => notification.link && window.location.assign(notification.link)}
+    <Box
+      sx={{
+        backgroundColor: alpha('#1E1E1E', 0.6),
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: 1,
+        overflow: 'hidden',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          transform: 'translateY(-2px)',
+          boxShadow: '0 4px 20px 0 rgba(0,0,0,0.12)',
+        },
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <NotificationsIcon sx={{ color: alpha('#FFFFFF', 0.7) }} />
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: '#FFFFFF',
+              letterSpacing: '0.02em',
+            }}
           >
-            <ListItemIcon>
-              {getNotificationIcon(notification.type)}
-            </ListItemIcon>
-            <ListItemText
-              primary={notification.message}
-              secondary={format(new Date(notification.timestamp), 'MM/dd/yyyy HH:mm')}
-              primaryTypographyProps={{
-                variant: 'body2',
-                fontWeight: notification.type === 'critical' ? 'bold' : 'normal',
-              }}
-            />
-            {notification.link && (
-              <IconButton size="small">
-                <ArrowForwardIcon fontSize="small" />
-              </IconButton>
-            )}
-          </ListItem>
-        ))}
-      </List>
-
-      {notifications.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 3 }}>
-          <Typography variant="body2" color="text.secondary">
-            No new notifications
+            Notifications
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              backgroundColor: alpha('#FFFFFF', 0.1),
+              color: alpha('#FFFFFF', 0.7),
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              ml: 1,
+            }}
+          >
+            {notifications.length}
           </Typography>
         </Box>
-      )}
-    </StyledCard>
+      </Box>
+
+      {/* Notifications List */}
+      <Box sx={{ maxHeight: '400px', overflowY: 'auto' }}>
+        {notifications.map((notification, index) => (
+          <Box
+            key={notification.id}
+            sx={{
+              p: 2,
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              transition: 'all 0.2s ease',
+              animation: 'fadeIn 0.3s ease forwards',
+              animationDelay: `${index * 100}ms`,
+              opacity: 0,
+              '&:hover': {
+                backgroundColor: alpha('#FFFFFF', 0.05),
+              },
+              '@keyframes fadeIn': {
+                from: { opacity: 0, transform: 'translateY(10px)' },
+                to: { opacity: 1, transform: 'translateY(0)' },
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+              <CircleIcon
+                sx={{
+                  color: getNotificationColor(notification.type),
+                  fontSize: 12,
+                  mt: 0.5,
+                }}
+              />
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: '#FFFFFF',
+                    fontWeight: 500,
+                    mb: 0.5,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {notification.message}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: alpha('#FFFFFF', 0.5),
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                </Typography>
+              </Box>
+              <IconButton
+                size="small"
+                sx={{
+                  color: alpha('#FFFFFF', 0.5),
+                  '&:hover': {
+                    color: '#FFFFFF',
+                    backgroundColor: alpha('#FFFFFF', 0.1),
+                  },
+                }}
+              >
+                <KeyboardArrowRightIcon />
+              </IconButton>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Footer */}
+      <Box
+        sx={{
+          p: 2,
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          textAlign: 'center',
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: alpha('#FFFFFF', 0.7),
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              color: '#FFFFFF',
+            },
+          }}
+        >
+          View All Notifications
+        </Typography>
+      </Box>
+    </Box>
   );
 }; 

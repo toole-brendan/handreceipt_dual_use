@@ -2,139 +2,43 @@ import React from 'react';
 import {
   Box,
   Card,
-  LinearProgress,
-  Link,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
   Typography,
+  Link,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import PeopleIcon from '@mui/icons-material/People';
+import { PersonnelOverviewProps } from '../types';
 
-interface PersonnelStats {
-  totalPersonnel: number;
-  fullyEquipped: number;
-  partiallyEquipped: number;
-  overdueItems: number;
-  equipmentStatus: {
-    percentage: number;
-    color: 'success' | 'warning' | 'error';
-  };
-}
-
-interface PersonnelOverviewProps {
-  stats: PersonnelStats;
-}
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  padding: theme.spacing(3),
-  height: '100%',
-}));
-
-const MetricRow = styled(TableRow)(({ theme }) => ({
-  '&:last-child td': {
-    border: 0,
-  },
-}));
-
-const ProgressWrapper = styled(Box)(({ theme }) => ({
-  marginTop: theme.spacing(2),
-  marginBottom: theme.spacing(2),
-}));
-
-const StyledLinearProgress = styled(LinearProgress)(({ theme }) => ({
-  height: 10,
-  borderRadius: 5,
-}));
-
-export const PersonnelOverview: React.FC<PersonnelOverviewProps> = ({ stats }) => {
+export const PersonnelOverview: React.FC<PersonnelOverviewProps> = ({ stats, styles }) => {
   return (
-    <StyledCard>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <PeopleIcon color="primary" sx={{ mr: 1 }} />
+    <Card sx={styles.personnelOverview}>
+      <Box className="overview-header">
         <Typography variant="h6">Personnel Overview</Typography>
       </Box>
 
-      <ProgressWrapper>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Equipment Status
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {stats.equipmentStatus.percentage}%
-          </Typography>
-        </Box>
-        <StyledLinearProgress
-          variant="determinate"
-          value={stats.equipmentStatus.percentage}
-          color={stats.equipmentStatus.color}
-        />
-      </ProgressWrapper>
+      <Box className="stat-item">
+        <Typography className="stat-label">Total Personnel</Typography>
+        <Typography className="stat-value">{stats.total}</Typography>
+      </Box>
 
-      <Table>
-        <TableBody>
-          <MetricRow>
-            <TableCell component="th" scope="row">
-              Total Personnel
-            </TableCell>
-            <TableCell align="right">
-              <Typography variant="body1" fontWeight="bold">
-                {stats.totalPersonnel}
-              </Typography>
-            </TableCell>
-          </MetricRow>
-          <MetricRow>
-            <TableCell component="th" scope="row">
-              Fully Equipped
-            </TableCell>
-            <TableCell align="right">
-              <Typography
-                variant="body1"
-                fontWeight="bold"
-                color="success.main"
-              >
-                {stats.fullyEquipped}
-              </Typography>
-            </TableCell>
-          </MetricRow>
-          <MetricRow>
-            <TableCell component="th" scope="row">
-              Partially Equipped
-            </TableCell>
-            <TableCell align="right">
-              <Typography
-                variant="body1"
-                fontWeight="bold"
-                color="warning.main"
-              >
-                {stats.partiallyEquipped}
-              </Typography>
-            </TableCell>
-          </MetricRow>
-          <MetricRow>
-            <TableCell component="th" scope="row">
-              Overdue Items
-            </TableCell>
-            <TableCell align="right">
-              <Typography
-                variant="body1"
-                fontWeight="bold"
-                color="error.main"
-              >
-                {stats.overdueItems}
-              </Typography>
-            </TableCell>
-          </MetricRow>
-        </TableBody>
-      </Table>
+      <Box className="stat-item">
+        <Typography className="stat-label">Fully Equipped</Typography>
+        <Typography className="stat-value success">{stats.available}</Typography>
+      </Box>
 
-      <Box sx={{ mt: 2, textAlign: 'right' }}>
-        <Link href="/personnel" underline="hover">
+      <Box className="stat-item">
+        <Typography className="stat-label">Partially Equipped</Typography>
+        <Typography className="stat-value warning">{stats.deployed}</Typography>
+      </Box>
+
+      <Box className="stat-item">
+        <Typography className="stat-label">Overdue Items</Typography>
+        <Typography className="stat-value error">{stats.onLeave}</Typography>
+      </Box>
+
+      <Box className="view-details">
+        <Link href="#" underline="hover">
           View Personnel Details →
         </Link>
       </Box>
-    </StyledCard>
+    </Card>
   );
 }; 

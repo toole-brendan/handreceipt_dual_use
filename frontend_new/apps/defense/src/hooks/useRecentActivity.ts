@@ -2,17 +2,14 @@ import { useState, useEffect } from 'react';
 
 export interface Activity {
   id: string;
-  type: 'transfer' | 'maintenance' | 'inspection' | 'verification';
-  item: {
-    name: string;
-    serialNumber: string;
-  };
-  personnel: {
+  type: string;
+  description: string;
+  timestamp: string;
+  user: {
     name: string;
     rank: string;
   };
-  date: string;
-  status: 'pending' | 'completed' | 'rejected' | 'in_progress';
+  status: 'COMPLETED' | 'PENDING' | 'IN PROGRESS' | 'REJECTED';
 }
 
 export const useRecentActivity = () => {
@@ -29,73 +26,58 @@ export const useRecentActivity = () => {
         const mockActivities: Activity[] = [
           {
             id: '1',
-            type: 'transfer',
-            item: {
-              name: 'M4 Carbine',
-              serialNumber: 'W123456',
-            },
-            personnel: {
+            type: 'Transfer',
+            description: 'M4 Carbine (SN: W123456)',
+            user: {
               name: 'Smith',
               rank: 'LT',
             },
-            date: new Date().toISOString(),
-            status: 'pending',
+            timestamp: new Date().toISOString(),
+            status: 'PENDING',
           },
           {
             id: '2',
-            type: 'maintenance',
-            item: {
-              name: 'Radio Set',
-              serialNumber: 'R789012',
-            },
-            personnel: {
+            type: 'Maintenance',
+            description: 'Radio Set (SN: R789012)',
+            user: {
               name: 'Jones',
               rank: 'SGT',
             },
-            date: new Date(Date.now() - 86400000).toISOString(),
-            status: 'in_progress',
+            timestamp: new Date(Date.now() - 86400000).toISOString(),
+            status: 'IN PROGRESS',
           },
           {
             id: '3',
-            type: 'inspection',
-            item: {
-              name: 'Night Vision Device',
-              serialNumber: 'N345678',
-            },
-            personnel: {
+            type: 'Inspection',
+            description: 'Night Vision Device (SN: N345678)',
+            user: {
               name: 'Brown',
               rank: 'SSG',
             },
-            date: new Date(Date.now() - 172800000).toISOString(),
-            status: 'completed',
+            timestamp: new Date(Date.now() - 172800000).toISOString(),
+            status: 'COMPLETED',
           },
           {
             id: '4',
-            type: 'verification',
-            item: {
-              name: 'HMMWV',
-              serialNumber: 'V901234',
-            },
-            personnel: {
+            type: 'Verification',
+            description: 'HMMWV (SN: V901234)',
+            user: {
               name: 'Wilson',
               rank: 'SPC',
             },
-            date: new Date(Date.now() - 259200000).toISOString(),
-            status: 'completed',
+            timestamp: new Date(Date.now() - 259200000).toISOString(),
+            status: 'COMPLETED',
           },
           {
             id: '5',
-            type: 'transfer',
-            item: {
-              name: 'Generator',
-              serialNumber: 'G567890',
-            },
-            personnel: {
+            type: 'Transfer',
+            description: 'Generator (SN: G567890)',
+            user: {
               name: 'Davis',
               rank: 'CPL',
             },
-            date: new Date(Date.now() - 345600000).toISOString(),
-            status: 'rejected',
+            timestamp: new Date(Date.now() - 345600000).toISOString(),
+            status: 'REJECTED',
           },
         ];
 

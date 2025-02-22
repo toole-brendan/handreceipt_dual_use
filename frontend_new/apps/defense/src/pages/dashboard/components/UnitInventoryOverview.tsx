@@ -1,77 +1,82 @@
 import React from 'react';
-import { Box, Card, Grid, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Chip,
+} from '@mui/material';
+import { PieChart } from 'react-minimal-pie-chart';
+import { UnitInventoryOverviewProps } from '../types';
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  padding: theme.spacing(3),
-  height: '100%',
-}));
-
-const COLORS = ['#2e7d32', '#ed6c02', '#0288d1', '#9e9e9e'];
-
-interface CategoryData {
-  name: string;
+interface PieChartData {
+  title: string;
   value: number;
-  count: number;
+  color: string;
 }
 
-interface CriticalItem {
-  name: string;
-  issue: string;
-  status: 'critical' | 'warning';
-}
+export const UnitInventoryOverview: React.FC<UnitInventoryOverviewProps> = ({
+  stats,
+  styles,
+  chartColors,
+}) => {
+  const pieChartData: PieChartData[] = stats.categories.map((category) => ({
+    title: category.name,
+    value: category.value,
+    color: chartColors[category.name.toLowerCase() as keyof typeof chartColors],
+  }));
 
-interface UnitInventoryOverviewProps {
-  stats: {
-    categories: CategoryData[];
-    criticalItems: CriticalItem[];
-  };
-}
-
-const StatusCell = styled(TableCell)<{ status: 'critical' | 'warning' }>(({ theme, status }) => ({
-  color: status === 'critical' ? theme.palette.error.main : theme.palette.warning.main,
-  fontWeight: 'bold',
-}));
-
-export const UnitInventoryOverview: React.FC<UnitInventoryOverviewProps> = ({ stats }) => {
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={7}>
-        <StyledCard>
-          <Typography variant="h6" gutterBottom>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Property Distribution Chart */}
+      <Card sx={styles.categoryChart}>
+        <CardContent>
+          <Typography variant="h6" className="chart-title">
             Property by Category
           </Typography>
-          <Box sx={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={stats.categories}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {stats.categories.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name, props) => [
-                    `${value}% (${props.payload.count} items)`,
-                    name,
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <Box className="chart-container">
+            <PieChart
+              data={pieChartData}
+              lineWidth={20}
+              paddingAngle={2}
+              // @ts-ignore - types not available
+              label={({ dataEntry }) => `${Math.round(dataEntry.percentage)}%`}
+              labelStyle={{
+                fontSize: '5px',
+                fontFamily: 'sans-serif',
+                fill: '#fff',
+              }}
+              labelPosition={75}
+            />
           </Box>
-        </StyledCard>
-      </Grid>
+          <Box className="chart-legend">
+            {pieChartData.map((item) => (
+              <Box key={item.title} className="legend-item">
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    backgroundColor: item.color,
+                  }}
+                />
+                <Typography variant="body2">
+                  {item.title}: {item.value} items
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </CardContent>
+      </Card>
 
-      <Grid item xs={12} md={5}>
-        <StyledCard>
+      {/* Critical Items Table */}
+      <Card sx={styles.criticalItems}>
+        <CardContent>
           <Typography variant="h6" gutterBottom>
             Critical Items
           </Typography>
@@ -80,23 +85,27 @@ export const UnitInventoryOverview: React.FC<UnitInventoryOverviewProps> = ({ st
               <TableRow>
                 <TableCell>Item</TableCell>
                 <TableCell>Issue</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell align="right">Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {stats.criticalItems.map((item, index) => (
-                <TableRow key={index} hover>
+              {stats.criticalItems.map((item) => (
+                <TableRow key={item.name} hover>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.issue}</TableCell>
-                  <StatusCell status={item.status}>
-                    {item.status === 'critical' ? 'Critical' : 'Warning'}
-                  </StatusCell>
+                  <TableCell align="right">
+                    <Chip
+                      label={item.status.toUpperCase()}
+                      color={item.status === 'critical' ? 'error' : 'warning'}
+                      size="small"
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </StyledCard>
-      </Grid>
-    </Grid>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }; 
