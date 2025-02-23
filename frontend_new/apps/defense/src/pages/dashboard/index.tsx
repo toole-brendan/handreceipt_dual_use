@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Typography, Paper, Grid, styled, Avatar, Stack } from '@mui/material';
+import { Box, Typography, Paper, Grid, styled, Container } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { KeyMetricsCards } from './components/KeyMetricsCards';
 import { UnitInventoryOverview } from './components/UnitInventoryOverview';
@@ -11,34 +11,31 @@ import { usePropertyStats } from '../../hooks/usePropertyStats';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useRecentActivity } from '../../hooks/useRecentActivity';
 import { usePersonnelStats } from '../../hooks/usePersonnelStats';
-import { categoryChartColors } from '../../styles/defense-specific-styles';
+import { categoryChartColors } from '../../styles/theme';
 import { mockDashboardData } from './mockData';
 
-const CompanyInfoCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  marginBottom: theme.spacing(4),
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(3),
+// Base card styling following civilian pattern
+const DashboardCard = styled(Paper)(({ theme }) => ({
+  height: '100%',
   backgroundColor: theme.palette.background.paper,
   borderRadius: theme.shape.borderRadius,
-}));
-
-const UnitLogo = styled(Avatar)(({ theme }) => ({
-  width: 64,
-  height: 64,
-  backgroundColor: theme.palette.primary.main,
-}));
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  borderRadius: theme.shape.borderRadius,
-  padding: theme.spacing(2),
+  border: `1px solid ${theme.palette.divider}`,
+  '& .card-header': {
+    padding: theme.spacing(2),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    '& h6': {
+      fontWeight: 600,
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em',
+    },
+  },
+  '& .card-content': {
+    padding: theme.spacing(2),
+  },
 }));
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  // For development, use mock data
   const data = mockDashboardData;
 
   const handleViewAllCriticalItems = () => {
@@ -46,24 +43,24 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Container>
-      <Box py={3}>
-        <CompanyInfoCard elevation={1}>
-          <UnitLogo
-            src="/assets/images/101st-airborne-logo.png"
-            alt="101st Airborne Division"
-          />
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              Captain John Doe
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Company Commander, F CO - 2-506, 3BCT, 101st Airborne Division
-            </Typography>
+    <Container maxWidth="xl">
+      <Box sx={{ py: 4 }}>
+        {/* Header Section */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box>
+              <Typography variant="h4" gutterBottom>
+                CPT JOHN DOE
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                F CO - 2-506, 3BCT, 101st Airborne Division
+              </Typography>
+            </Box>
           </Box>
-        </CompanyInfoCard>
+        </Box>
 
-        <Box mb={3}>
+        {/* Key Metrics Section */}
+        <Box sx={{ mb: 4 }}>
           <KeyMetricsCards
             stats={{
               total: data.propertyStats.totalItems,
@@ -75,36 +72,60 @@ const Dashboard: React.FC = () => {
           />
         </Box>
 
+        {/* Main Content Grid */}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Box mb={3}>
-              <UnitInventoryOverview
-                stats={{
-                  categories: data.propertyStats.categories,
-                  criticalItems: data.propertyStats.criticalItems,
-                }}
-                onViewAll={handleViewAllCriticalItems}
-              />
-            </Box>
-            <StyledPaper>
-              <RecentActivityFeed activities={data.activities} />
-            </StyledPaper>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Stack spacing={3}>
-              <StyledPaper>
-                <NotificationsPanel notifications={data.notifications} />
-              </StyledPaper>
-              <StyledPaper>
+          {/* Tasks and Notifications - Side by side on tablet+ */}
+          <Grid item xs={12} md={6}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">Actionable Tasks</Typography>
+              </div>
+              <div className="card-content">
                 <ActionableTasks
                   stats={{
                     pendingTransfers: data.propertyStats.pendingTransfers,
                     maintenanceRequests: data.propertyStats.maintenanceRequests,
                   }}
                 />
-              </StyledPaper>
-              <StyledPaper>
+              </div>
+            </DashboardCard>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">Notifications</Typography>
+              </div>
+              <div className="card-content">
+                <NotificationsPanel notifications={data.notifications} />
+              </div>
+            </DashboardCard>
+          </Grid>
+
+          {/* Overview Charts - Side by side on tablet+ */}
+          <Grid item xs={12} md={6}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">Unit Inventory Overview</Typography>
+              </div>
+              <div className="card-content">
+                <UnitInventoryOverview
+                  stats={{
+                    categories: data.propertyStats.categories,
+                    criticalItems: data.propertyStats.criticalItems,
+                  }}
+                  onViewAll={handleViewAllCriticalItems}
+                />
+              </div>
+            </DashboardCard>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">Personnel Overview</Typography>
+              </div>
+              <div className="card-content">
                 <PersonnelOverview 
                   stats={{
                     totalPersonnel: data.personnelStats.totalPersonnel,
@@ -113,8 +134,20 @@ const Dashboard: React.FC = () => {
                     overdueItems: data.personnelStats.overdueItems,
                   }}
                 />
-              </StyledPaper>
-            </Stack>
+              </div>
+            </DashboardCard>
+          </Grid>
+
+          {/* Activity Feed - Full width */}
+          <Grid item xs={12}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">Recent Activity</Typography>
+              </div>
+              <div className="card-content">
+                <RecentActivityFeed activities={data.activities} />
+              </div>
+            </DashboardCard>
           </Grid>
         </Grid>
       </Box>

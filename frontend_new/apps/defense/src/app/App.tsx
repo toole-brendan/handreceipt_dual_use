@@ -9,7 +9,7 @@ import { ThemeProvider } from '@shared/contexts/ThemeContext';
 import { ProtectedRoute } from '@shared/components/common';
 import { LoginPage } from '@shared/components/auth';
 import ErrorBoundary from '@shared/components/feedback/ErrorBoundary';
-import { Layout } from '@shared/components/layout';
+import { Layout } from '../components/layout';
 import { defenseTheme } from '../styles/theme';
 import { store } from '../store';
 import { DEFENSE_ROUTES } from '../constants/routes';
@@ -21,6 +21,7 @@ const PropertyPage = React.lazy(() => import('../pages/property'));
 const TransfersPage = React.lazy(() => import('../pages/transfers'));
 const UnitInventoryPage = React.lazy(() => import('../pages/unit-inventory'));
 const MaintenancePage = React.lazy(() => import('../pages/maintenance'));
+const QRManagementPage = React.lazy(() => import('../pages/qr-management'));
 const ReportsPage = React.lazy(() => import('../pages/reports'));
 const AlertsPage = React.lazy(() => import('../pages/alerts'));
 const UserManagementPage = React.lazy(() => import('../pages/users'));
@@ -127,6 +128,17 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingFallback />}>
             <ErrorBoundary>
               <MaintenancePage />
+            </ErrorBoundary>
+          </Suspense>
+        ),
+        errorElement: <RouteErrorElement />
+      },
+      {
+        path: 'qr',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ErrorBoundary>
+              <QRManagementPage />
             </ErrorBoundary>
           </Suspense>
         ),

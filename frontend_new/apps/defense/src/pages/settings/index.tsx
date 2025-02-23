@@ -1,210 +1,296 @@
-import { FC, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
+  Container,
   Typography,
-  IconButton,
-  Chip,
+  Grid,
   Paper,
+  styled,
+  TextField,
+  Button,
+  Switch,
+  FormControlLabel,
+  Divider,
   List,
   ListItem,
+  ListItemIcon,
   ListItemText,
-  ListItemButton,
+  ListItemSecondaryAction,
 } from '@mui/material';
-import { RefreshCw, CheckCircle } from 'lucide-react';
-import { ArmyLogo } from '@shared/components/common';
-import { AccountSettings } from './components/AccountSettings';
-import { NotificationSettings } from './components/NotificationSettings';
-import { SecuritySettings } from './components/SecuritySettings';
-import { SystemSettings } from './components/SystemSettings';
+import SecurityIcon from '@mui/icons-material/Security';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import StorageIcon from '@mui/icons-material/Storage';
+import LanguageIcon from '@mui/icons-material/Language';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import BackupIcon from '@mui/icons-material/Backup';
+import SyncIcon from '@mui/icons-material/Sync';
+import SaveIcon from '@mui/icons-material/Save';
 
-type SettingsCategory = 'account' | 'notifications' | 'security' | 'system';
+// Base card styling following dashboard pattern
+const DashboardCard = styled(Paper)(({ theme }) => ({
+  height: '100%',
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  '& .card-header': {
+    padding: theme.spacing(2),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    '& h6': {
+      fontWeight: 600,
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em',
+    },
+  },
+  '& .card-content': {
+    padding: theme.spacing(2),
+  },
+}));
 
-const SettingsPage: FC = () => {
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>('account');
-  const [lastSynced, setLastSynced] = useState('2 minutes ago');
+const SettingsPage: React.FC = () => {
+  // Mock settings state
+  const [settings, setSettings] = useState({
+    darkMode: true,
+    notifications: true,
+    autoBackup: true,
+    syncInterval: '30',
+    language: 'en-US',
+    apiEndpoint: 'https://api.example.com',
+  });
 
-  const handleRefresh = async () => {
-    // TODO: Implement blockchain sync
-    console.log('Syncing with blockchain...');
-    setLastSynced('just now');
-  };
-
-  const renderContent = () => {
-    switch (activeCategory) {
-      case 'account':
-        return <AccountSettings />;
-      case 'notifications':
-        return <NotificationSettings />;
-      case 'security':
-        return <SecuritySettings />;
-      case 'system':
-        return <SystemSettings />;
-      default:
-        return null;
-    }
+  const handleSettingChange = (setting: string, value: any) => {
+    setSettings((prev) => ({
+      ...prev,
+      [setting]: value,
+    }));
   };
 
   return (
-    <Box sx={{ 
-      p: 3, 
-      backgroundColor: '#1a1a1a',
-      minHeight: '100vh',
-      color: '#ffffff'
-    }}>
-      {/* Header Section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-          <ArmyLogo sx={{ width: 50, height: 50, mr: 2, color: '#ffffff' }} />
-          <Box>
-            <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
-              Settings
-            </Typography>
-            <Typography variant="subtitle1" sx={{ color: '#999999' }}>
-              Captain John Doe, Company Commander, F CO - 2-506, 3BCT, 101st Airborne
-            </Typography>
+    <Container maxWidth="xl">
+      <Box sx={{ py: 4 }}>
+        {/* Header Section */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box>
+              <Typography variant="h4" gutterBottom>
+                SETTINGS
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Configure system preferences and options
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<SaveIcon />}
+            >
+              Save Changes
+            </Button>
           </Box>
         </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton 
-            onClick={handleRefresh} 
-            sx={{ 
-              color: '#ffffff',
-              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
-            }}
-          >
-            <RefreshCw size={24} />
-          </IconButton>
-          
-          <Chip
-            icon={<CheckCircle size={16} color="#00ff00" />}
-            label={`Blockchain Synced: ${lastSynced}`}
-            sx={{ 
-              backgroundColor: '#2a2a2a',
-              color: '#ffffff',
-              '& .MuiChip-label': { color: '#ffffff' }
-            }}
-          />
-        </Box>
-      </Box>
 
-      {/* Main Content */}
-      <Box sx={{ display: 'flex', gap: 3 }}>
-        {/* Sidebar */}
-        <Paper 
-          sx={{ 
-            width: 240, 
-            backgroundColor: '#2a2a2a',
-            flexShrink: 0,
-            borderRadius: 2
-          }}
-        >
-          <List>
-            {[
-              { id: 'account', label: 'Account' },
-              { id: 'notifications', label: 'Notifications' },
-              { id: 'security', label: 'Security' },
-              { id: 'system', label: 'System' },
-            ].map((category) => (
-              <ListItem key={category.id} disablePadding>
-                <ListItemButton
-                  selected={activeCategory === category.id}
-                  onClick={() => setActiveCategory(category.id as SettingsCategory)}
-                  sx={{
-                    borderRadius: 1,
-                    mx: 1,
-                    '&.Mui-selected': {
-                      backgroundColor: '#404040',
-                      color: '#ffffff',
-                      '&:hover': {
-                        backgroundColor: '#505050',
-                      },
-                    },
-                    '&:hover': {
-                      backgroundColor: '#333333',
-                    },
-                  }}
-                >
-                  <ListItemText 
-                    primary={category.label}
-                    primaryTypographyProps={{
-                      fontSize: 14,
-                      color: activeCategory === category.id ? '#ffffff' : '#999999'
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+        <Grid container spacing={3}>
+          {/* General Settings */}
+          <Grid item xs={12} md={6}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">General Settings</Typography>
+              </div>
+              <div className="card-content">
+                <List>
+                  <ListItem>
+                    <ListItemIcon>
+                      <DarkModeIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Dark Mode"
+                      secondary="Enable dark theme for the interface"
+                    />
+                    <ListItemSecondaryAction>
+                      <Switch
+                        edge="end"
+                        checked={settings.darkMode}
+                        onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider />
+                  <ListItem>
+                    <ListItemIcon>
+                      <NotificationsIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Notifications"
+                      secondary="Enable system notifications"
+                    />
+                    <ListItemSecondaryAction>
+                      <Switch
+                        edge="end"
+                        checked={settings.notifications}
+                        onChange={(e) => handleSettingChange('notifications', e.target.checked)}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider />
+                  <ListItem>
+                    <ListItemIcon>
+                      <LanguageIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Language"
+                      secondary="Select your preferred language"
+                    />
+                    <ListItemSecondaryAction>
+                      <TextField
+                        select
+                        size="small"
+                        value={settings.language}
+                        onChange={(e) => handleSettingChange('language', e.target.value)}
+                        SelectProps={{
+                          native: true,
+                        }}
+                      >
+                        <option value="en-US">English (US)</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                      </TextField>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                </List>
+              </div>
+            </DashboardCard>
+          </Grid>
 
-        {/* Content Area */}
-        <Paper sx={{ 
-          flex: 1, 
-          backgroundColor: '#2a2a2a',
-          borderRadius: 2,
-          p: 3
-        }}>
-          {renderContent()}
-        </Paper>
-      </Box>
+          {/* System Settings */}
+          <Grid item xs={12} md={6}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">System Settings</Typography>
+              </div>
+              <div className="card-content">
+                <List>
+                  <ListItem>
+                    <ListItemIcon>
+                      <BackupIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Auto Backup"
+                      secondary="Enable automatic data backup"
+                    />
+                    <ListItemSecondaryAction>
+                      <Switch
+                        edge="end"
+                        checked={settings.autoBackup}
+                        onChange={(e) => handleSettingChange('autoBackup', e.target.checked)}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider />
+                  <ListItem>
+                    <ListItemIcon>
+                      <SyncIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Sync Interval"
+                      secondary="Set the data synchronization interval (minutes)"
+                    />
+                    <ListItemSecondaryAction>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={settings.syncInterval}
+                        onChange={(e) => handleSettingChange('syncInterval', e.target.value)}
+                        sx={{ width: 100 }}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider />
+                  <ListItem>
+                    <ListItemIcon>
+                      <StorageIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="API Endpoint"
+                      secondary="Configure the API endpoint URL"
+                    />
+                    <ListItemSecondaryAction>
+                      <TextField
+                        size="small"
+                        value={settings.apiEndpoint}
+                        onChange={(e) => handleSettingChange('apiEndpoint', e.target.value)}
+                        sx={{ width: 200 }}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                </List>
+              </div>
+            </DashboardCard>
+          </Grid>
 
-      {/* Footer */}
-      <Box
-        sx={{
-          mt: 4,
-          py: 1,
-          px: 2,
-          backgroundColor: '#2a2a2a',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          borderTop: '1px solid #404040'
-        }}
-      >
-        <Typography variant="body2" sx={{ color: '#999999' }}>
-          HandReceipt v1.0
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#999999' }}>
-          Last Updated: 10/02/2024
-        </Typography>
-        <Box>
-          <Typography
-            component="a"
-            href="#"
-            sx={{
-              color: '#00ff00',
-              textDecoration: 'none',
-              mr: 2,
-              cursor: 'pointer',
-              '&:hover': {
-                textDecoration: 'underline'
-              }
-            }}
-          >
-            Help
-          </Typography>
-          <Typography
-            component="a"
-            href="#"
-            sx={{
-              color: '#00ff00',
-              textDecoration: 'none',
-              cursor: 'pointer',
-              '&:hover': {
-                textDecoration: 'underline'
-              }
-            }}
-          >
-            Support
-          </Typography>
-        </Box>
+          {/* Security Settings */}
+          <Grid item xs={12}>
+            <DashboardCard>
+              <div className="card-header">
+                <Typography variant="h6">Security Settings</Typography>
+              </div>
+              <div className="card-content">
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Two-Factor Authentication
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Add an extra layer of security to your account
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<SecurityIcon />}
+                      >
+                        Configure 2FA
+                      </Button>
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Session Management
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Control your active sessions and devices
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                      >
+                        Manage Sessions
+                      </Button>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Password Requirements
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        • Minimum 12 characters
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        • At least one uppercase letter
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        • At least one number
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        • At least one special character
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </div>
+            </DashboardCard>
+          </Grid>
+        </Grid>
       </Box>
-    </Box>
+    </Container>
   );
 };
 

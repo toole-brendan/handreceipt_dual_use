@@ -24,6 +24,7 @@ import {
   Button,
   Link,
   TablePagination,
+  styled,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
@@ -36,6 +37,26 @@ import { format } from 'date-fns';
 import { useProperty } from '../../hooks/useProperty';
 import { PropertySkeleton } from '../../components/property';
 import { ErrorDisplay } from '../../components/common/ErrorDisplay';
+
+// Base card styling following dashboard pattern
+const DashboardCard = styled(Paper)(({ theme }) => ({
+  height: '100%',
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  '& .card-header': {
+    padding: theme.spacing(2),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    '& h6': {
+      fontWeight: 600,
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em',
+    },
+  },
+  '& .card-content': {
+    padding: theme.spacing(2),
+  },
+}));
 
 interface PropertyItem {
   id: string;
@@ -128,21 +149,14 @@ const PropertyPage: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-        <img
-          src="/assets/images/101st-airborne-logo.png"
-          alt="101st Airborne Division"
-          style={{ width: 50, height: 50, marginRight: 16 }}
-        />
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            My Property
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Captain John Doe, Company Commander, F CO - 2-506, 3BCT, 101st Airborne Division
-          </Typography>
-        </Box>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box>
+        <Typography variant="h4" gutterBottom>
+          MY PROPERTY
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage and track your assigned equipment
+        </Typography>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <TextField
@@ -169,94 +183,106 @@ const PropertyPage: React.FC = () => {
   const renderSummaryCards = () => (
     <Grid container spacing={3} sx={{ mb: 4 }}>
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ p: 2 }}>
-          <Typography variant="h4" color="primary" gutterBottom>
-            {summaryData.totalItems}
-          </Typography>
-          <Typography variant="subtitle2" color="text.secondary">
-            Total Items
-          </Typography>
-        </Card>
+        <DashboardCard>
+          <div className="card-content">
+            <Typography variant="h4" color="primary" gutterBottom>
+              {summaryData.totalItems}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Total Items
+            </Typography>
+          </div>
+        </DashboardCard>
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ p: 2 }}>
-          <Typography variant="h4" color="success.main" gutterBottom>
-            {summaryData.goodCondition} ({Math.round((summaryData.goodCondition / summaryData.totalItems) * 100)}%)
-          </Typography>
-          <Typography variant="subtitle2" color="text.secondary">
-            Good Condition
-          </Typography>
-        </Card>
+        <DashboardCard>
+          <div className="card-content">
+            <Typography variant="h4" color="success.main" gutterBottom>
+              {summaryData.goodCondition} ({Math.round((summaryData.goodCondition / summaryData.totalItems) * 100)}%)
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Good Condition
+            </Typography>
+          </div>
+        </DashboardCard>
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ p: 2 }}>
-          <Typography variant="h4" color="warning.main" gutterBottom>
-            {summaryData.needsMaintenance}
-          </Typography>
-          <Typography variant="subtitle2" color="text.secondary">
-            Needs Maintenance
-          </Typography>
-        </Card>
+        <DashboardCard>
+          <div className="card-content">
+            <Typography variant="h4" color="warning.main" gutterBottom>
+              {summaryData.needsMaintenance}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Needs Maintenance
+            </Typography>
+          </div>
+        </DashboardCard>
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
-        <Card sx={{ p: 2 }}>
-          <Typography variant="h4" color="error.main" gutterBottom>
-            {summaryData.overdueTasks}
-          </Typography>
-          <Typography variant="subtitle2" color="text.secondary">
-            Overdue Tasks
-          </Typography>
-        </Card>
+        <DashboardCard>
+          <div className="card-content">
+            <Typography variant="h4" color="error.main" gutterBottom>
+              {summaryData.overdueTasks}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Overdue Tasks
+            </Typography>
+          </div>
+        </DashboardCard>
       </Grid>
     </Grid>
   );
 
   const renderFilters = () => (
-    <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-      <FormControl size="small" sx={{ minWidth: 120 }}>
-        <InputLabel>Category</InputLabel>
-        <Select
-          value={category}
-          label="Category"
-          onChange={(e) => setCategory(e.target.value)}
-        >
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="weapons">Weapons</MenuItem>
-          <MenuItem value="gear">Personal Gear</MenuItem>
-          <MenuItem value="comms">Communication</MenuItem>
-          <MenuItem value="vehicles">Vehicles</MenuItem>
-        </Select>
-      </FormControl>
-      <FormControl size="small" sx={{ minWidth: 120 }}>
-        <InputLabel>Condition</InputLabel>
-        <Select
-          value={condition}
-          label="Condition"
-          onChange={(e) => setCondition(e.target.value)}
-        >
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="good">Good</MenuItem>
-          <MenuItem value="fair">Fair</MenuItem>
-          <MenuItem value="poor">Poor</MenuItem>
-        </Select>
-      </FormControl>
-      <FormControl size="small" sx={{ minWidth: 120 }}>
-        <InputLabel>Readiness</InputLabel>
-        <Select
-          value={readiness}
-          label="Readiness"
-          onChange={(e) => setReadiness(e.target.value)}
-        >
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="operational">Operational</MenuItem>
-          <MenuItem value="maintenance">Needs Maintenance</MenuItem>
-          <MenuItem value="repair">In Repair</MenuItem>
-        </Select>
-      </FormControl>
-      <Button variant="contained" color="primary">
-        Apply Filters
-      </Button>
-    </Box>
+    <DashboardCard sx={{ mb: 3 }}>
+      <div className="card-header">
+        <Typography variant="h6">Filters</Typography>
+      </div>
+      <div className="card-content">
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={category}
+              label="Category"
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="weapons">Weapons</MenuItem>
+              <MenuItem value="gear">Personal Gear</MenuItem>
+              <MenuItem value="comms">Communication</MenuItem>
+              <MenuItem value="vehicles">Vehicles</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Condition</InputLabel>
+            <Select
+              value={condition}
+              label="Condition"
+              onChange={(e) => setCondition(e.target.value)}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="good">Good</MenuItem>
+              <MenuItem value="fair">Fair</MenuItem>
+              <MenuItem value="poor">Poor</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Readiness</InputLabel>
+            <Select
+              value={readiness}
+              label="Readiness"
+              onChange={(e) => setReadiness(e.target.value)}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="operational">Operational</MenuItem>
+              <MenuItem value="maintenance">Needs Maintenance</MenuItem>
+              <MenuItem value="repair">In Repair</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      </div>
+    </DashboardCard>
   );
 
   const renderPropertyTable = () => (
@@ -292,18 +318,13 @@ const PropertyPage: React.FC = () => {
                 />
               </TableCell>
               <TableCell>
-                {format(new Date(item.issuedDate), 'MM/dd/yyyy')}
+                {format(new Date(item.issuedDate), 'MMM dd, yyyy')}
               </TableCell>
               <TableCell align="center">
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                   <Tooltip title="View Details">
                     <IconButton size="small">
                       <InfoIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Report Damage">
-                    <IconButton size="small">
-                      <WarningIcon />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Request Maintenance">
@@ -314,11 +335,6 @@ const PropertyPage: React.FC = () => {
                   <Tooltip title="Transfer">
                     <IconButton size="small">
                       <SwapHorizIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="View Blockchain Record">
-                    <IconButton size="small">
-                      <LinkIcon />
                     </IconButton>
                   </Tooltip>
                 </Box>
@@ -366,12 +382,14 @@ const PropertyPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {renderHeader()}
-      {renderSummaryCards()}
-      {renderFilters()}
-      {renderPropertyTable()}
-      {renderFooter()}
+    <Container maxWidth="xl">
+      <Box sx={{ py: 4 }}>
+        {renderHeader()}
+        {renderSummaryCards()}
+        {renderFilters()}
+        {renderPropertyTable()}
+        {renderFooter()}
+      </Box>
     </Container>
   );
 };

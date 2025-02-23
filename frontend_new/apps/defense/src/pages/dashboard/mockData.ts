@@ -1,5 +1,5 @@
 import { DashboardData } from './types';
-import { categoryChartColors } from '../../styles/defense-specific-styles';
+import { categoryChartColors } from '../../styles/theme';
 
 export const mockDashboardData: DashboardData = {
   propertyStats: {

@@ -15,6 +15,7 @@ export const DEFENSE_ROUTES = {
   UNIT_INVENTORY: '/defense/unit-inventory',
   TRANSFERS: '/defense/transfers',
   MAINTENANCE: '/defense/maintenance',
+  QR_MANAGEMENT: '/defense/qr',
   REPORTS: '/defense/reports',
   USERS: '/defense/users',
   SETTINGS: '/defense/settings',

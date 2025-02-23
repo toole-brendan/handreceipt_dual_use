@@ -104,6 +104,11 @@ export const DEFENSE_NAV_ITEMS: NavItemConfig[] = [
     icon: <BuildIcon />,
   },
   {
+    to: '/defense/qr',
+    text: 'QR Management',
+    icon: <QrCodeIcon />,
+  },
+  {
     to: '/defense/reports',
     text: 'Reports',
     icon: <AssessmentIcon />,

@@ -120,8 +120,12 @@ export const MaintenancePage: React.FC = () => {
       }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <Typography variant="h4" sx={{ fontWeight: 600 }}>
-              Maintenance
+            <Typography variant="h4" sx={{ 
+              fontFamily: 'Poppins, sans-serif',
+              fontSize: '1.75rem',
+              textTransform: 'uppercase'
+            }}>
+              MAINTENANCE
             </Typography>
             <Tooltip title="Last synced with blockchain 3 minutes ago">
               <IconButton size="small">
@@ -129,9 +133,6 @@ export const MaintenancePage: React.FC = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          <Typography variant="body2" color="text.secondary">
-            CPT John Doe, Company Commander, F CO - 2-506, 3BCT, 101st Airborne
-          </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
