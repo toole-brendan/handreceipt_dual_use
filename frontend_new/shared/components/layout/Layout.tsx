@@ -5,8 +5,13 @@ import { useThemeStyles } from '../../contexts';
 import { Sidebar } from './index';
 import { Header } from './index';
 import { AppBarContent } from './mui/AppBarContent';
+import { NavItemConfig } from '@shared/types/navigation/base';
 
-const Layout: React.FC = () => {
+interface LayoutProps {
+  navItems: NavItemConfig[];
+}
+
+const Layout: React.FC<LayoutProps> = ({ navItems }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -67,6 +72,7 @@ const Layout: React.FC = () => {
         isMobile={isMobile}
         open={mobileOpen}
         onClose={handleDrawerToggle}
+        navItems={navItems}
       />
       {renderMainContent()}
     </Box>

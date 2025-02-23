@@ -9,10 +9,11 @@ import { ThemeProvider } from '@shared/contexts/ThemeContext';
 import { ProtectedRoute } from '@shared/components/common';
 import { LoginPage } from '@shared/components/auth';
 import ErrorBoundary from '@shared/components/feedback/ErrorBoundary';
-import { DefenseLayout } from '../components/layout';
+import { Layout } from '@shared/components/layout';
 import { defenseTheme } from '../styles/theme';
 import { store } from '../store';
 import { DEFENSE_ROUTES } from '../constants/routes';
+import { DEFENSE_NAV_ITEMS } from '@shared/components/common/navigation-config';
 
 // Lazy load pages
 const DashboardPage = React.lazy(() => import('../pages/dashboard'));
@@ -67,7 +68,7 @@ const router = createBrowserRouter([
     path: DEFENSE_ROUTES.DEFENSE,
     element: (
       <ProtectedRoute>
-        <DefenseLayout />
+        <Layout navItems={DEFENSE_NAV_ITEMS} />
       </ProtectedRoute>
     ),
     errorElement: <RouteErrorElement />,

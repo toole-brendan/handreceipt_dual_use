@@ -20,10 +20,6 @@ import {
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { RootState, BaseState } from '../../store';
-import {
-  CIVILIAN_NAV_ITEMS,
-  HELP_NAV_ITEMS,
-} from '../common/navigation-config';
 import { NavItemConfig } from '@shared/types/navigation/base';
 
 const DRAWER_WIDTH = 240;
@@ -33,6 +29,7 @@ interface SidebarProps {
   isMobile: boolean;
   open?: boolean;
   onClose?: () => void;
+  navItems: NavItemConfig[];
 }
 
 interface UserState {
@@ -96,13 +93,17 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }
     fontSize: '1rem',
     fontWeight: 500,
     letterSpacing: '0.02em',
-    fontFamily: '"Helvetica Neue", sans-serif',
+    fontFamily: '"Inter", sans-serif',
   },
   '& .MuiListItemText-secondary': {
     fontSize: '1rem',
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: '0.02em',
-    fontFamily: '"Helvetica Neue", sans-serif',
+    fontFamily: '"Inter", sans-serif',
+  },
+  '&.logout-button .MuiListItemText-primary': {
+    textAlign: 'center',
+    marginLeft: '-40px', // Offset the icon width to center text
   },
 }));
 
@@ -121,7 +122,7 @@ const ExpandIcon = styled(ChevronRightIcon, {
   opacity: 0.7,
 }));
 
-const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose, navItems }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -133,6 +134,11 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose }) => {
     navigate(item.to);
   };
 
+  const handleLogout = () => {
+    // TODO: Implement actual logout logic here
+    navigate('/login');
+  };
+
   const isItemSelected = (path: string) => location.pathname === path;
   const roleLabel = 'Navigation';
 
@@ -141,10 +147,15 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose }) => {
       <Box
         component="nav"
         aria-label={`${roleLabel} Sidebar`}
-        sx={{ width: '100%' }}
+        sx={{ 
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
-        <List>
-          {CIVILIAN_NAV_ITEMS.map((item) => (
+        <List sx={{ flex: 1 }}>
+          {navItems.map((item) => (
             <ListItem key={item.to} disablePadding>
               <StyledListItemButton
                 selected={isItemSelected(item.to)}
@@ -164,27 +175,21 @@ const Sidebar: React.FC<SidebarProps> = ({ variant, open = true, onClose }) => {
               </StyledListItemButton>
             </ListItem>
           ))}
-          <StyledDivider />
-          {HELP_NAV_ITEMS.map((item) => (
-            <ListItem key={item.to} disablePadding>
-              <StyledListItemButton
-                selected={isItemSelected(item.to)}
-                onClick={() => navigate(item.to)}
-                aria-current={isItemSelected(item.to) ? 'page' : undefined}
-                aria-describedby={item.description ? `nav-desc-${item.to.replace(/\//g, '-')}` : undefined}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText 
-                  primary={item.text}
-                  secondary={item.description && (
-                    <span id={`nav-desc-${item.to.replace(/\//g, '-')}`} className="sr-only">
-                      {item.description}
-                    </span>
-                  )}
-                />
-              </StyledListItemButton>
-            </ListItem>
-          ))}
+        </List>
+        <StyledDivider />
+        <List>
+          <ListItem disablePadding>
+            <StyledListItemButton
+              onClick={handleLogout}
+              aria-label="Logout from application"
+              className="logout-button"
+            >
+              <ListItemIcon>
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText primary="Logout" />
+            </StyledListItemButton>
+          </ListItem>
         </List>
       </Box>
     </>
