@@ -1,487 +1,211 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { Box, Button, Typography } from '@mui/material';
+import { Add } from '@mui/icons-material';
+import { PaymentsSummary } from '../../components/payments/PaymentsSummary';
+import { PaymentsFilters } from '../../components/payments/PaymentsFilters';
+import { PaymentsTable } from '../../components/payments/PaymentsTable';
+import { PaymentDetailsModal } from '../../components/payments/PaymentDetailsModal';
+import { InitiatePaymentModal } from '../../components/payments/InitiatePaymentModal';
+import { PaymentsAnalytics } from '../../components/payments/PaymentsAnalytics';
 import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Stack,
-  Button,
-  IconButton,
-  Tooltip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  LinearProgress,
-  TextField,
-  InputAdornment,
-  Tabs,
-  Tab,
-} from '@mui/material';
-import {
-  AccountBalanceWallet as WalletIcon,
-  Send as SendIcon,
-  QrCode as QrCodeIcon,
-  Receipt as ReceiptIcon,
-  SwapHoriz as SwapIcon,
-  Assessment as MetricsIcon,
-  Eco as SustainabilityIcon,
-  Security as SecurityIcon,
-  AccountBalance as BankIcon,
-  Gavel as DisputeIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
-import { CivilianChip } from '../../components/common/CivilianChip';
+  PaymentFilters,
+  PaymentTransaction,
+  PaymentStats,
+  InitiatePaymentData,
+  PaymentChartData,
+  PaymentStatusDistribution,
+  TopEntity,
+} from '@shared/types/payments';
 
-// Mock data for wallet and payments
-const mockWalletData = {
-  balances: {
-    usdc: 148950.50,
-    escrowed: 52000,
-    pendingInbound: 23500,
-  },
-  transactions: [
-    {
-      id: "TX001",
-      date: "2024-02-22",
-      type: "farm_payment",
-      description: "Quality Bonus to Finca La Palma",
-      amount: 5000,
-      status: "completed",
-      confirmations: 12,
-      contractId: "CON001",
-    },
-    {
-      id: "TX002",
-      date: "2024-02-21",
-      type: "customer_payment",
-      description: "Payment from Gorilla Roasters",
-      amount: 15000,
-      status: "pending",
-      confirmations: 3,
-      contractId: "CON002",
-    },
-    {
-      id: "TX003",
-      date: "2024-02-20",
-      type: "sustainability",
-      description: "Carbon Credits Q1 2024",
-      amount: 2300,
-      status: "completed",
-      confirmations: 24,
-      contractId: "CON003",
-    },
-  ],
-  recurringPayments: [
-    {
-      id: "REC001",
-      recipient: "Colombian Co-op",
-      amount: 5000,
-      frequency: "monthly",
-      nextDate: "2024-03-01",
-      status: "active",
-    },
-    {
-      id: "REC002",
-      recipient: "Ethiopian Farmers Union",
-      amount: 7500,
-      frequency: "quarterly",
-      nextDate: "2024-04-01",
-      status: "active",
-    },
-  ],
-  sustainabilityMetrics: {
-    carbonCredits: 2300,
-    waterSavings: 450,
-    certifications: [
-      { name: "Fair Trade", status: "verified", lastAudit: "2024-01-15" },
-      { name: "Organic", status: "verified", lastAudit: "2024-01-20" },
-      { name: "Rainforest Alliance", status: "pending", lastAudit: "2024-02-01" },
-    ],
-  },
-  escrowDetails: [
-    {
-      id: "ESC001",
-      description: "Yirgacheffe Lot #23",
-      amount: 10000,
-      releaseDate: "2024-06-30",
-      progress: 65,
-      conditions: ["Quality Score > 85", "Moisture < 12%"],
-    },
-  ],
-  pendingApprovals: [
-    {
-      id: "APP001",
-      type: "farm_advance",
-      amount: 20000,
-      recipient: "Finca Verde",
-      signatures: 2,
-      requiredSignatures: 3,
-    },
-  ],
+// Mock data - Replace with actual API calls
+const mockStats: PaymentStats = {
+  totalIncoming: 10000,
+  totalOutgoing: 5000,
+  pendingCount: 3,
+  walletBalance: 2500,
 };
 
-const getStatusColor = (status: string): "success" | "warning" | "error" | "info" => {
-  switch (status) {
-    case "completed":
-      return "success";
-    case "pending":
-      return "warning";
-    case "failed":
-      return "error";
-    default:
-      return "info";
-  }
-};
+const mockPayments: PaymentTransaction[] = [
+  {
+    id: '1',
+    type: 'INCOMING',
+    amount: 1000,
+    status: 'COMPLETED',
+    blockchainStatus: 'CONFIRMED',
+    recipientId: '1',
+    recipientName: 'Your Company',
+    senderId: '2',
+    senderName: 'Café Delight',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    orderNumber: '12345',
+    transactionHash: '0x123...',
+    blockNumber: 12345,
+    confirmations: 10,
+  },
+  // Add more mock payments...
+];
+
+const mockRecipients = [
+  { id: '1', name: 'BeanFarm Co.' },
+  { id: '2', name: 'Café Delight' },
+];
+
+const mockOrders = [
+  { id: '1', number: '12345' },
+  { id: '2', number: '12346' },
+];
+
+const mockTimelineData: PaymentChartData[] = [
+  {
+    date: '2024-01-01',
+    incoming: 1000,
+    outgoing: 500,
+  },
+  // Add more mock timeline data...
+];
+
+const mockStatusDistribution: PaymentStatusDistribution[] = [
+  { status: 'COMPLETED', count: 10, amount: 5000 },
+  { status: 'PENDING', count: 3, amount: 1500 },
+  { status: 'FAILED', count: 1, amount: 500 },
+];
+
+const mockTopEntities: TopEntity[] = [
+  {
+    id: '1',
+    name: 'BeanFarm Co.',
+    totalAmount: 5000,
+    transactionCount: 5,
+  },
+  // Add more mock entities...
+];
 
 const PaymentsPage: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null);
+  // State
+  const [filters, setFilters] = useState<PaymentFilters>({});
+  const [selectedPayment, setSelectedPayment] = useState<PaymentTransaction | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [initiateModalOpen, setInitiateModalOpen] = useState(false);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setSelectedTab(newValue);
+  // Handlers
+  const handleFiltersChange = useCallback((newFilters: PaymentFilters) => {
+    setFilters(newFilters);
+    setPage(0);
+  }, []);
+
+  const handleFiltersReset = useCallback(() => {
+    setFilters({});
+    setPage(0);
+  }, []);
+
+  const handleViewDetails = useCallback((payment: PaymentTransaction) => {
+    setSelectedPayment(payment);
+    setDetailsModalOpen(true);
+  }, []);
+
+  const handleViewBlockchain = useCallback((payment: PaymentTransaction) => {
+    if (payment.transactionHash) {
+      window.open(`https://explorer.blockchain.com/tx/${payment.transactionHash}`, '_blank');
+    }
+  }, []);
+
+  const handleInitiatePayment = async (data: InitiatePaymentData) => {
+    // TODO: Implement payment initiation
+    console.log('Initiating payment:', data);
+  };
+
+  const handleDownloadReceipt = (payment: PaymentTransaction) => {
+    // TODO: Implement receipt download
+    console.log('Downloading receipt for:', payment.id);
   };
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Top Stats Bar */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <WalletIcon color="primary" />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">USDC Balance</Typography>
-                  <Typography variant="h4">
-                    ${mockWalletData.balances.usdc.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <SecurityIcon color="primary" />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">In Escrow</Typography>
-                  <Typography variant="h6">
-                    ${mockWalletData.balances.escrowed.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <BankIcon color="primary" />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Pending Inbound</Typography>
-                  <Typography variant="h6">
-                    ${mockWalletData.balances.pendingInbound.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Payments
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Manage your incoming and outgoing payments, track payment statuses, and verify transactions on the blockchain.
+        </Typography>
+      </Box>
 
-      {/* Action Bar */}
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+      {/* Summary Cards */}
+      <PaymentsSummary stats={mockStats} />
+
+      {/* Filters and Actions */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ flex: 1 }}>
+          <PaymentsFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onReset={handleFiltersReset}
+          />
+        </Box>
         <Button
           variant="contained"
-          startIcon={<SendIcon />}
-          color="primary"
+          startIcon={<Add />}
+          onClick={() => setInitiateModalOpen(true)}
+          sx={{ ml: 2, alignSelf: 'flex-start' }}
         >
-          Send USDC
+          Initiate Payment
         </Button>
-        <Button
-          variant="outlined"
-          startIcon={<ReceiptIcon />}
-        >
-          Request Payment
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<SwapIcon />}
-        >
-          Convert USDC
-        </Button>
-        <IconButton>
-          <Tooltip title="Scan QR Code">
-            <QrCodeIcon />
-          </Tooltip>
-        </IconButton>
-      </Stack>
-
-      {/* Main Content */}
-      <Grid container spacing={3}>
-        {/* Left Column - Transactions & Recurring */}
-        <Grid item xs={12} md={4}>
-          <Stack spacing={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Recent Transactions</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Description</TableCell>
-                        <TableCell align="right">Amount</TableCell>
-                        <TableCell>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {mockWalletData.transactions.map((tx) => (
-                        <TableRow
-                          key={tx.id}
-                          hover
-                          selected={selectedTransaction === tx.id}
-                          onClick={() => setSelectedTransaction(tx.id)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <TableCell>{tx.date}</TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{tx.description}</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            ${tx.amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <CivilianChip
-                              label={tx.status}
-                              size="small"
-                              color={getStatusColor(tx.status)}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Recurring Payments</Typography>
-                <Stack spacing={2}>
-                  {mockWalletData.recurringPayments.map((payment) => (
-                    <Box
-                      key={payment.id}
-                      sx={{
-                        p: 2,
-                        bgcolor: 'background.default',
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle2">{payment.recipient}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        ${payment.amount.toLocaleString()} {payment.frequency}
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        Next payment: {payment.nextDate}
-                      </Typography>
-                      <CivilianChip
-                        label={payment.status}
-                        size="small"
-                        color="success"
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-
-        {/* Center Column - Sustainability & Escrow */}
-        <Grid item xs={12} md={4}>
-          <Stack spacing={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Sustainability Rewards</Typography>
-                <Stack spacing={2}>
-                  <Box>
-                    <Typography variant="subtitle2">Carbon Credits 2024</Typography>
-                    <Typography variant="h5" color="success.main">
-                      +${mockWalletData.sustainabilityMetrics.carbonCredits.toLocaleString()} USDC
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2">Water Conservation Bonus</Typography>
-                    <Typography variant="h5" color="success.main">
-                      +${mockWalletData.sustainabilityMetrics.waterSavings.toLocaleString()} USDC
-                    </Typography>
-                  </Box>
-                  <Stack direction="row" spacing={1}>
-                    {mockWalletData.sustainabilityMetrics.certifications.map((cert) => (
-                      <CivilianChip
-                        key={cert.name}
-                        label={cert.name}
-                        size="small"
-                        color={cert.status === 'verified' ? 'success' : 'warning'}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Escrow Manager</Typography>
-                <Stack spacing={2}>
-                  {mockWalletData.escrowDetails.map((escrow) => (
-                    <Box
-                      key={escrow.id}
-                      sx={{
-                        p: 2,
-                        bgcolor: 'background.default',
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle2">{escrow.description}</Typography>
-                      <Typography variant="h6">
-                        ${escrow.amount.toLocaleString()} USDC
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        Release: {escrow.releaseDate}
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={escrow.progress}
-                        sx={{ mt: 1 }}
-                      />
-                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                        {escrow.conditions.map((condition, index) => (
-                          <CivilianChip
-                            key={index}
-                            label={condition}
-                            size="small"
-                            color="info"
-                          />
-                        ))}
-                      </Stack>
-                    </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-
-        {/* Right Column - Approvals & Security */}
-        <Grid item xs={12} md={4}>
-          <Stack spacing={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Pending Approvals</Typography>
-                <Stack spacing={2}>
-                  {mockWalletData.pendingApprovals.map((approval) => (
-                    <Box
-                      key={approval.id}
-                      sx={{
-                        p: 2,
-                        bgcolor: 'background.default',
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle2">{approval.type}</Typography>
-                      <Typography variant="h6">
-                        ${approval.amount.toLocaleString()} USDC
-                      </Typography>
-                      <Typography variant="body2">
-                        To: {approval.recipient}
-                      </Typography>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                        <Typography variant="caption">
-                          Signatures: {approval.signatures}/{approval.requiredSignatures}
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={(approval.signatures / approval.requiredSignatures) * 100}
-                          sx={{ width: 100 }}
-                        />
-                      </Stack>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        sx={{ mt: 1 }}
-                      >
-                        Sign & Approve
-                      </Button>
-                    </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Quick Actions</Typography>
-                <Stack spacing={2}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<ReceiptIcon />}
-                    fullWidth
-                  >
-                    Generate Invoice
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<DisputeIcon />}
-                    fullWidth
-                  >
-                    Open Dispute
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<MetricsIcon />}
-                    fullWidth
-                  >
-                    Export Report
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-      </Grid>
-
-      {/* Floating Action Button */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-        }}
-      >
-        <Tooltip title="Quick Pay">
-          <IconButton
-            color="primary"
-            sx={{
-              bgcolor: 'background.paper',
-              boxShadow: 2,
-              '&:hover': { bgcolor: 'background.paper' },
-            }}
-          >
-            <QrCodeIcon />
-          </IconButton>
-        </Tooltip>
       </Box>
+
+      {/* Payments Table */}
+      <PaymentsTable
+        payments={mockPayments}
+        onViewDetails={handleViewDetails}
+        onViewBlockchain={handleViewBlockchain}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        totalCount={mockPayments.length}
+        onPageChange={setPage}
+        onRowsPerPageChange={setRowsPerPage}
+      />
+
+      {/* Analytics */}
+      <PaymentsAnalytics
+        expanded={analyticsExpanded}
+        onToggle={() => setAnalyticsExpanded(!analyticsExpanded)}
+        timelineData={mockTimelineData}
+        statusDistribution={mockStatusDistribution}
+        topEntities={mockTopEntities}
+      />
+
+      {/* Modals */}
+      {selectedPayment && (
+        <PaymentDetailsModal
+          open={detailsModalOpen}
+          onClose={() => setDetailsModalOpen(false)}
+          payment={selectedPayment}
+          onViewBlockchain={handleViewBlockchain}
+          onDownloadReceipt={handleDownloadReceipt}
+          smartContract={
+            selectedPayment.type === 'OUTGOING'
+              ? {
+                  address: '0x456...',
+                  condition: 'Payment on Delivery',
+                  status: 'Active',
+                  timeout: 7,
+                }
+              : undefined
+          }
+        />
+      )}
+
+      <InitiatePaymentModal
+        open={initiateModalOpen}
+        onClose={() => setInitiateModalOpen(false)}
+        onSubmit={handleInitiatePayment}
+        recipients={mockRecipients}
+        orders={mockOrders}
+      />
     </Box>
   );
 };

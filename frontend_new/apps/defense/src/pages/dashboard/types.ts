@@ -21,7 +21,6 @@ export interface MetricsStats {
 
 export interface KeyMetricsCardsProps {
   stats: MetricsStats;
-  styles: DashboardStyles;
 }
 
 export interface CategoryData {
@@ -43,13 +42,7 @@ export interface InventoryStats {
 
 export interface UnitInventoryOverviewProps {
   stats: InventoryStats;
-  styles: DashboardStyles;
-  chartColors: {
-    weapons: string;
-    vehicles: string;
-    communications: string;
-    other: string;
-  };
+  onViewAll: () => void;
 }
 
 export interface Activity {
@@ -66,7 +59,6 @@ export interface Activity {
 
 export interface RecentActivityFeedProps {
   activities: Activity[];
-  styles: DashboardStyles;
 }
 
 export interface Notification {
@@ -78,7 +70,6 @@ export interface Notification {
 
 export interface NotificationsPanelProps {
   notifications: Notification[];
-  styles: DashboardStyles;
 }
 
 export interface TransferItem {
@@ -108,17 +99,57 @@ export interface ActionableStats {
 
 export interface ActionableTasksProps {
   stats: ActionableStats;
-  styles: DashboardStyles;
 }
 
 export interface PersonnelStats {
-  total: number;
-  available: number;
-  deployed: number;
-  onLeave: number;
+  totalPersonnel: number;
+  fullyEquipped: number;
+  partiallyEquipped: number;
+  overdueItems: number;
 }
 
 export interface PersonnelOverviewProps {
   stats: PersonnelStats;
-  styles: DashboardStyles;
+}
+
+export interface PropertyStats {
+  totalItems: number;
+  serviceableItems: number;
+  maintenanceNeeded: number;
+  pendingTransfers: {
+    count: number;
+    items: Array<{
+      id: string;
+      itemName: string;
+      from: string;
+      to: string;
+    }>;
+  };
+  maintenanceRequests: {
+    count: number;
+    items: Array<{
+      id: string;
+      itemName: string;
+      type: string;
+      priority: 'high' | 'medium' | 'low';
+    }>;
+  };
+  overdueItems: number;
+  categories: Array<{
+    name: string;
+    value: number;
+    count: number;
+  }>;
+  criticalItems: Array<{
+    name: string;
+    issue: string;
+    status: 'critical' | 'warning';
+  }>;
+}
+
+export interface DashboardData {
+  propertyStats: PropertyStats;
+  personnelStats: PersonnelStats;
+  activities: Activity[];
+  notifications: Notification[];
 } 

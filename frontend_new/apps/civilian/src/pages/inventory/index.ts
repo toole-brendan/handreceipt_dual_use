@@ -1,1 +1,1 @@
-export { InventoryPage } from './InventoryPage';
+export { InventoryPage } from './index.tsx';

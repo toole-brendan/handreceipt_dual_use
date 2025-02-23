@@ -90,13 +90,13 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }: { theme: Theme }
     transition: theme.transitions.create('color'),
   },
   '& .MuiListItemText-primary': {
-    fontSize: '1rem',
+    fontSize: '0.875rem',
     fontWeight: 500,
     letterSpacing: '0.02em',
     fontFamily: '"Inter", sans-serif',
   },
   '& .MuiListItemText-secondary': {
-    fontSize: '1rem',
+    fontSize: '0.875rem',
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: '0.02em',
     fontFamily: '"Inter", sans-serif',

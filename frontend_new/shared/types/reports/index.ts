@@ -47,3 +47,100 @@ export interface ReportTableProps {
   /** Whether to show pagination */
   showPagination?: boolean;
 }
+
+export interface ReportDateRange {
+  startDate: string;
+  endDate: string;
+}
+
+export interface ReportSummaryStats {
+  totalSales: number;
+  totalShipments: number;
+  totalPayments: number;
+  totalBlockchainTransactions: number;
+}
+
+export interface SalesData {
+  date: string;
+  revenue: number;
+  quantity: number;
+}
+
+export interface TopSellingProduct {
+  id: string;
+  name: string;
+  revenue: number;
+  quantity: number;
+}
+
+export interface InventoryDistribution {
+  name: string;
+  quantity: number;
+}
+
+export interface LowStockItem {
+  id: string;
+  name: string;
+  currentStock: number;
+  minThreshold: number;
+}
+
+export interface ShipmentRoute {
+  id: string;
+  origin: string;
+  destination: string;
+  distance: number;
+  time: number;
+}
+
+export interface RecentShipment {
+  id: string;
+  productName: string;
+  quantity: number;
+  origin: string;
+  destination: string;
+  status: string;
+  date: string;
+}
+
+export interface PaymentStatus {
+  status: string;
+  count: number;
+  amount: number;
+}
+
+export interface OverduePayment {
+  id: string;
+  customerName: string;
+  amount: number;
+  dueDate: string;
+  daysOverdue: number;
+}
+
+export interface BlockchainTransaction {
+  id: string;
+  type: string;
+  status: string;
+  timestamp: string;
+  hash: string;
+}
+
+export interface TransactionVolume {
+  date: string;
+  count: number;
+}
+
+export type TimeGranularity = 'daily' | 'weekly' | 'monthly';
+export type ValueMetric = 'revenue' | 'quantity';
+export type DistributionType = 'category' | 'location';
+export type ShipmentType = 'inbound' | 'outbound';
+export type PaymentType = 'incoming' | 'outgoing';
+
+export interface ReportFilters {
+  dateRange: ReportDateRange;
+  timeGranularity: TimeGranularity;
+  valueMetric: ValueMetric;
+  distributionType: DistributionType;
+  shipmentType: ShipmentType;
+  paymentType: PaymentType;
+}

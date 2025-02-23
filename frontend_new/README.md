@@ -89,6 +89,161 @@ Each application in `apps/` follows a similar structure:
 - `src/store/`: App-specific store configuration
 - `src/types/`: App-specific type definitions
 
+## Routing Architecture
+
+### Overview
+
+The application uses React Router v6 with a nested routing structure. There are two main applications (civilian and defense) with shared authentication and protected routes.
+
+### Route Structure
+
+```
+/                           # Root redirect to login
+├── /login                  # Login page with version selection
+├── /civilian              # Civilian application routes
+│   ├── /dashboard         # Dashboard page
+│   ├── /inventory         # Inventory management
+│   ├── /orders           # Order processing
+│   ├── /supply-chain     # Supply chain operations
+│   ├── /contracts        # Contract management
+│   ├── /qr              # QR code management
+│   ├── /reports         # Reporting
+│   └── /settings        # Settings
+└── /defense              # Defense application routes
+    ├── /dashboard        # Military dashboard
+    ├── /property        # Property book
+    ├── /transfers       # Transfer management
+    └── ... (other military routes)
+```
+
+### Route Configuration
+
+1. **Route Constants**
+   ```typescript
+   // constants/routes.ts
+   export const CIVILIAN_ROUTES = {
+     ROOT: '/',
+     LOGIN: '/login',
+     CIVILIAN: '/civilian',
+     DASHBOARD: '/civilian/dashboard',
+     // ... other routes
+   };
+   ```
+
+2. **Router Setup**
+   ```typescript
+   // App.tsx
+   const router = createBrowserRouter([
+     {
+       path: CIVILIAN_ROUTES.ROOT,
+       element: <Navigate to={CIVILIAN_ROUTES.LOGIN} replace />,
+     },
+     {
+       path: CIVILIAN_ROUTES.LOGIN,
+       element: <LoginPage />,
+     },
+     {
+       path: CIVILIAN_ROUTES.CIVILIAN,
+       element: (
+         <ProtectedRoute>
+           <Layout />
+         </ProtectedRoute>
+       ),
+       children: [
+         // Nested routes here
+       ],
+     },
+   ]);
+   ```
+
+### Adding a New Page
+
+1. **Create the Page Component**
+   ```typescript
+   // pages/new-feature/NewFeaturePage.tsx
+   const NewFeaturePage: React.FC = () => {
+     return <div>New Feature Content</div>;
+   };
+   export default NewFeaturePage;
+   ```
+
+2. **Add Route Constants**
+   ```typescript
+   // constants/routes.ts
+   export const CIVILIAN_ROUTES = {
+     // ... existing routes
+     NEW_FEATURE: '/civilian/new-feature',
+   };
+   ```
+
+3. **Add Router Configuration**
+   ```typescript
+   // App.tsx
+   {
+     path: 'new-feature/*',
+     element: <NewFeaturePage />,
+   }
+   ```
+
+4. **Add Navigation Item**
+   ```typescript
+   // navigation-config.tsx
+   export const CIVILIAN_NAV_ITEMS: NavItemConfig[] = [
+     // ... existing items
+     {
+       to: '/civilian/new-feature',
+       text: 'New Feature',
+       icon: <FeatureIcon />
+     }
+   ];
+   ```
+
+### Navigation Components
+
+1. **Sidebar Navigation**
+   - Uses `NavItemConfig` for type-safe navigation items
+   - Automatically handles active states
+   - Supports nested navigation items
+
+2. **Protected Routes**
+   - Wraps authenticated routes
+   - Handles version-specific redirects
+   - Manages loading states
+
+### Common Routing Patterns
+
+1. **Version Selection**
+   - Login page determines application version
+   - Redirects to appropriate root route
+   - Maintains version context throughout session
+
+2. **Nested Routes**
+   - Parent routes define layouts
+   - Child routes render in `<Outlet>`
+   - Supports route-specific breadcrumbs
+
+3. **Route Guards**
+   - `ProtectedRoute` component checks authentication
+   - Role-based access control
+   - Version-specific restrictions
+
+### Best Practices
+
+1. **Route Organization**
+   - Keep routes centralized in constants
+   - Use typed route definitions
+   - Maintain consistent naming conventions
+
+2. **Navigation**
+   - Always use route constants
+   - Implement proper active state handling
+   - Support breadcrumb navigation
+
+3. **Code Splitting**
+   - Lazy load page components
+   - Use Suspense boundaries
+   - Implement loading states
+
 ## Development Guidelines
 
 ### Code Style

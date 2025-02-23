@@ -107,14 +107,14 @@ const StyledListItemButton = styled(ListItemButton, {
   '& .MuiListItemText-primary': {
     fontSize: '0.875rem',
     fontWeight: 500,
-    letterSpacing: '-0.01em',
-    fontFamily: '"Helvetica Neue", sans-serif',
+    letterSpacing: '0.02em',
+    fontFamily: '"Inter", sans-serif',
   },
   '& .MuiListItemText-secondary': {
-    fontSize: '0.75rem',
+    fontSize: '0.875rem',
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: '0.02em',
-    fontFamily: '"Helvetica Neue", sans-serif',
+    fontFamily: '"Inter", sans-serif',
     marginTop: 2,
   },
 }));

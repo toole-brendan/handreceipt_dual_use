@@ -8,6 +8,8 @@ export const CIVILIAN_ROUTES = {
   SUPPLY_CHAIN: '/civilian/supply-chain',
   CONTRACTS: '/civilian/contracts',
   WALLET: '/civilian/wallet',
+  QR_MANAGEMENT: '/civilian/qr',
+  SHIPMENTS: '/civilian/shipments',
   REPORTS: '/civilian/reports',
   USERS: '/civilian/users',
   SETTINGS: '/civilian/settings',

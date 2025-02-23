@@ -1,0 +1,1 @@
+export { default, ShipmentsPage } from './ShipmentsPage'; 
